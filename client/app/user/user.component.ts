@@ -17,8 +17,8 @@ export class UserComponent implements OnInit {
     private _router: Router) { }
 
   ngOnInit() {
-    if (!this.user) {
-      let id = +this._routeParams.get('id');
+    if (!this.user && this._routeParams.get('id')){
+      let id = this._routeParams.get('id');
       this._userService.getUser(id)
         .subscribe(user => console.log(user));
     }
