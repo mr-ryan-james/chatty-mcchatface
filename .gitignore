@@ -1,4 +1,4 @@
 .vscode/
 node_modules/
 typings/
-.DS_Store/
+.DS_Store

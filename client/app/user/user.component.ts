@@ -11,6 +11,8 @@ import { User, UserService } from './user.service';
 export class UserComponent implements OnInit {
   @Input() user: User;
 
+ errorMessage: string;
+
   constructor(
     private _userService: UserService,
     private _routeParams: RouteParams,
@@ -22,6 +24,19 @@ export class UserComponent implements OnInit {
       this._userService.getUser(id)
         .subscribe(user => console.log(user));
     }
+  }
+  
+  loginClicked(email, firstName) {
+    let user = new User();
+    user.email = email;
+    user.firstName = firstName;
+    
+    this._userService.loginUser(user)
+                    .subscribe(
+                       user  => {
+                         console.log(user);
+                       },
+                       error =>  this.errorMessage = <any>error);
   }
 
 //   private _gotoCharacters() {

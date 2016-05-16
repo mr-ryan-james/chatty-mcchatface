@@ -57,7 +57,7 @@
 
     function animateFrame() {
         ctx.save();
-        doStyle();
+        runShiz();
         ctx.restore();
         window.requestAnimationFrame(animateFrame)
     }
