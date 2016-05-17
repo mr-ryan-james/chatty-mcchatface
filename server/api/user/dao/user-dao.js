@@ -29,6 +29,17 @@ userSchema.statics.get = (id) => {
       });
 }
 
+userSchema.statics.getByEmail = (email) => {
+    return new Promise((resolve, reject) => {
+        User
+          .findOne({ 'email': email })
+          .exec((err, user) => {
+              err ? reject(err)
+                  : resolve(user);
+          });
+      });
+}
+
 userSchema.statics.createUser = (user) => {
     return new Promise((resolve, reject) => {
       if (!_.isObject(user))
@@ -57,6 +68,6 @@ userSchema.statics.deleteUser = (id) => {
     });
 }
 
-const User  = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

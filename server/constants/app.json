@@ -1,0 +1,4 @@
+{
+  "localhostDb": "mongodb://localhost/chatty-mcchatface",
+  "app_secret" : "dating is a dangerous game"
+}

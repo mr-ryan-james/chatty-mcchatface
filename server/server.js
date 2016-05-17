@@ -7,6 +7,7 @@ const http = require('http');
 const express = require('express');
 const RoutesConfig = require('./config/routes.conf');
 const DBConfig = require('./config/db.conf');
+const AuthConfig = require('./config/auth.conf.js')
 const Routes = require('./routes/index');
 
 const app = express();

@@ -34,6 +34,31 @@ module.exports = class UserController {
       });
   }
 
+  static loginUser(req, res) {
+    let email = req.body.email;
+    let password = req.body.password;
+
+    UserDAO
+      .getByEmail( email )
+      .then(user => {
+
+        user.verifyPassword(password, function (err, valid) {
+          if (err) {
+            throw err;
+          }
+
+          if (!valid) {
+            res.status(401).json("unathorized")
+          }
+
+          res.status(200).json(user)
+        });
+      })
+      .catch(error => {
+        res.status(400).json(error)
+      });
+  }
+
   static deleteUser(req, res) {
     let _id = req.params.id;
 

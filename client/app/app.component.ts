@@ -3,8 +3,11 @@ import { HTTP_PROVIDERS } from 'angular2/http';
 import { RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from 'angular2/router';
 import 'rxjs/Rx'; // load the full rxjs
 
-import { UserService } from './user/user.service';
-import { UserComponent } from './user/user.component';
+import { UserService } from './user/user.service.ts';
+import { ChatService } from './chat/chat.service.ts';
+import { UserRegisterComponent } from './user/user.register.component.ts';
+import { UserLoginComponent } from './user/user.login.component.ts';
+import { ChatComponent } from './chat/chat.main.component.ts';
 
 
 @Component({
@@ -18,10 +21,13 @@ import { UserComponent } from './user/user.component';
   providers: [
     HTTP_PROVIDERS,
     ROUTER_PROVIDERS,
-    UserService
+    UserService,
+    ChatService
   ]
 })
 @RouteConfig([
-  { path: '/', name: 'User', component: UserComponent, useAsDefault: true }
+  { path: '/register', name: 'Register', component: UserRegisterComponent, useAsDefault: true },
+  { path: '/login', name: 'Login', component: UserLoginComponent },
+  { path: '/mcchatface', name: 'Chat', component: ChatComponent }
 ])
 export class AppComponent { }

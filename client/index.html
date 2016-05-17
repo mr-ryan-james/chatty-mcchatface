@@ -4,68 +4,69 @@
 <!--[if (gte IE 10)|!(IE)]><!-->
 <html class="no-js" lang="en">
 <!--<![endif]-->
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title></title>
   <meta name="description" content="Chatty McChatface">
-  
-  <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
-  
+
+  <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+
   <link href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
-  <link href="css/theme-assets.min.css" rel="stylesheet" type="text/css">
-  <link href="css/logo-font.css" rel="stylesheet" type="text/css">
-  <link href="css/theme-colors-css/b-different-navy.min.css" rel="stylesheet" type="text/css">
- 
- 
+  <link href="/css/theme-assets.min.css" rel="stylesheet" type="text/css">
+  <link href="/css/logo-font.css" rel="stylesheet" type="text/css">
+  <link href="/css/theme-colors-css/b-different-navy.min.css" rel="stylesheet" type="text/css">
+
+
   <!-- IE required polyfills, in this exact order -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/es6-shim/0.35.0/es6-shim.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/systemjs/0.19.26/system-polyfills.js"></script>
   <script src="https://npmcdn.com/angular2/es6/dev/src/testing/shims_for_IE.js"></script>
 
   <!-- Angular polyfill required everywhere -->
-  <script src="https://code.angularjs.org/2.0.0-beta.15/angular2-polyfills.js"></script>
+  <script src="https://code.angularjs.org/2.0.0-beta.17/angular2-polyfills.js"></script>
 
   <script src="https://code.angularjs.org/tools/system.js"></script>
   <script src="https://code.angularjs.org/tools/typescript.js"></script>
-  <script src="https://code.angularjs.org/2.0.0-beta.15/Rx.js"></script>
-  <script src="https://code.angularjs.org/2.0.0-beta.15/angular2.dev.js"></script>
-  <script src="https://code.angularjs.org/2.0.0-beta.15/router.dev.js"></script>
-  <script src="https://code.angularjs.org/2.0.0-beta.15/http.dev.js"></script>
+  <script src="https://code.angularjs.org/2.0.0-beta.17/Rx.js"></script>
+  <script src="https://code.angularjs.org/2.0.0-beta.17/angular2.dev.js"></script>
+  <script src="https://code.angularjs.org/2.0.0-beta.17/router.dev.js"></script>
+  <script src="https://code.angularjs.org/2.0.0-beta.17/http.dev.js"></script>
 
   <script>
-      System.config({
+    System.config({
         transpiler: 'typescript', 
         typescriptOptions: { emitDecoratorMetadata: true }, 
         packages: {
           'app': {defaultExtension: 'ts'} 
         } 
       });
-    System.import('app/main')
+    System.import('/app/main.ts')
           .then(null, console.error.bind(console));
   </script>
 </head>
-<base href="/">
+<base href="/chatty">
+
 <body>
   <header class="header">
-  <div class="header-inner">
-    <div class="logo-brand logo-font">
-      <a href="index.html">
-      <span class="logo-brand-inner">
+    <div class="header-inner">
+      <div class="logo-brand logo-font">
+        <a href="/">
+          <span class="logo-brand-inner">
         <canvas id="logo-canvas" height="100" width="800">
           Chatty McChatface
         </canvas>
       </span>
-      </a>
+        </a>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
-    <chatty-mcchatface>
-      I... I feel things... I'm waking up....
-    </chatty-mcchatface>
-<script src="logo.js"></script>
+  <chatty-mcchatface>
+    I... I feel things... I'm waking up....
+  </chatty-mcchatface>
+  <script src="/logo.js"></script>
 
 </body>
-
 </html>

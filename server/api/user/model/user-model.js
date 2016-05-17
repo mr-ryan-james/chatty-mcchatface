@@ -8,6 +8,11 @@ const _userSchema = {
         required: true,
         trim: true
     },
+    lastName: {
+        type: String,
+        required: true,
+        trim: true
+    },
     email: {
         type: String,
         required: true,
@@ -22,4 +27,7 @@ const _userSchema = {
     }
 }
 
-module.exports = mongoose.Schema(_userSchema);
+let userSchema = mongoose.Schema(_userSchema);
+userSchema.plugin(require('mongoose-bcrypt'));
+
+module.exports = userSchema;
