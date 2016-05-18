@@ -3,6 +3,7 @@ import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from 'angular2/ro
 import { ChatCreateComponent } from './chat.create.component.ts';
 import { ChatListComponent } from './chat.list.component.ts';
 import { Chat, ChatService } from './chat.service.ts';
+import { AuthService } from '../auth.service.ts';
 
 
 @Component({
@@ -14,11 +15,15 @@ export class ChatComponent implements OnInit {
     errorMessage: string;
 
     constructor(
-        private _chatService: ChatService
+        private _chatService: ChatService,
+        private _authService: AuthService,
+        private _router: Router
     ) { }
 
     ngOnInit() {
-        //check for auth
+        if(!this._authService.getToken()){
+            this._router.navigate(['Login']);
+        }
     }
 
 }
