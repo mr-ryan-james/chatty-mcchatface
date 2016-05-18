@@ -1,6 +1,7 @@
 "use strict";
 
 const UserDAO = require('../dao/user-dao');
+const jwt = require('jsonwebtoken');
 
 module.exports = class UserController {
   static getAll(req, res) {
@@ -28,7 +29,9 @@ module.exports = class UserController {
 
     UserDAO
       .createUser(_user)
-      .then(user => res.status(201).json(user))
+      .then(user => {
+        res.status(201).json(user);
+      })
       .catch(error => {
         res.status(400).json(error)
       });

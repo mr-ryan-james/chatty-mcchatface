@@ -14,8 +14,7 @@ import { ChatComponent } from './chat/chat.main.component.ts';
   selector: 'chatty-mcchatface',
   templateUrl: 'app/app.component.html',
   styles: [`
-    nav ul {list-style-type: none;}
-    nav ul li {padding: 4px;cursor: pointer;display:inline-block}
+
   `],
   directives: [ROUTER_DIRECTIVES],
   providers: [

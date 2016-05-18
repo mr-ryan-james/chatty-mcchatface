@@ -1,0 +1,28 @@
+<div class="col-sm-pull-8 col-md-pull-9 col-sm-4 col-md-3 hidden-print" id="sidebar" role="complementary">
+    <div class="blog-summary-sidebar">
+        <aside class="widget">
+            <h5 class="widget-title"><span>Create new chat</span></h5>
+            <ul class="list-unstyled icon-list">
+                <li *ngFor="let user of users | async">
+                    <a (click)="addUser(user)">
+                        <span class="ti ti-plus ti-lg"></span> {{user.firstName}} {{user.lastName}}
+                    </a>
+                </li>
+            </ul>
+        </aside>
+    </div>
+    
+    <div class="blog-summary-sidebar" [hidden]="!selectedUsers">
+        <aside class="widget">
+            <h5 class="widget-title"><span>Selected users for new chat</span></h5>
+            <ul class="list-unstyled icon-list">
+                <li *ngFor="let user of selectedUsers">
+                    <a (click)="removeUser(user)">
+                        <span class="ti ti-minus ti-lg"></span> {{user.firstName}} {{user.lastName}}
+                    </a>
+                </li>
+            </ul>
+        </aside>
+    </div>
+    
+</div>
