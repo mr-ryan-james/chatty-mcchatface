@@ -53,8 +53,8 @@ export class ChatCreateComponent implements OnInit {
     }
 
     private findSelectedUserIndex(user) {
-        return this.selectedUsers.findIndex(function (user) {
-            return user.id === user.id;
+        return this.selectedUsers.findIndex(function (u) {
+            return u._id === user._id;
         });
     }
 

@@ -3,6 +3,7 @@ import { HTTP_PROVIDERS } from 'angular2/http';
 import { RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from 'angular2/router';
 import 'rxjs/Rx'; // load the full rxjs
 
+import { AuthService } from './auth.service.ts';
 import { UserService } from './user/user.service.ts';
 import { ChatService } from './chat/chat.service.ts';
 import { UserRegisterComponent } from './user/user.register.component.ts';
@@ -13,13 +14,12 @@ import { ChatComponent } from './chat/chat.main.component.ts';
 @Component({
   selector: 'chatty-mcchatface',
   templateUrl: 'app/app.component.html',
-  styles: [`
-
-  `],
+  styles: [``],
   directives: [ROUTER_DIRECTIVES],
   providers: [
     HTTP_PROVIDERS,
     ROUTER_PROVIDERS,
+    AuthService,
     UserService,
     ChatService
   ]

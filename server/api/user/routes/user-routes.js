@@ -1,12 +1,13 @@
 "use strict";
 
 const UserController = require('../controller/user-controller');
+const auth = require("../../../auth");
 
 module.exports = class UserRoutes {
     static init(router) {
       router
         .route('/api/user')
-        .get(UserController.getAll)
+        .get(auth.authorize, UserController.getAll)
         .post(UserController.createUser)
         .put(UserController.loginUser);
 

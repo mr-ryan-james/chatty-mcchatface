@@ -1,7 +1,7 @@
 "use strict";
 
 const UserDAO = require('../dao/user-dao');
-const jwt = require('jsonwebtoken');
+const auth = require("../../../auth/index.js");
 
 module.exports = class UserController {
   static getAll(req, res) {
@@ -30,7 +30,10 @@ module.exports = class UserController {
     UserDAO
       .createUser(_user)
       .then(user => {
-        res.status(201).json(user);
+        res.status(201).json({
+            user: user,
+            token: auth.generateToken(user._id.toString())
+          });
       })
       .catch(error => {
         res.status(400).json(error)
@@ -54,7 +57,10 @@ module.exports = class UserController {
             res.status(401).json("unathorized")
           }
 
-          res.status(200).json(user)
+          res.status(200).json({
+            user: user,
+            token: auth.generateToken(user._id.toString())
+          });
         });
       })
       .catch(error => {

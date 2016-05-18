@@ -3,6 +3,8 @@ import { Http, Response, Headers, RequestOptions } from 'angular2/http';
 import { Observable }       from 'rxjs/Observable';
 import { CONFIG } from '../config.ts';
 
+import { AuthService } from '../auth.service.ts';
+
 let userUrl = CONFIG.baseUrls.user;
 
 export class User {
@@ -15,14 +17,19 @@ export class User {
 
 @Injectable()
 export class UserService {
-  constructor(private _http: Http) { }
+  constructor(
+    private _http: Http, 
+    private _authService: AuthService
+    ) { 
+      var a = 1;
+    }
 
 
   registerUser(user: User) {
     return this.processUserRequest(user, "post")
   }
-  
-  loginUser(user: User){
+
+  loginUser(user: User) {
     return this.processUserRequest(user, "put");
   }
 
@@ -32,24 +39,16 @@ export class UserService {
     let options = new RequestOptions({ headers: headers });
 
     return this._http[httpMethod](userUrl, body, options)
-      .map((res: Response) => {
-        if (res.status < 200 || res.status >= 300) {
-          throw new Error('Response status: ' + res.status);
-        }
-        let body = res.json();
-        let user = new User();
-        user.id = body._id;
-        user.firstName = body.firstName;
-        user.lastName = body.lastName;
-        user.email = body.email;
-        return user;
-      })
+      .map((res: Response) => this.processUserResponse.apply(this, [res]))
       .catch(this.handleError);
   }
 
-  getUsers() : Observable<User[]> {
-    return this._http.get(userUrl)
-      .map((response: Response) => { 
+  getUsers(): Observable<User[]> {
+    let headers = new Headers({ 'x-access-token': this._authService.getToken() });
+    let options = new RequestOptions({ headers: headers });
+
+    return this._http.get(userUrl, options)
+      .map((response: Response) => {
         return <User[]>response.json()
       });
   }
@@ -57,6 +56,29 @@ export class UserService {
   getUser(id: number): Observable<User> {
     return this._http.get(`${userUrl}/${id}`)
       .map((response: Response) => <User>response.json().data);
+  }
+
+  private processUserResponse(res: Response) {
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error('Response status: ' + res.status);
+    }
+
+    let json = res.json();
+    let body = res.json().user;
+
+    this._authService.setToken(json.token);
+
+    return this.extractUser(body);
+  }
+
+  private extractUser(body: any) {
+    let user = new User();
+
+    user.id = body._id;
+    user.firstName = body.firstName;
+    user.lastName = body.lastName;
+    user.email = body.email;
+    return user;
   }
 
   private handleError(error: any) {
