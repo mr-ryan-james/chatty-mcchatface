@@ -26,8 +26,8 @@ import { ChatComponent } from './chat/chat.component.ts';
   ]
 })
 @RouteConfig([
-  { path: '/register', name: 'Register', component: UserRegisterComponent, useAsDefault: true },
+  { path: '/register', name: 'Register', component: UserRegisterComponent},
   { path: '/login', name: 'Login', component: UserLoginComponent },
-  { path: '/mcchatface/...', name: 'Chat', component: ChatComponent }
+  { path: '/mcchatface/...', name: 'Chat', component: ChatComponent, useAsDefault: true  }
 ])
 export class AppComponent { }

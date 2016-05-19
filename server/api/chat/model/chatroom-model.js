@@ -3,11 +3,12 @@
 const mongoose = require("mongoose"); 
 const chatSchema = require("./chat-model.js");
 const lastReadSchema = require("./lastread-model.js");
+const abbreviatedUserSchema = require("./abbreviated-user-model.js");
 
 const _chatRoomSchema = {
     title: String,
     chats: [chatSchema],
-    userIds: [Schema.Types.ObjectId],
+    users: [abbreviatedUserSchema],
     lastReads: [lastReadSchema],
     date: { 
         type: Date, 

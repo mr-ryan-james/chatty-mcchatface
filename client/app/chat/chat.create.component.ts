@@ -57,6 +57,9 @@ export class ChatCreateComponent implements OnInit {
     }
     
     createChat(){
+        
+        this._chatService.
+        
         this._router.navigate(['Room']);
     }
 

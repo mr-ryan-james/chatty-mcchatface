@@ -2,20 +2,10 @@
 
 const mongoose = require('mongoose');
 
+const abbreviatedUserSchema = require("./abbreviated-user-model.js");
 
 const _chatSchema = {
-    firstName: {
-        type: String,
-        required: true,
-    },
-    lastName: {
-        type: String,
-        required: true
-    },
-    userId: {
-        type: Schema.Types.ObjectId,
-        required: true
-    },
+    user: abbreviatedUserSchema,
     text:String,
     date: { 
         type: Date, 

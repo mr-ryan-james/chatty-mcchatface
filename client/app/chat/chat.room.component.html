@@ -1,4 +1,6 @@
-<div class="col-sm-8 col-md-9 col-sm-push-4 col-md-push-3 primary-column" role="main">
+<div class="container blog summary">
+    <div class="row">
+        <div class="col-sm-8 col-md-9 col-sm-push-4 col-md-push-3 primary-column" role="main">
 
             <article class="entry-summary">
                 <header class="entry-header">
@@ -73,4 +75,20 @@
             <!-- vertical spacer visible at xs viewport size -->
             <hr class="vertical-spacer vertical-spacer-sm  visible-xs">
         </div>
-        <!-- _________ END /.col-*-* :: containing primary content ______ -->
+
+        <div class="col-sm-pull-8 col-md-pull-9 col-sm-4 col-md-3 hidden-print" id="sidebar" role="complementary">
+            <div class="blog-summary-sidebar">
+                <aside class="widget">
+                    <h5 class="widget-title"><span>Users in chat</span></h5>
+                    <ul class="list-unstyled icon-list">
+                        <li *ngFor="let user of users">
+                            <a (click)="addUser(user)">
+                                <span class="ti ti-plus ti-lg"></span> {{user.firstName}} {{user.lastName}}
+                            </a>
+                        </li>
+                    </ul>
+                </aside>
+            </div>
+        </div>
+    </div>
+</div>
