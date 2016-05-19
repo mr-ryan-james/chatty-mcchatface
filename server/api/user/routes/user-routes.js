@@ -7,7 +7,7 @@ module.exports = class UserRoutes {
     static init(router) {
       router
         .route('/api/user')
-        .get(auth.authorize, UserController.getAll)
+        .get(auth.authorize, auth.userContextRequired, UserController.getAllOthers)
         .post(UserController.createUser)
         .put(UserController.loginUser);
 

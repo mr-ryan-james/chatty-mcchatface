@@ -1,0 +1,13 @@
+<header class="header">
+    <div class="header-inner">
+        <div class="logo-brand logo-font">
+            <a href="/">
+                <span class="logo-brand-inner" style="font-family: 'Roboto' ">
+          <span style="font-weight: 900;">Chatty</span> McChatface
+                </span>
+            </a>
+        </div>
+            <chatty-header-loggedin  *ngIf="user" [user]="user"></chatty-header-loggedin>
+            <chatty-header-loggedout  *ngIf="!user"></chatty-header-loggedout>
+        </div>
+</header>

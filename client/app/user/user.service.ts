@@ -2,7 +2,7 @@ import { Injectable } from 'angular2/core';
 import { Http, Response, Headers, RequestOptions } from 'angular2/http';
 import { Observable }       from 'rxjs/Observable';
 import { CONFIG } from '../config.ts';
-
+import { Subject }    from 'rxjs/Subject';
 import { AuthService } from '../auth.service.ts';
 
 let userUrl = CONFIG.baseUrls.user;
@@ -17,12 +17,16 @@ export class User {
 
 @Injectable()
 export class UserService {
+  
+  private userNowKnown = new Subject<User>();
+  private userNowUnKnown = new Subject<User>();
+  nowWeSeeYou$ = this.userNowKnown.asObservable();
+  nowWeDont$ = this.userNowUnKnown.asObservable();
+  
   constructor(
     private _http: Http, 
     private _authService: AuthService
-    ) { 
-      var a = 1;
-    }
+    ) { }
 
 
   registerUser(user: User) {
@@ -31,6 +35,11 @@ export class UserService {
 
   loginUser(user: User) {
     return this.processUserRequest(user, "put");
+  }
+  
+  logoutUser(){
+    this._authService.deleteUserAndToken();
+    this.userNowUnKnown.next(null);
   }
 
   private processUserRequest(user: User, httpMethod: string) {
@@ -66,9 +75,12 @@ export class UserService {
     let json = res.json();
     let body = res.json().user;
 
+    let user = this.extractUser(body);
     this._authService.setToken(json.token);
+    this._authService.setUserInfo(user);
+    this.userNowKnown.next(user)
 
-    return this.extractUser(body);
+    return user;
   }
 
   private extractUser(body: any) {

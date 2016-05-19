@@ -19,6 +19,21 @@ userSchema.statics.getAll = () => {
     });
 }
 
+userSchema.statics.getAllOthers = (user) => {
+    return new Promise((resolve, reject) => {
+        let _query = {_id: {$ne: user.id}};
+        
+        User
+            .find(_query)
+            .select('-password')
+            .exec((err, users) => {
+                err ? reject(err)
+                    : resolve(users);
+            });
+    });
+}
+
+
 userSchema.statics.get = (id) => {
     return new Promise((resolve, reject) => {
         User

@@ -10,6 +10,13 @@ module.exports = class UserController {
       .then(users => res.status(200).json(users))
       .catch(error => res.status(400).json(error));
   }
+  
+  static getAllOthers(req, res){
+    UserDAO
+      .getAllOthers(req.user)
+      .then(users => res.status(200).json(users))
+      .catch(error => res.status(400).json(error));
+  }
 
   static get(req, res) {
     let _id = req.params.id;

@@ -6,6 +6,7 @@ import 'rxjs/Rx'; // load the full rxjs
 import { AuthService } from './auth.service.ts';
 import { UserService } from './user/user.service.ts';
 import { ChatService } from './chat/chat.service.ts';
+import { AppHeaderComponent } from './header/app.header.main.ts'
 import { UserRegisterComponent } from './user/user.register.component.ts';
 import { UserLoginComponent } from './user/user.login.component.ts';
 import { ChatComponent } from './chat/chat.main.component.ts';
@@ -15,7 +16,7 @@ import { ChatComponent } from './chat/chat.main.component.ts';
   selector: 'chatty-mcchatface',
   templateUrl: 'app/app.component.html',
   styles: [``],
-  directives: [ROUTER_DIRECTIVES],
+  directives: [ROUTER_DIRECTIVES,AppHeaderComponent],
   providers: [
     HTTP_PROVIDERS,
     ROUTER_PROVIDERS,

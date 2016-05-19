@@ -1,0 +1,22 @@
+<div class="header-btn-bar">
+    <div class="header-btn-wrapper clearfix">
+        <div class="header-btn-row half-row">
+            <a class="header-btn header-btn-xl">
+                <span class="header-btn-text">
+                    Hello, {{user.firstName}} {{user.lastName}}
+                </span>
+            </a>
+        </div>
+        <div class="header-btn-row half-row">
+            <a class="header-btn header-btn-xl">
+
+            </a>
+            <a (click)="logout()" class="header-btn header-btn-xl" style="border-right: 0;cursor: pointer;">
+                <i class="fa fa-sign-in header-icon"></i>
+                <span class="header-btn-text">
+                    Logout
+                </span>
+            </a>
+        </div>
+    </div>
+</div>

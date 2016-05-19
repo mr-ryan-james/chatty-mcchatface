@@ -12,7 +12,7 @@ module.exports = class Routes {
 
     app.use('/', router);
     app.use('/chatty/*', function (req, res) {
-      res.sendfile(process.cwd() + '/client/index.html');
+      res.sendFile(process.cwd() + '/client/index.html');
     });
   }
 }
