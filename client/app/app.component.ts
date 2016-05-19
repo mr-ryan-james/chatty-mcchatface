@@ -9,7 +9,7 @@ import { ChatService } from './chat/chat.service.ts';
 import { AppHeaderComponent } from './header/app.header.main.ts'
 import { UserRegisterComponent } from './user/user.register.component.ts';
 import { UserLoginComponent } from './user/user.login.component.ts';
-import { ChatComponent } from './chat/chat.main.component.ts';
+import { ChatComponent } from './chat/chat.component.ts';
 
 
 @Component({
@@ -28,6 +28,6 @@ import { ChatComponent } from './chat/chat.main.component.ts';
 @RouteConfig([
   { path: '/register', name: 'Register', component: UserRegisterComponent, useAsDefault: true },
   { path: '/login', name: 'Login', component: UserLoginComponent },
-  { path: '/mcchatface', name: 'Chat', component: ChatComponent }
+  { path: '/mcchatface/...', name: 'Chat', component: ChatComponent }
 ])
 export class AppComponent { }

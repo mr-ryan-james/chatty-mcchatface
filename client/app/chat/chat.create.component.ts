@@ -22,16 +22,19 @@ import { Observable } from 'rxjs/Rx';
 export class ChatCreateComponent implements OnInit {
     errorMessage: string;
 
-    users: Observable<User[]>;
+    observableUsers: Observable<User[]>;
+    users: User[];
     selectedUsers: User[];
 
     constructor(
         private _chatService: ChatService,
-        private _userService: UserService
+        private _userService: UserService,
+        private _router: Router
     ) { }
 
     ngOnInit() {
-        this.users = this._userService.getUsers();
+        this.observableUsers = this._userService.getUsers();
+        this.observableUsers.subscribe(users => this.users = users);
     }
 
     addUser(user) {
@@ -40,20 +43,30 @@ export class ChatCreateComponent implements OnInit {
             this.selectedUsers = [];
         }
 
-        if (this.findSelectedUserIndex(user) >= 0)
+        if (this.findUserIndex(this.selectedUsers, user) >= 0)
             return;
 
 
+        this.removeUserFromArray(this.users, user);
         this.selectedUsers.push(user);
     }
 
     removeUser(user) {
-        let index = this.findSelectedUserIndex(user);
-        this.selectedUsers.splice(index, 1);
+        this.removeUserFromArray(this.selectedUsers, user);
+        this.users.push(user);
+    }
+    
+    createChat(){
+        this._router.navigate(['Room']);
     }
 
-    private findSelectedUserIndex(user) {
-        return this.selectedUsers.findIndex(function (u) {
+    private removeUserFromArray(arry, user) {
+        let index = this.findUserIndex(arry, user);
+        arry.splice(index, 1);
+    }
+
+    private findUserIndex(arry, user) {
+        return arry.findIndex(function (u) {
             return u._id === user._id;
         });
     }

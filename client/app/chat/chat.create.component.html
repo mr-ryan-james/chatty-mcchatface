@@ -3,7 +3,7 @@
         <aside class="widget">
             <h5 class="widget-title"><span>Create new chat</span></h5>
             <ul class="list-unstyled icon-list">
-                <li *ngFor="let user of users | async">
+                <li *ngFor="let user of users">
                     <a (click)="addUser(user)">
                         <span class="ti ti-plus ti-lg"></span> {{user.firstName}} {{user.lastName}}
                     </a>
@@ -22,6 +22,9 @@
                     </a>
                 </li>
             </ul>
+            <span class="input-group-btn">
+                <button (click)="createChat()" type="submit" class="btn btn-footer">Start McChatting</button>
+              </span>
         </aside>
     </div>
     
