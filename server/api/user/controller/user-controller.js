@@ -1,7 +1,7 @@
 "use strict";
 
 const UserDAO = require('../dao/user-dao');
-const auth = require("../../../auth/index.js");
+const auth = require("../../../auth");
 
 module.exports = class UserController {
   static getAll(req, res) {

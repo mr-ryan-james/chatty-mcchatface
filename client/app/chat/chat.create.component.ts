@@ -55,12 +55,15 @@ export class ChatCreateComponent implements OnInit {
         this.removeUserFromArray(this.selectedUsers, user);
         this.users.push(user);
     }
-    
-    createChat(){
-        
-        //this._chatService.
-        
-        this._router.navigate(['Room']);
+
+    createChat() {
+
+        this._chatService
+            .createChatroom(this.selectedUsers)
+            .subscribe(
+            chatroom => this._router.navigate(['Room', {id: chatroom._id}]),
+            error => this.errorMessage = <any>error
+            );
     }
 
     private removeUserFromArray(arry, user) {

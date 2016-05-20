@@ -8,7 +8,7 @@ import { AuthService } from '../auth.service.ts';
 let userUrl = CONFIG.baseUrls.user;
 
 export class User {
-  id: string;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -58,7 +58,7 @@ export class UserService {
 
     return this._http.get(userUrl, options)
       .map((response: Response) => {
-        return <User[]>response.json()
+        return <User[]>response.json();
       });
   }
 
@@ -83,10 +83,10 @@ export class UserService {
     return user;
   }
 
-  private extractUser(body: any) {
+  private extractUser(body: any) : User {
     let user = new User();
 
-    user.id = body._id;
+    user._id = body._id;
     user.firstName = body.firstName;
     user.lastName = body.lastName;
     user.email = body.email;

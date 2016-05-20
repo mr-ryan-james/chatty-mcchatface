@@ -1,13 +1,13 @@
 "use strict";
 
 const UserRoutes = require('../api/user/routes/user-routes');
-const ChatRoutes = require('../api/chat/routes/chat-routes');
+const ChatroomRoutes = require('../api/chatroom/routes/chatroom-routes');
 
 
 module.exports = class Routes {
   static init(app, router) {
     UserRoutes.init(router);
-    ChatRoutes.init(router);
+    ChatroomRoutes.init(router);
 
 
     app.use('/', router);

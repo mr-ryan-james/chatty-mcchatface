@@ -82,13 +82,13 @@
                     <h5 class="widget-title"><span>Users in chat</span></h5>
                     <ul class="list-unstyled icon-list">
                         <li *ngFor="let user of users">
-                            <a (click)="addUser(user)">
-                                <span class="ti ti-plus ti-lg"></span> {{user.firstName}} {{user.lastName}}
+                            <a>
+                               {{user.firstName}} {{user.lastName}}
                             </a>
                         </li>
                     </ul>
                     <span class="input-group-btn">
-                        <button (click)="createChat()" type="submit" class="btn btn-footer">Exit Chat</button>
+                        <button (click)="exitChat()" type="submit" class="btn btn-footer">Exit Chat</button>
                     </span>
                 </aside>
             </div>

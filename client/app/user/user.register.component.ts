@@ -25,7 +25,8 @@ export class UserRegisterComponent  {
     user.lastName = lastName;
     user.password = password;
 
-    this._userService.registerUser(user)
+    this._userService
+      .registerUser(user)
       .subscribe(
       user => {
         this._router.navigate(['Chat']);

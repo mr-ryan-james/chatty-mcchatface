@@ -3,7 +3,7 @@
 const mongoose = require("mongoose");
 
 const _lastReadSchema = {
-    userId: Schema.Types.ObjectId,
+    userId: mongoose.Schema.Types.ObjectId,
     lastReadDate: Date
 }
 

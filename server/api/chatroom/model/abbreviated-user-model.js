@@ -11,10 +11,6 @@ const _abbreviatedUserModel = {
     lastName: {
         type: String,
         required: true
-    },
-    userId: {
-        type: Schema.Types.ObjectId,
-        required: true
     }
 }
 
