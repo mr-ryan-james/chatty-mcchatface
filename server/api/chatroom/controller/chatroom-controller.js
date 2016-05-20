@@ -1,6 +1,7 @@
 "use strict";
 
 const ChatroomDao = require("../dao/chatroom-dao");
+const socket = require("../../../socket");
 
 function _extractAbbreviatedUser(fullUser) {
     return {
@@ -31,8 +32,17 @@ module.exports = class ChatRoomController {
     static addChat(req, res) {
         ChatroomDao
             .addChat(req.body.id, req.body.text, req.user)
-            .then(chat => res.status(200).json(chat))
-            .catch(error => res.status(400).json(error));
+            .then(chat => {
+                res.status(200).json(chat);
+                socket.broadcastEvent({
+					type: req.body.id,
+					name: "newMessage",
+					message: chat
+				});
+            })
+            .catch(error => {
+                res.status(400).json(error);
+            });
     }
 
     static updateChatroom(req, res) {

@@ -3,7 +3,7 @@ import { Router, RouteParams, RouteSegment } from '@angular/router-deprecated';
 import {Chat, Chatroom, ChatService} from './chat.service.ts';
 import {User} from '../user/user.service.ts';
 import { MomentPipe } from '../utility/moment.pipe.ts';
-
+import * as io from 'socket';
 
 @Component({
     selector: 'chatty-room',
@@ -38,7 +38,7 @@ export class ChatRoomComponent implements OnInit {
         private _router: Router,
         private routeParams: RouteParams
 
-    ) { }
+    ) {}
 
 
     ngOnInit(): void {
@@ -51,6 +51,8 @@ export class ChatRoomComponent implements OnInit {
                 this.chats = chatroom.chats;
                 setTimeout(this.scrollDivDown, 300);
             });
+            
+        this.joinChatroom(id);
     }
 
     sendChat(): void {
@@ -73,11 +75,13 @@ export class ChatRoomComponent implements OnInit {
     }
     
     private joinChatroom(id:String){
-        		socket.emit("joinNamespace", thisUserId + "messages");
+        var socket = io.connect();
+        
+        socket.emit("joinChatroom", id);
 
-		socket.on("newMessage", function(result){
-			$scope.messages.push(result.message);
-			$scope.$apply();
+		socket.on("newMessage", (chat) => {
+			this.chats.push(chat);
+            setTimeout(this.scrollDivDown, 300);            
 		});
     }
 }

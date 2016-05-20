@@ -29,4 +29,9 @@ module.exports = class SocketClass{
 
 		});
     }
+	
+	static broadcastEvent(event){
+		emitter.emit("eventPushed", event);
+		console.log('event pushed emitted');
+	}
 }
