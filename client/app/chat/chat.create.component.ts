@@ -1,5 +1,5 @@
-import { Component, Input, OnInit } from 'angular2/core';
-import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from 'angular2/router';
+import { Component, Input, OnInit } from '@angular/core';
+import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import { Chat, ChatService } from './chat.service.ts';
 import { User, UserService } from '../user/user.service.ts'
 import { Observable } from 'rxjs/Rx';

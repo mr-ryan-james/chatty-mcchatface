@@ -1,6 +1,6 @@
-import {Component, Input} from 'angular2/core';
+import {Component, Input} from '@angular/core';
 import {User, UserService} from '../user/user.service.ts'
-import { Router } from 'angular2/router';
+import { Router } from '@angular/router-deprecated';
 
 @Component({
     selector: "chatty-header-loggedin",

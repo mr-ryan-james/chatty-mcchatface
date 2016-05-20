@@ -11,6 +11,7 @@ module.exports = class RouteConfig {
     static init(application) {
         let _root = process.cwd();
         let _clientFiles =  '/client';
+        let nodeModules =  '/node_modules';
 
         application.use(express.static(_root + _clientFiles));
         application.use(bodyParser.json());

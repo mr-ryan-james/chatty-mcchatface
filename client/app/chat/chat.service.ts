@@ -1,5 +1,5 @@
-import { Injectable } from 'angular2/core';
-import { Http, Response, Headers, RequestOptions } from 'angular2/http';
+import { Injectable } from '@angular/core';
+import { Http, Response, Headers, RequestOptions } from '@angular/http';
 import { Observable } from 'rxjs/Observable';
 import { CONFIG } from '../config.ts';
 import {AuthService} from '../auth.service.ts';
@@ -22,7 +22,7 @@ export class Chatroom {
   lastReads: LastRead[];
 }
 
-export class LastRead{
+export class LastRead {
   userId: String;
   lastReadDate: Date;
 }
@@ -32,11 +32,11 @@ export class ChatService {
   constructor(
     private _http: Http,
     private _authService: AuthService
-    ) { }
+  ) { }
 
-  createChatroom(users: User[]): Observable<Chatroom>{
+  createChatroom(users: User[]): Observable<Chatroom> {
     let body = JSON.stringify(users);
-    let headers = new Headers({ 
+    let headers = new Headers({
       'Content-Type': 'application/json',
       'x-access-token': this._authService.getToken()
     });
@@ -46,8 +46,27 @@ export class ChatService {
       .map((res: Response) => this.processChatResponse.apply(this, [res]))
       .catch(this.handleError);
   }
-  
-  getChatroom(id: String):Observable<Chatroom>{
+
+  sendChat(text: String, id: String): Observable<Chat> {
+    let url = `${chatroomUrl}/${id}`;
+
+    let body = JSON.stringify({
+      text: text,
+      id: id
+    });
+    let headers = new Headers({
+      'Content-Type': 'application/json',
+      'x-access-token': this._authService.getToken()
+    });
+    let options = new RequestOptions({ headers: headers });
+
+    return this._http.put(url, body, options)
+      .map((res: Response) => <Chat>res.json())
+      .catch(this.handleError);
+
+  }
+
+  getChatroom(id: String): Observable<Chatroom> {
     let url = `${chatroomUrl}/${id}`;
 
     let headers = new Headers({ 'x-access-token': this._authService.getToken() });
@@ -57,7 +76,7 @@ export class ChatService {
       .map((res: Response) => this.processChatResponse.apply(this, [res]))
       .catch(this.handleError);
   }
-  
+
   private processChatResponse(res: Response) {
     if (res.status < 200 || res.status >= 300) {
       throw new Error('Response status: ' + res.status);
@@ -66,7 +85,7 @@ export class ChatService {
     let json = res.json();
 
     let chatroom = this.extractChatroom(json);
-    
+
 
     return chatroom;
   }
@@ -76,11 +95,11 @@ export class ChatService {
 
     chatroom._id = body._id;
     chatroom.title = body.title;
-    chatroom.chats = body.lastName;
+    chatroom.chats = body.chats;
     chatroom.date = body.date;
     chatroom.lastReads = body.lastReads;
     chatroom.users = body.users;
-    
+
     return chatroom;
   }
 

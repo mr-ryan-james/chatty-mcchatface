@@ -20,6 +20,31 @@ chatroomSchema.statics.createChatroom = (users) => {
     });
 }
 
+chatroomSchema.statics.addChat = (id, text, user) => {
+    return new Promise((resolve, reject) => {
+        Chatroom.findByIdAndUpdate(
+            id,
+            {
+                $push: {
+                    "chats":
+                    {
+                        user: {
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            _id: user._id
+                        },
+                        text: text
+                    }
+                }
+            },
+            { safe: true, new: true },
+            function (err, chatroom) {
+                err ? reject(err) : resolve(chatroom.chats[chatroom.chats.length - 1]);
+            }
+        );
+    })
+}
+
 chatroomSchema.statics.delete = (id) => {
     return new Promise((resolve, reject) => {
         if (!_isString(id))
@@ -46,12 +71,12 @@ chatroomSchema.statics.get = (id) => {
 
 chatroomSchema.statics.getAll = (user) => {
     return new Promise((resolve, reject) => {
-        let _query = {_id: {$ne: user.id}};
+        let _query = { _id: { $ne: user.id } };
         Chatroom
-        .find(_query)
-        .exec((err, chatrooms) => {
-            err ? reject(err) : resolve(chatrooms);
-        })
+            .find(_query)
+            .exec((err, chatrooms) => {
+                err ? reject(err) : resolve(chatrooms);
+            })
 
     })
 }

@@ -1,5 +1,5 @@
-import { Component, Input, OnInit } from 'angular2/core';
-import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from 'angular2/router';
+import { Component, Input, OnInit } from '@angular/core';
+import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import { ChatMainComponent } from './chat.main.component.ts';
 import { ChatRoomComponent } from './chat.room.component.ts';
 import { Chat, ChatService } from './chat.service.ts';

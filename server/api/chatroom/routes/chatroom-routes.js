@@ -14,6 +14,7 @@ module.exports = class ChatRoomRoutes {
         router
             .route('/api/chatroom/:id')
             .get(ChatController.get)
+            .put(auth.authorize, auth.userContextRequired, ChatController.addChat)
             .delete(auth.authorize, ChatController.delete);
     }
 }

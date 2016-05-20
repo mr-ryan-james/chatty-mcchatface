@@ -1,4 +1,4 @@
-import { Component, OnInit } from 'angular2/core';
+import { Component, OnInit } from '@angular/core';
 import {User} from '../user/user.service.ts'
 import {AuthService} from '../auth.service.ts'
 import {UserService} from '../user/user.service.ts'

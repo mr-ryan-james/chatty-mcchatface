@@ -28,6 +28,13 @@ module.exports = class ChatRoomController {
             .catch(error => res.status(400).json(error));
     }
 
+    static addChat(req, res) {
+        ChatroomDao
+            .addChat(req.body.id, req.body.text, req.user)
+            .then(chat => res.status(200).json(chat))
+            .catch(error => res.status(400).json(error));
+    }
+
     static updateChatroom(req, res) {
         let _chatroom = req.body;
 

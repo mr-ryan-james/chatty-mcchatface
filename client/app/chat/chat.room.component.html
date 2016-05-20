@@ -1,80 +1,39 @@
 <div class="container blog summary">
     <div class="row">
         <div class="col-sm-8 col-md-9 col-sm-push-4 col-md-push-3 primary-column" role="main">
-
-            <article class="entry-summary">
-                <header class="entry-header">
-                    <h3 class="entry-title"> <a href="blog-single.html">There's No Image</a> </h3>
-                    <ul class="entry-meta list-inline">
-                        <li>
-                            <span class="ti ti-pencil-alt">
-                  </span> by Nameof Author</li>
-                        <li>
-                            <a href="blog-single.html#view-comments">
-                                <span class="ti ti-comments">
-                  </span> 5 Comments</a>
-                        </li>
-                        <li>
-                            <span class="ti ti-calendar">
-                  </span> March 3, 2015</li>
-                    </ul>
-                    <ul class="entry-tags hidden-xs">
-                        <!-- these are too tiny and not important for small screens-->
-                        <li><a href="#">sans-image</a></li>
-                        <li><a href="#">css3</a></li>
-                        <li><a href="#">off-canvas</a></li>
-                    </ul>
-                </header>
-
-                <!--/ entry-header -->
-                <div class="row sixteen-gutter">
-                    <div class="col-sm-12 entry-content">
-                        <p>Bootstrap Side Navigation practically invented the term "bloatware". We pride ourselves not only
-                            on our feature set, but our user-proof administration and non-complex configuration. What does
-                            the buzzword "customer-defined" really mean? We think that most leading-edge entry pages use
-                            far too much XSLT, and not enough AJAX...</p>
-                        <p><a class="btn btn-inverse" href="blog-single.html">Read More</a></p>
+            <div id="chatContainer" style="overflow-y: auto;max-height: 500px;">
+                <article *ngFor="let chat of chats">
+                    <div class="testimonial ">
+                        <blockquote>
+                            <p>{{chat.text}}</p>
+                        </blockquote>
                     </div>
-                </div>
 
-                <!-- / .entry-content /.row -->
-
-                <div class="entry-fancy-date">
-                    <div>
-                        <span class="day">
-                  3
-                </span>
-                        <span class="month">
-                  mar
-                </span>
+                    <div class="author-wrapper">
+                        <div class="arrow">
+                        </div>
+                        <div class="cite">
+                            {{chat.user.firstName}} {{chat.user.lastName}},
+                            <span>
+                                {{chat.date | moment}}
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </article>
-            <!-- _____________ END 'entry-post' NO IMAGE _________ -->
-
-            <!-- ____ PAGINATION GOES HERE ____ -->
-            <div class="text-center">
-                <span class="new-pagination-toggle">
-              Pagination
-            </span>
-                <ul class="new-pagination pagination pagination-lg clearfix">
-                    <li><a href="#">«</a></li>
-                    <li><a href="#">1</a></li>
-                    <li><a href="#">2</a></li>
-                    <li class="disabled">
-                        <span>
-                  ...
-                </span>
-                    </li>
-                    <li><a href="#">4</a></li>
-                    <li><a href="#">5</a></li>
-                    <li><a href="#">»</a></li>
-                </ul>
+                </article>
             </div>
-            <!-- /.text-center holding .pagination -->
-            <!-- vertical spacer visible at xs viewport size -->
-            <hr class="vertical-spacer vertical-spacer-sm  visible-xs">
+            <div>
+                <div class="form-group">
+                    <textarea [(ngModel)]="text" class="form-control" rows="5" id="comment"></textarea>
+                </div>
+                <span class="input-group-btn">
+                        <button (click)="sendChat()" type="submit" class="btn btn-default btn-lg">Do Chat Thing</button>
+                </span>
+            </div>
+            
+            <div class="hidden-sm">&nbsp;</div>
         </div>
+
+
 
         <div class="col-sm-pull-8 col-md-pull-9 col-sm-4 col-md-3 hidden-print" id="sidebar" role="complementary">
             <div class="blog-summary-sidebar">
@@ -93,5 +52,6 @@
                 </aside>
             </div>
         </div>
+        
     </div>
 </div>
