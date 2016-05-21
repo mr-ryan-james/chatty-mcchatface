@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import {BaseService} from '../base.service.ts';
 import { Http, Response, Headers, RequestOptions } from '@angular/http';
 import { Observable }       from 'rxjs/Observable';
 import { CONFIG } from '../config.ts';
@@ -16,7 +17,7 @@ export class User {
 }
 
 @Injectable()
-export class UserService {
+export class UserService extends BaseService {
   
   private userNowKnown = new Subject<User>();
   private userNowUnKnown = new Subject<User>();
@@ -26,15 +27,17 @@ export class UserService {
   constructor(
     private _http: Http, 
     private _authService: AuthService
-    ) { }
+    ) { 
+      super();
+    }
 
 
   registerUser(user: User) {
-    return this.processUserRequest(user, "post")
+    return this.processUserAuthRequest(user, "post")
   }
 
   loginUser(user: User) {
-    return this.processUserRequest(user, "put");
+    return this.processUserAuthRequest(user, "put");
   }
   
   logoutUser(){
@@ -42,14 +45,16 @@ export class UserService {
     this.userNowUnKnown.next(null);
   }
 
-  private processUserRequest(user: User, httpMethod: string) {
+  private processUserAuthRequest(user: User, httpMethod: string) {
     let body = JSON.stringify(user);
     let headers = new Headers({ 'Content-Type': 'application/json' });
     let options = new RequestOptions({ headers: headers });
 
     return this._http[httpMethod](userUrl, body, options)
       .map((res: Response) => this.processUserResponse.apply(this, [res]))
-      .catch(this.handleError);
+      .catch(function(error:String){
+        throw error;
+      });
   }
 
   getUsers(): Observable<User[]> {
@@ -93,10 +98,5 @@ export class UserService {
     return user;
   }
 
-  private handleError(error: any) {
-    // In a real world app, we might use a remote logging infrastructure
-    let errMsg = error.message || (error.json().message);
-    console.error(errMsg); // log to console instead
-    return Observable.throw(errMsg);
-  }
+
 }

@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import {BaseAuthComponent} from '../base.component.ts';
 import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import { Chat, ChatService } from './chat.service.ts';
 import { User, UserService } from '../user/user.service.ts'
@@ -19,7 +20,7 @@ import { Observable } from 'rxjs/Rx';
     }`],
     directives: [ROUTER_DIRECTIVES]
 })
-export class ChatCreateComponent implements OnInit {
+export class ChatCreateComponent extends BaseAuthComponent implements OnInit {
     errorMessage: string;
 
     observableUsers: Observable<User[]>;
@@ -28,16 +29,18 @@ export class ChatCreateComponent implements OnInit {
 
     constructor(
         private _chatService: ChatService,
-        private _userService: UserService,
-        private _router: Router
-    ) { }
+        protected _userService: UserService,
+        protected _router: Router
+    ) {
+        super(_router, _userService);
+     }
 
     ngOnInit() {
         this.observableUsers = this._userService.getUsers();
         this.observableUsers.subscribe(users => this.users = users);
     }
 
-    addUser(user) {
+    addUser(user: User) {
 
         if (!this.selectedUsers) {
             this.selectedUsers = [];

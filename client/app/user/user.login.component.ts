@@ -26,7 +26,9 @@ export class UserLoginComponent {
             user => {
                 this._router.navigate(['Chat']);
             },
-            error => this.errorMessage = <any>error);
+            error => {
+                this.errorMessage = <any>error._body;
+            });
     }
 
 }

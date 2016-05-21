@@ -5,6 +5,7 @@ import { Observable } from 'rxjs/Observable';
 import { CONFIG } from '../config.ts';
 import {AuthService} from '../auth.service.ts';
 import {User} from '../user/user.service.ts';
+import {BaseService} from '../base.service.ts';
 
 let chatroomUrl = CONFIG.baseUrls.chatroom;
 
@@ -29,12 +30,14 @@ export class LastRead {
 }
 
 @Injectable()
-export class ChatService {
+export class ChatService extends BaseService {
   constructor(
     private _http: Http,
     private _authService: AuthService,
     private _router: Router
-  ) { }
+  ) {
+    super();
+  }
 
   createChatroom(users: User[]): Observable<Chatroom> {
     let body = JSON.stringify(users);
@@ -114,16 +117,6 @@ export class ChatService {
     return chatroom;
   }
 
-  private handleError(error: any) {
-    if(error.status === 401){
-      this._router.navigate(['Login']);
-      return;
-    }
-    
-    // In a real world app, we might use a remote logging infrastructure
-    let errMsg = error.message || (error.json().message);
-    console.error(errMsg); // log to console instead
-    return Observable.throw(errMsg);
-  }
+
 
 }

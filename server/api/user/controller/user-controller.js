@@ -55,6 +55,11 @@ module.exports = class UserController {
       .getByEmail( email )
       .then(user => {
 
+        if(user == null){
+          res.status(404).send("User not found");
+          return;
+        }
+
         user.verifyPassword(password, function (err, valid) {
           if (err) {
             throw err;
@@ -71,7 +76,7 @@ module.exports = class UserController {
         });
       })
       .catch(error => {
-        res.status(400).json(error)
+        res.status(400).json(error);
       });
   }
 

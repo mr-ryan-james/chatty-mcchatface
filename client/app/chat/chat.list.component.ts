@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
+import {  BaseAuthComponent } from '../base.component.ts';
 
 import { Chat, Chatroom, ChatService } from './chat.service.ts';
+import {  UserService } from '../user/user.service.ts';
 import {MomentPipe} from '../utility/moment.pipe.ts';
 import {UserNamesPipe} from '../utility/usernames.pipe.ts';
 
@@ -29,15 +31,20 @@ import {UserNamesPipe} from '../utility/usernames.pipe.ts';
     directives: [ROUTER_DIRECTIVES],
     pipes: [MomentPipe, UserNamesPipe]
 })
-export class ChatListComponent implements OnInit {
+export class ChatListComponent extends BaseAuthComponent  implements OnInit {
     errorMessage: string;
 
     _chatrooms: Chatroom[];
 
     constructor(
         private _chatService: ChatService,
-        private _router: Router
-    ) { }
+        protected _router: Router,
+        protected _userService: UserService
+    ) {
+        super(_router, _userService);
+        
+        super.registerService(_chatService);
+     }
 
     ngOnInit(){
         this._chatService.getChatroomsForUser().subscribe(chatrooms=> {
