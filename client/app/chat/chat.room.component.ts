@@ -1,7 +1,8 @@
 import {Component, OnInit, } from '@angular/core';
 import { Router, RouteParams, RouteSegment } from '@angular/router-deprecated';
 import {Chat, Chatroom, ChatService} from './chat.service.ts';
-import {User} from '../user/user.service.ts';
+import {User, UserService} from '../user/user.service.ts';
+import {BaseAuthComponent} from '../base.component.ts';
 import * as io from 'socket';
 import {MomentPipe} from '../utility/moment.pipe.ts';
 
@@ -24,7 +25,7 @@ import {MomentPipe} from '../utility/moment.pipe.ts';
     templateUrl: '/app/chat/chat.room.component.html',
     pipes: [MomentPipe]
 })
-export class ChatRoomComponent implements OnInit {
+export class ChatRoomComponent extends BaseAuthComponent implements OnInit {
 
     chatroom: Chatroom;
     chats: Chat[];
@@ -35,10 +36,13 @@ export class ChatRoomComponent implements OnInit {
 
     constructor(
         private _chatService: ChatService,
-        private _router: Router,
-        private routeParams: RouteParams
-
-    ) {}
+        protected _router: Router,
+        private routeParams: RouteParams,
+        protected _userService: UserService
+    ) {
+        super(_router, _userService);
+        super.registerService(_chatService);
+    }
 
 
     ngOnInit(): void {

@@ -42,7 +42,6 @@ export class ChatListComponent extends BaseAuthComponent  implements OnInit {
         protected _userService: UserService
     ) {
         super(_router, _userService);
-        
         super.registerService(_chatService);
      }
 

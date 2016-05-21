@@ -67,7 +67,7 @@ export class ChatService extends BaseService {
 
     return this._http.put(url, body, options)
       .map((res: Response) => <Chat>res.json())
-      .catch(this.handleError);
+      .catch((error) => this.handleError(error));
 
   }
 
@@ -88,7 +88,7 @@ export class ChatService extends BaseService {
     
     return this._http.get(chatroomUrl, options)
       .map((res: Response) => <Chatroom[]>res.json())
-      .catch(this.handleError);
+      .catch((error) => this.handleError(error));
   }
 
   private processChatResponse(res: Response) {

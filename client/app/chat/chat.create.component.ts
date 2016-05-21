@@ -33,6 +33,7 @@ export class ChatCreateComponent extends BaseAuthComponent implements OnInit {
         protected _router: Router
     ) {
         super(_router, _userService);
+        super.registerService(_chatService);
      }
 
     ngOnInit() {

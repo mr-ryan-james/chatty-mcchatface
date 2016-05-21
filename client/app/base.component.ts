@@ -13,8 +13,21 @@ export class BaseAuthComponent {
 
     registerService(baseService: BaseService){
         baseService.noLongerAuthenticated$.subscribe(() => {
-            this._router.navigate(['Login']);
+            this.attemptToRoute(this._router);
         });
+    }
+    
+    private attemptToRoute(router){
+        if(router == null){
+            throw new Error("Unable to autonavigate to Login");
+        }
+        
+        try{
+            router.navigate(['Login']);
+        }
+        catch(err){
+            this.attemptToRoute(router.parent);
+        }
     }
 
 }
