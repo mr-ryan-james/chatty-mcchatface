@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router-deprecated';
 import { Http, Response, Headers, RequestOptions } from '@angular/http';
 import { Observable } from 'rxjs/Observable';
 import { CONFIG } from '../config.ts';
@@ -31,7 +32,8 @@ export class LastRead {
 export class ChatService {
   constructor(
     private _http: Http,
-    private _authService: AuthService
+    private _authService: AuthService,
+    private _router: Router
   ) { }
 
   createChatroom(users: User[]): Observable<Chatroom> {
@@ -76,6 +78,15 @@ export class ChatService {
       .map((res: Response) => this.processChatResponse.apply(this, [res]))
       .catch(this.handleError);
   }
+  
+  getChatroomsForUser() : Observable<Chatroom[]>{
+    let headers = new Headers({ 'x-access-token': this._authService.getToken() });
+    let options = new RequestOptions({ headers: headers });
+    
+    return this._http.get(chatroomUrl, options)
+      .map((res: Response) => <Chatroom[]>res.json())
+      .catch(this.handleError);
+  }
 
   private processChatResponse(res: Response) {
     if (res.status < 200 || res.status >= 300) {
@@ -104,6 +115,11 @@ export class ChatService {
   }
 
   private handleError(error: any) {
+    if(error.status === 401){
+      this._router.navigate(['Login']);
+      return;
+    }
+    
     // In a real world app, we might use a remote logging infrastructure
     let errMsg = error.message || (error.json().message);
     console.error(errMsg); // log to console instead

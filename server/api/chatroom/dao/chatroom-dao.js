@@ -71,14 +71,14 @@ chatroomSchema.statics.get = (id) => {
 
 chatroomSchema.statics.getAll = (user) => {
     return new Promise((resolve, reject) => {
-        let _query = { _id: { $ne: user.id } };
+        let _query =  {'users._id': user._id};
         Chatroom
             .find(_query)
+            .select({ "chats": { "$slice": -2 }})
             .exec((err, chatrooms) => {
                 err ? reject(err) : resolve(chatrooms);
-            })
-
-    })
+            });
+    });
 }
 
 const Chatroom = mongoose.model('Chatroom', chatroomSchema);

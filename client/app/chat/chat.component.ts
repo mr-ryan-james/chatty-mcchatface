@@ -9,7 +9,8 @@ import { AuthService } from '../auth.service.ts';
 @Component({
     selector: 'app-chat',
     template: `<router-outlet></router-outlet>`,
-    directives: [ROUTER_DIRECTIVES],
+    directives: [ROUTER_DIRECTIVES]
+    
 })
 @RouteConfig([
     { path: '/', name: 'Main', component: ChatMainComponent, useAsDefault: true },

@@ -2,8 +2,8 @@ import {Component, OnInit, } from '@angular/core';
 import { Router, RouteParams, RouteSegment } from '@angular/router-deprecated';
 import {Chat, Chatroom, ChatService} from './chat.service.ts';
 import {User} from '../user/user.service.ts';
-import { MomentPipe } from '../utility/moment.pipe.ts';
 import * as io from 'socket';
+import {MomentPipe} from '../utility/moment.pipe.ts';
 
 @Component({
     selector: 'chatty-room',
