@@ -32,7 +32,7 @@ export class ChatRoomComponent extends BaseAuthComponent implements OnInit {
     users: User[];
     text: String;
     
-    test: any;
+    socket: any;
 
     constructor(
         private _chatService: ChatService,
@@ -79,11 +79,11 @@ export class ChatRoomComponent extends BaseAuthComponent implements OnInit {
     }
     
     private joinChatroom(id:String){
-        var socket = io.connect();
+        this.socket = io.connect();
         
-        socket.emit("joinChatroom", id);
+        this.socket.emit("joinChatroom", id);
 
-		socket.on("newMessage", (chat) => {
+		this.socket.on("newMessage", (chat) => {
 			this.chats.push(chat);
             setTimeout(this.scrollDivDown, 300);            
 		});
