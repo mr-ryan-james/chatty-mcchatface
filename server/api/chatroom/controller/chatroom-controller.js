@@ -11,7 +11,7 @@ function _extractAbbreviatedUser(fullUser) {
     }
 };
 
-function _broadcastToOtherChatters(thisUserId, chatroom) {
+function _broadcastChatroomToOtherChatters(thisUserId, chatroom) {
     chatroom.users.forEach((user) => {
         if (thisUserId === user._id.toString()) {
             return;
@@ -41,7 +41,7 @@ module.exports = class ChatRoomController {
             .createChatroom(_users)
             .then(chatroom => {
                 res.status(201).json(chatroom);
-                _broadcastToOtherChatters(req.user._id.toString(), chatroom);
+                _broadcastChatroomToOtherChatters(req.user._id.toString(), chatroom);
             })
             .catch(error => res.status(400).json(error));
     }
@@ -49,13 +49,15 @@ module.exports = class ChatRoomController {
     static addChat(req, res) {
         ChatroomDao
             .addChat(req.body.id, req.body.text, req.user)
-            .then(chat => {
-                res.status(200).json(chat);
+            .then(chatroom => {
+                let chat = chatroom.chats[chatroom.chats.length - 1];
                 socket.broadcastEvent({
                     type: req.body.id,
                     name: "newMessage",
                     message: chat
                 });
+                _broadcastChatroomToOtherChatters(req.user._id.toString(), chatroom);
+                res.status(200).json(chat);
             })
             .catch(error => {
                 res.status(400).json(error);

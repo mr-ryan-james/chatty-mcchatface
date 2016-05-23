@@ -33,13 +33,20 @@ chatroomSchema.statics.addChat = (id, text, user) => {
                             lastName: user.lastName,
                             _id: user._id
                         },
-                        text: text
+                        text: text,
+                        "$slice": -2
                     }
-                }
+                }                
             },
             { safe: true, new: true },
             function (err, chatroom) {
-                err ? reject(err) : resolve(chatroom.chats[chatroom.chats.length - 1]);
+                if(err){
+                    reject(err);
+                    return;
+                }
+                
+                chatroom.chats = chatroom.chats.slice(chatroom.chats.length - 2);
+                resolve(chatroom);
             }
         );
     })

@@ -32,11 +32,11 @@ import * as io from 'socket';
     directives: [ROUTER_DIRECTIVES],
     pipes: [MomentPipe, UserNamesPipe]
 })
-export class ChatListComponent extends BaseAuthComponent  implements OnInit {
+export class ChatListComponent extends BaseAuthComponent implements OnInit {
     errorMessage: string;
 
     _chatrooms: Chatroom[];
-    
+
     socket: any;
 
     constructor(
@@ -47,31 +47,48 @@ export class ChatListComponent extends BaseAuthComponent  implements OnInit {
     ) {
         super(_router, _userService);
         super.registerService(_chatService);
-     }
+    }
 
-    ngOnInit(){
+    ngOnInit() {
         let userInfo = this._authService.getUserInfo();
-        if(!userInfo){
+        if (!userInfo) {
             return;
         }
-        
+
         let chatroomObservables = this._chatService.getChatroomsForUser();
-        if(chatroomObservables){
-            chatroomObservables.subscribe(chatrooms=> {
+        if (chatroomObservables) {
+            chatroomObservables.subscribe(chatrooms => {
                 this._chatrooms = chatrooms;
             });
         }
-        
+
+        this.listenForChatroomChanges();
+    }
+
+    enterChatroom(chatroom: Chatroom) {
+        this._router.navigate(['Room', { id: chatroom._id }]);
+    }
+
+    private listenForChatroomChanges() {
         this.socket = io.connect();
         this.socket.emit("listenForChatrooms", this._authService.getUserInfo()._id);;
 
-		this.socket.on("newChatroom", (chatroom) => {
-			this._chatrooms.push(chatroom);           
-		});
+        this.socket.on("newChatroom", (chatroom) => {
+            this.removeAndReaddChatroom(chatroom);
+        });
     }
-    
-    enterChatroom(chatroom:Chatroom){
-        this._router.navigate(['Room', {id: chatroom._id}]);
+
+    private removeAndReaddChatroom(chatroom) {
+        let existingIndex = this._chatrooms.findIndex((c) => c._id === chatroom._id);
+
+        if (existingIndex === -1)
+        {
+            this._chatrooms.push(chatroom);
+            return;
+        }
+
+        this._chatrooms.splice(existingIndex, 1)
+        this._chatrooms.push(chatroom);
     }
 
 }

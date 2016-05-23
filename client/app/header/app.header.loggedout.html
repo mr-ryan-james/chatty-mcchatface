@@ -1,31 +1,26 @@
-        <div class="header-btn-bar">
-            <div class="header-btn-wrapper clearfix">
-                <div class="header-btn-row half-row">
-                    <a href="#" class="login-toggle header-btn header-btn-xl" data-slide="slide" data-target="#login-panel"> <i class="fa fa-sign-in header-icon"></i>
-                        <span class="header-btn-text">
+<div class="header-btn-bar">
+    <div class="header-btn-wrapper clearfix">
+        <div class="header-btn-row half-row">
+            <a (click)="login()" class="header-btn header-btn-xl" style="cursor: pointer;"> 
+                <i class="fa fa-sign-in header-icon"></i>
+                <span class="header-btn-text">
                             Login
                         </span>
-                    </a>
-                    <a href="#" class="signin-toggle header-btn header-btn-xl" data-slide="slide" data-target="#signup-panel"> <i class="fa fa-pencil header-icon"></i>
-                        <span class="header-btn-text">
+            </a>
+            <a class="header-btn header-btn-xl" style="border-right: 0;">
+                <span class="header-btn-text"></span>
+            </a>
+        </div>
+        <div class="header-btn-row half-row">
+            <a class="header-btn header-btn-xl">
+                <span class="header-btn-text"></span>
+            </a>
+            <a (click)="signUp()" class="signin-toggle header-btn header-btn-xl" style="border-right: 0;cursor: pointer;"> 
+                <i class="fa fa-pencil header-icon"></i>
+                <span class="header-btn-text">
                             Sign Up
                         </span>
-                    </a>
-                </div>
-                <div class="header-btn-row half-row">
-                    <a href="#" class="anchor header-btn header-btn-lg" data-slide="slide" data-target="#contact-panel"> <i class="fa fa-at header-icon"></i>
-                        <span class="header-btn-text">
-                            Contact
-                        </span>
-                    </a>
-                    <a href="#" class="header-btn header-btn-sm search-toggle" data-slide="slide" data-target="#search-panel" data-hover="tooltip"
-                        data-placement="left" title="" data-original-title="search"> <i class="fa fa-search header-icon"></i> </a>
-                    <a href="#" class="header-btn header-btn-sm" data-hover="tooltip" data-placement="left" title="" data-original-title="follow us on twitter">
-                        <i class="fa fa-twitter header-icon"></i> </a>
-                    <a href="#" class="header-btn header-btn-sm" data-hover="tooltip" data-placement="left" title="" data-original-title="like us on facebook">
-                        <i class="fa fa-facebook header-icon"></i> </a>
-                    <a href="#switcher-wrapper" class="header-btn header-btn-sm theme-switcher-toggle" data-hover="tooltip" data-placement="left"
-                        title="" data-original-title="theme switcher"> <i class="fa fa-cog header-icon fa-spin"></i> </a>
-                </div>
-            </div>
+            </a>
         </div>
+    </div>
+</div>

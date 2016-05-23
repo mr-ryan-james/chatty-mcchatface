@@ -63,13 +63,14 @@ export class ChatRoomComponent extends BaseAuthComponent implements OnInit {
         this._chatService
             .sendChat(this.text, this.chatroom._id)
             .subscribe(chat => {
-                this.chats.push(chat);
-                setTimeout(this.scrollDivDown, 300);
+                //this.chats.push(chat);
+                //setTimeout(this.scrollDivDown, 300);
             });
         this.text = "";
     }
 
     exitChat(): void {
+        this.socket.removeAllListeners("newMessage");
         this._router.navigate(["Main"]);
     }
     
