@@ -38,7 +38,11 @@ export class ChatCreateComponent extends BaseAuthComponent implements OnInit {
 
     ngOnInit() {
         this.observableUsers = this._userService.getUsers();
-        this.observableUsers.subscribe(users => this.users = users);
+        if(this.observableUsers){
+            this.observableUsers.subscribe(users => {
+                this.users = users;
+            });
+        }
     }
 
     addUser(user: User) {

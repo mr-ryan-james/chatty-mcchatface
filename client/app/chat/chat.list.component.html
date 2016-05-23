@@ -6,7 +6,7 @@
         </header>
 
         <div class="row sixteen-gutter">
-            <div class="col-sm-12 entry-content">
+            <div *ngIf="chatroom" class="col-sm-12 entry-content">
                 <div *ngFor="let chat of chatroom.chats">
                     <div class="testimonial ">
                         <blockquote>

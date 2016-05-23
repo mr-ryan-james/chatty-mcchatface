@@ -11,6 +11,20 @@ function _extractAbbreviatedUser(fullUser) {
     }
 };
 
+function _broadcastToOtherChatters(thisUserId, chatroom) {
+    chatroom.users.forEach((user) => {
+        if (thisUserId === user._id.toString()) {
+            return;
+        }
+
+        socket.broadcastEvent({
+            type: user._id.toString(),
+            name: "newChatroom",
+            message: chatroom
+        });
+    });
+}
+
 module.exports = class ChatRoomController {
     static getAll(req, res) {
         ChatroomDao
@@ -25,7 +39,10 @@ module.exports = class ChatRoomController {
 
         ChatroomDao
             .createChatroom(_users)
-            .then(chatroom => res.status(201).json(chatroom))
+            .then(chatroom => {
+                res.status(201).json(chatroom);
+                _broadcastToOtherChatters(req.user._id.toString(), chatroom);
+            })
             .catch(error => res.status(400).json(error));
     }
 
@@ -35,10 +52,10 @@ module.exports = class ChatRoomController {
             .then(chat => {
                 res.status(200).json(chat);
                 socket.broadcastEvent({
-					type: req.body.id,
-					name: "newMessage",
-					message: chat
-				});
+                    type: req.body.id,
+                    name: "newMessage",
+                    message: chat
+                });
             })
             .catch(error => {
                 res.status(400).json(error);

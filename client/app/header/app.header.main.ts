@@ -24,7 +24,16 @@ export class AppHeaderComponent implements OnInit {
   ngOnInit() {
     this.user = this._authService.getUserInfo();
     
-    this._userService.nowWeSeeYou$.subscribe(user => this.user = user);
-    this._userService.nowWeDont$.subscribe(user => this.user = null);
+    if(this._userService.nowWeSeeYou$){
+      this._userService.nowWeSeeYou$.subscribe(user => {
+        this.user = user;
+      });
+    }
+    
+    if(this._userService.nowWeDont$){
+      this._userService.nowWeDont$.subscribe(user => {
+        this.user = null;
+      });
+    }
   }
 }

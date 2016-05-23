@@ -26,6 +26,11 @@ module.exports = class SocketClass{
 				console.log('joining chatroom ' + chatroomId);
 				socket.join(chatroomId);
 			});
+			
+			socket.on("listenForChatrooms", function(userId){
+				console.log('listening for new chatrooms for user ' + userId);
+				socket.join(userId);				
+			});
 
 		});
     }

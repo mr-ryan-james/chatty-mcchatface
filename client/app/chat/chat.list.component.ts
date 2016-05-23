@@ -1,11 +1,12 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { RouteConfig, RouteParams, Router, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import {  BaseAuthComponent } from '../base.component.ts';
-
+import {AuthService} from '../auth.service.ts';
 import { Chat, Chatroom, ChatService } from './chat.service.ts';
 import {  UserService } from '../user/user.service.ts';
 import {MomentPipe} from '../utility/moment.pipe.ts';
 import {UserNamesPipe} from '../utility/usernames.pipe.ts';
+import * as io from 'socket';
 
 
 @Component({
@@ -35,9 +36,12 @@ export class ChatListComponent extends BaseAuthComponent  implements OnInit {
     errorMessage: string;
 
     _chatrooms: Chatroom[];
+    
+    socket: any;
 
     constructor(
         private _chatService: ChatService,
+        private _authService: AuthService,
         protected _router: Router,
         protected _userService: UserService
     ) {
@@ -46,9 +50,24 @@ export class ChatListComponent extends BaseAuthComponent  implements OnInit {
      }
 
     ngOnInit(){
-        this._chatService.getChatroomsForUser().subscribe(chatrooms=> {
-            this._chatrooms = chatrooms;
-        });
+        let userInfo = this._authService.getUserInfo();
+        if(!userInfo){
+            return;
+        }
+        
+        let chatroomObservables = this._chatService.getChatroomsForUser();
+        if(chatroomObservables){
+            chatroomObservables.subscribe(chatrooms=> {
+                this._chatrooms = chatrooms;
+            });
+        }
+        
+        this.socket = io.connect();
+        this.socket.emit("listenForChatrooms", this._authService.getUserInfo()._id);;
+
+		this.socket.on("newChatroom", (chatroom) => {
+			this._chatrooms.push(chatroom);           
+		});
     }
     
     enterChatroom(chatroom:Chatroom){

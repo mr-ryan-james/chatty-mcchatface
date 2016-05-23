@@ -2,7 +2,7 @@
     <div class="blog-summary-sidebar">
         <aside class="widget">
             <h5 class="widget-title"><span>Create new chat</span></h5>
-            <ul class="list-unstyled icon-list">
+            <ul *ngIf="users" class="list-unstyled icon-list">
                 <li *ngFor="let user of users">
                     <a (click)="addUser(user)">
                         <span class="ti ti-plus ti-lg"></span> {{user.firstName}} {{user.lastName}}
@@ -12,7 +12,7 @@
         </aside>
     </div>
     
-    <div class="blog-summary-sidebar" [hidden]="!selectedUsers">
+    <div class="blog-summary-sidebar" *ngIf="selectedUsers">
         <aside class="widget">
             <h5 class="widget-title"><span>Selected users for new chat</span></h5>
             <ul class="list-unstyled icon-list">

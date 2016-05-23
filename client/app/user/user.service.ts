@@ -53,7 +53,7 @@ export class UserService extends BaseService {
     return this._http[httpMethod](userUrl, body, options)
       .map((res: Response) => this.processUserResponse.apply(this, [res]))
       .catch(function(error:String){
-        throw error;
+        return Observable.throw(error);
       });
   }
 
@@ -64,13 +64,20 @@ export class UserService extends BaseService {
     return this._http.get(userUrl, options)
       .map((response: Response) => {
         return <User[]>response.json();
+      })
+      .catch((error:any, caught: Observable<User[]>) => {
+        return Observable.throw(error);
       });
   }
 
   getUser(id: number): Observable<User> {
     return this._http.get(`${userUrl}/${id}`)
-      .map((response: Response) => <User>response.json().data);
+      .map((response: Response) => <User>response.json().data)
+      .catch((error:any, caught: Observable<User>) => {
+        return Observable.throw(error);
+      });
   }
+ 
 
   private processUserResponse(res: Response) {
     if (res.status < 200 || res.status >= 300) {

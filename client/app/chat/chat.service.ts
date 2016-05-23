@@ -49,7 +49,7 @@ export class ChatService extends BaseService {
 
     return this._http.post(chatroomUrl, body, options)
       .map((res: Response) => this.processChatResponse.apply(this, [res]))
-      .catch(this.handleError);
+      .catch((error) => this.handleError(error));
   }
 
   sendChat(text: String, id: String): Observable<Chat> {
@@ -68,7 +68,6 @@ export class ChatService extends BaseService {
     return this._http.put(url, body, options)
       .map((res: Response) => <Chat>res.json())
       .catch((error) => this.handleError(error));
-
   }
 
   getChatroom(id: String): Observable<Chatroom> {
@@ -79,7 +78,7 @@ export class ChatService extends BaseService {
 
     return this._http.get(url, options)
       .map((res: Response) => this.processChatResponse.apply(this, [res]))
-      .catch(this.handleError);
+      .catch((error) => this.handleError(error));
   }
   
   getChatroomsForUser() : Observable<Chatroom[]>{

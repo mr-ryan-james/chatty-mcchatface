@@ -13,7 +13,7 @@ export class BaseService {
 
   protected handleError(error: any) {
     if(error.status === 401){
-          this.userNoLongerAuthenticated.next(error);
+      this.userNoLongerAuthenticated.next(error);
       return;
     }
     

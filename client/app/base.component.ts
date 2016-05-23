@@ -12,9 +12,12 @@ export class BaseAuthComponent {
     }
 
     registerService(baseService: BaseService){
-        baseService.noLongerAuthenticated$.subscribe(() => {
-            this.attemptToRoute(this._router);
-        });
+        if(baseService.noLongerAuthenticated$){
+            baseService.noLongerAuthenticated$.subscribe(() => {
+                this._userService.logoutUser();
+                this.attemptToRoute(this._router);
+            });
+        }
     }
     
     private attemptToRoute(router){
