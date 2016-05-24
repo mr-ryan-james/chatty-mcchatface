@@ -9,6 +9,7 @@ OR, if you would rather set it up on your own machine, follow the below:
 3. npm install everything
 4. open up a terminal, and cd into the cloned directory, and type in
 5. npm start
+6. Register a user for yourself.
 
 The app will seem rather underwhelming by yourself, but either get a friend, or open up an incognito Chrome window and talk with yourself. I talk to myself all the time! It's fun! That's not weird at all, right?
 
