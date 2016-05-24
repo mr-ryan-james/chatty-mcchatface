@@ -18,9 +18,10 @@ Right??
 Guys?
 
 
-####
-Technologies used in this application
+#### Technologies used in this application
 1. Node.js/es2015
 2. Angular 2 RC1
 3. Mongoose/Mongo
 4. Typescript
+
+#### Tested in Chrome, Firefox, Safari, all on MAC OS X
