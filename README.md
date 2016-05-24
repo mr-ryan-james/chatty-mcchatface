@@ -110,7 +110,7 @@ redirected back to the login screen.
 I obviously copied the name for this app from Boaty McBoatface, the famous boat name that never came to be. 
 Google also copied the naming idea for their deep-learning project Tensorflow.
 
-Google trained Tensorflow to break down the composition of speech. They named that projecdt Parsey McParseface. 
+Google trained Tensorflow to break down the composition of speech. They named that project Parsey McParseface. 
 
 You can read more about that here:
 
