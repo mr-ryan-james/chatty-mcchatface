@@ -19,7 +19,7 @@ Guys?
 
 
 #### Technologies used in this application
-1. Node.js/es2015
+1. Node.js v6.1.0
 2. Angular 2 RC1
 3. Mongoose/Mongo
 4. Typescript
