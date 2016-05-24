@@ -42,12 +42,15 @@ Ask yourself, how often do people change their names when using an application? 
 I'm storing the abbreviated user information with every chat instance. After going down the rabbit hole a bit, I realized I could optimize the application a bit. Before I took this to production, I would want to change this:
 
 ```
+
+AbbreviatedUser: {firstName, lastName, Id}
+
 Chatroom: {
     _id: ObjectId,
-    Users: [{firstName, lastName, Id}],
+    Users: [AbbreviatedUser],
     Chats: [
         {
-            AbbreviatedUser: {firstName, lastName, Id}, 
+            AbbreviatedUser, 
             Text,
             Date
         }],
@@ -61,7 +64,7 @@ To this -
 ```
 Chatroom: {
     _id: ObjectId,
-    Users: [{firstName, lastName, Id}],
+    Users: [AbbreviatedUser],
     Chats: [
         {
             UserId, 
