@@ -75,7 +75,7 @@ Chatroom: {
     Date: Date
 }
 ```
-...and in the UI, store one instance of the first name, last name, and use that same object when iterating through the chats. I would still keep storing first name, last name information in the chat, to save a cross lookup against the User store. Again, we can go find every one of these
+...and in the UI, store one instance of the first name, last name, and use that same object when iterating through the chats. I would still keep storing first name, last name information in the chat, to save a lookup against the User collection. Again, we can go find every one of these
 instances and change them in the future, if the user changes their name. That isn't going to happen very often. Loading the chats is going to happen a lot in a moderatly used application. 
 
 
@@ -83,13 +83,13 @@ instances and change them in the future, if the user changes their name. That is
 When a user creates a chatroom, that chatroom is persisted to Mongo, and an event is broadcasted via socket.io, and all users who are a part of that chatroom will see it show up in their list of chatrooms. They are free to join or not join at this point. Users who are not in a chatroom will
 see the last two most recent chats automatically refreshed as they are sent in the chatroom.
 
-If a user joins the chatroom, they will see a live feed, again thanks to the magic of socketio. 
+If a user joins the chatroom, they will see a live feed of chats, again thanks to the magic of socketio. 
 
 Authentication in the application is handled with JWTs (JSON Web Tokens). After a user registers/logs in, a token is sent down with the user information, which is stored in the local store. When this token expires, if the user is in the middle of doing something, they will be automatically
 redirected back to the login screen. 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
-"Last read" information. I want to indicate to the users visually what chats of unread chats in them. 
+1. "Last read" information. I want to indicate to the users visually what chats of unread chats in them. 
 
 The way I would accomplish this is best explained by pointing to the lastreadschema:
 
@@ -102,6 +102,8 @@ const _lastReadSchema = {
 
 Every chatroom has an array of these for every user. Every time you join a chatroom, I update the corresponding "last read" object for that user. Any chatroom that has an "created/updated" date that is after this date would 
 have some sort of visual indication. 
+
+2. Paging. We would need it for conversations of any significant size, and for users who join quite a few chatrooms. With a bit of Mongo querying magic, paging could be done fairly simply. 
 
 #### Cool bonus things that I may actually do
 
