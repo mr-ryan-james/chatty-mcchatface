@@ -12,7 +12,7 @@ module.exports = class Auth {
         };
 
         return jwt.sign(obj, authConfig.getSecret(), {
-            expiresIn: "6w"
+            expiresIn: "1d"
         });
     }
 
