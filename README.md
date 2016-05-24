@@ -89,7 +89,7 @@ Authentication in the application is handled with JWTs (JSON Web Tokens). After 
 redirected back to the login screen. 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
-1. "Last read" information. I want to indicate to the users visually what chats of unread chats in them. 
+1. "Last read" information. I want to indicate to the users visually what chats have unread chats in them. 
 
     The way I would accomplish this is best explained by pointing to the lastreadschema:
 
