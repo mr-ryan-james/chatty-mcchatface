@@ -59,7 +59,7 @@ Chatroom: {
 }
 ```
 
-To this -
+To this ...
 
 ```
 Chatroom: {
@@ -75,8 +75,7 @@ Chatroom: {
     Date: Date
 }
 ```
-
-- and in the UI, store one instance of the first name, last name, and use that same object when iterating through the chats. I would still keep storing first name, last name information in the chat, to save a cross lookup against the User store. Again, we can go find every one of these
+...and in the UI, store one instance of the first name, last name, and use that same object when iterating through the chats. I would still keep storing first name, last name information in the chat, to save a cross lookup against the User store. Again, we can go find every one of these
 instances and change them in the future, if the user changes their name. That isn't going to happen very often. Loading the chats is going to happen a lot in a moderatly used application. 
 
 
