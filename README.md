@@ -41,6 +41,7 @@ Ask yourself, how often do people change their names when using an application? 
 
 I'm storing the abbreviated user information with every chat instance. After going down the rabbit hole a bit, I realized I could optimize the application a bit. Before I took this to production, I would want to change this:
 
+```
 Chatroom: {
     _id: ObjectId,
     Users: [{firstName, lastName, Id}],
@@ -53,9 +54,11 @@ Chatroom: {
     LastReads: [LastReadModel],
     Date: Date
 }
+```
 
 To this -
 
+```
 Chatroom: {
     _id: ObjectId,
     Users: [{firstName, lastName, Id}],
@@ -68,8 +71,9 @@ Chatroom: {
     LastReads: [LastReadModel],
     Date: Date
 }
+```
 
-And in the UI, store one instance of the first name, last name, and use that same object when iterating through the chats. I would still keep storing first name, last name information in the chat, to save a cross lookup against the User store. Again, we can go find every one of these
+- and in the UI, store one instance of the first name, last name, and use that same object when iterating through the chats. I would still keep storing first name, last name information in the chat, to save a cross lookup against the User store. Again, we can go find every one of these
 instances and change them in the future, if the user changes their name. That isn't going to happen very often. Loading the chats is going to happen a lot in a moderatly used application. 
 
 
@@ -87,10 +91,12 @@ redirected back to the login screen.
 
 The way I would accomplish this is best explained by pointing to the lastreadschema:
 
+```
 const _lastReadSchema = {
     userId: mongoose.Schema.Types.ObjectId,
     lastReadDate: Date
 }
+```
 
 Every chatroom has an array of these for every user. Every time you join a chatroom, I update the corresponding "last read" object for that user. Any chatroom that has an "created/updated" date that is after this date would 
 have some sort of visual indication. 
