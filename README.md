@@ -120,8 +120,7 @@ Assuming you are authenticated into Chatty-McChatface ->
 4. Click on https://chatty-mcchatface.herokuapp.com
 5. You should see a "User" key and a token key. Copy the entire value of the Token key.
 6. Go to https://jwt.io/
-7. Paste the oken into the "Encoded" field on the page. There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the second is a base64 encoded payload (which shows the user id and expiration), and 
-the last is our signature. 
+7. Paste the oken into the "Encoded" field on the page. There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the second is a base64 encoded payload (which shows the user id and expiration), and the last is our signature. 
 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
