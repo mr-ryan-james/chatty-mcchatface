@@ -98,6 +98,43 @@ As indicated earlier, this application makes use of JWTs for user persistence. A
 
 Currently, the JWT verifying signature is created on the production server using an app_secret saved in an environment variable.
 
+server/auth/index.js
+```
+    static generateToken(userId) {
+
+        let obj = {
+            id: userId,
+        };
+
+        return jwt.sign(obj, authConfig.getSecret(), {
+            expiresIn: "1d"
+        });
+    }
+
+    static authorize(req, res, next) {
+        var token = req.body.token || req.query.token || req.headers['x-access-token'];
+
+        if (!token) {
+
+            return res.status(403).send({
+                message: 'No token provided.'
+            });
+        }
+
+        jwt.verify(token, authConfig.getSecret(), function (err, decoded) {
+            if (err) {
+                return res.status(401).json({
+                    message: 'Failed to authenticate token.'
+                });
+            } else {
+                req.decoded = decoded;
+                next();
+            }
+        });
+    }
+```
+
+server/config/auth.conf.js
 ```
 module.exports = class AuthConfig {
     
