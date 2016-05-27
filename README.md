@@ -114,13 +114,19 @@ With minimal effort, we could store this secret in a Redis instance or any other
 If you want to have fun plugging in your token and seeing what the result looks like, you can do so fairly simply.
 
 Assuming you are authenticated into Chatty-McChatface ->
-1. (In Chrome) Open up Developer Tools
+
+1. Open up Developer Tools in Chrome
 2. Navigate to the Resources bar
 3. Expand "Local Storage"
 4. Click on https://chatty-mcchatface.herokuapp.com
-5. You should see a "User" key and a token key. Copy the entire value of the Token key.
+⋅⋅* You should see a "user" key and a "token" key. 
+5. Copy the entire value of the Token key.
 6. Go to https://jwt.io/
-7. Paste the oken into the "Encoded" field on the page. There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the second is a base64 encoded payload (which shows the user id and expiration), and the last is our signature. 
+7. Paste the oken into the "Encoded" field on the page.
+⋅⋅1. There should be 3 sections seperated by . in the JWT
+⋅⋅2. The first is a base64 encoded header
+⋅⋅3. the second is a base64 encoded payload (which shows the user id and expiration)
+⋅⋅4. And the third is the verifying signature
 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
