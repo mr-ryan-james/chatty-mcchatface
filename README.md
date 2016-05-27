@@ -117,7 +117,7 @@ With minimal effort, we could store this secret in a Redis instance or any other
 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
-1. "Last read" information. I want to indicate to the users visually what chats of unread chats in them. 
+1. "Last read" information. I want to indicate to the users visually what chatrooms have unread chats in them. 
 
     The way I would accomplish this is best explained by pointing to the lastreadschema:
 
@@ -131,7 +131,7 @@ With minimal effort, we could store this secret in a Redis instance or any other
     Every chatroom has an array of these for every user. Every time you join a chatroom, I update the corresponding "last read" object for that user. Any chatroom that has an "created/updated" date that is after this date would 
     have some sort of visual indication. 
 
-2. Paging. We would need it for conversations of any significant size, and for users who join quite a few chatrooms. With a bit of Mongo querying magic, paging could be done fairly simply. 
+2. Paging. We would need it for chatrooms with chats of any significant size, and for users who join quite a few chatrooms. With a bit of Mongo querying magic, paging could be done fairly simply. 
 
 #### Cool bonus things that I may actually do
 
