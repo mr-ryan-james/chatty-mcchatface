@@ -96,7 +96,7 @@ redirected back to the login screen.
 As indicated earlier, this application makes use of JWTs for user persistence. As users make requests that require user context to the application, a JWT is sent in the HTTP header (x-access-token) with each http request payload. 
 
 
-Currently, the JWT is set on the production server using an environment variable.
+Currently, the JWT verifying signature is created on the production server using an app_secret saved in an environment variable.
 
 ```
 module.exports = class AuthConfig {
@@ -123,10 +123,9 @@ Assuming you are authenticated into Chatty-McChatface ->
 5. Copy the entire value of the Token key.
 6. Go to https://jwt.io/
 7. Paste the oken into the "Encoded" field on the page.
-⋅⋅1. There should be 3 sections seperated by . in the JWT
-⋅⋅2. The first is a base64 encoded header
-⋅⋅3. the second is a base64 encoded payload (which shows the user id and expiration)
-⋅⋅4. And the third is the verifying signature
+
+There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the second is a base64 encoded payload (which shows the user id and expiration), and the third is the verifying signature.  
+These three components make up our JWT. 
 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
