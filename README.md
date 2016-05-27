@@ -110,6 +110,10 @@ module.exports = class AuthConfig {
 In Heroku and AWS, this environment variable (process.env.APP_SECRET) is automatically propogated to all children processes within the load balancing process.
 With minimal effort, we could store this secret in a Redis instance or any other persistent store that we could then pull down as needed into the application.
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 131b6bec5dbb05ed1b6213fcb8bac8c082800e4a
 If you want to have fun plugging in your token and seeing what the result looks like, you can do so fairly simply.
 
 Assuming you are authenticated into Chatty-McChatface ->
@@ -121,6 +125,12 @@ Assuming you are authenticated into Chatty-McChatface ->
 6. Go to https://jwt.io/
 7. Paste the oken into the "Encoded" field on the page. There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the second is a base64 encoded payload (which shows the user id and expiration), and 
 the last is our signature. 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> 131b6bec5dbb05ed1b6213fcb8bac8c082800e4a
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
 1. "Last read" information. I want to indicate to the users visually what chatrooms have unread chats in them. 
