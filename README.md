@@ -93,7 +93,7 @@ redirected back to the login screen.
 
 ![alt tag](https://raw.githubusercontent.com/puhfista/chatty-mcchatface/master/horizontal.png)
 
-As indicated earlier, this application makes use of JWTs for user persistence. As users make requests that require user context to the application, a JWT is sent with the HTTP header with each http payload. 
+As indicated earlier, this application makes use of JWTs for user persistence. As users make requests that require user context to the application, a JWT is sent in the HTTP header (x-access-token) with each http request payload. 
 
 
 Currently, the JWT is set on the production server using an environment variable.
@@ -110,11 +110,17 @@ module.exports = class AuthConfig {
 In Heroku and AWS, this environment variable (process.env.APP_SECRET) is automatically propogated to all children processes within the load balancing process.
 With minimal effort, we could store this secret in a Redis instance or any other persistent store that we could then pull down as needed into the application.
 
+If you want to have fun plugging in your token and seeing what the result looks like, you can do so fairly simply.
 
-
-
-
-
+Assuming you are authenticated into Chatty-McChatface ->
+1. (In Chrome) Open up Developer Tools
+2. Navigate to the Resources bar
+3. Expand "Local Storage"
+4. Click on https://chatty-mcchatface.herokuapp.com
+5. You should see a "User" key and a token key. Copy the entire value of the Token key.
+6. Go to https://jwt.io/
+7. Paste the oken into the "Encoded" field on the page. There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the second is a base64 encoded payload (which shows the user id and expiration), and 
+the last is our signature. 
 
 #### Things not yet implemented in this alpha release of Chatty McChatface
 1. "Last read" information. I want to indicate to the users visually what chatrooms have unread chats in them. 
