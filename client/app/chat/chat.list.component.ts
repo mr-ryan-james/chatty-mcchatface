@@ -83,12 +83,12 @@ export class ChatListComponent extends BaseAuthComponent implements OnInit {
 
         if (existingIndex === -1)
         {
-            this._chatrooms.push(chatroom);
+            this._chatrooms.unshift(chatroom);
             return;
         }
 
         this._chatrooms.splice(existingIndex, 1)
-        this._chatrooms.push(chatroom);
+        this._chatrooms.unshift(chatroom);
     }
 
 }
