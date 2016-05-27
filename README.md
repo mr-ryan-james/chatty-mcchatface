@@ -88,6 +88,34 @@ If a user joins the chatroom, they will see a live feed of chats, again thanks t
 Authentication in the application is handled with JWTs (JSON Web Tokens). After a user registers/logs in, a token is sent down with the user information, which is stored in the local store. When this token expires, if the user is in the middle of doing something, they will be automatically
 redirected back to the login screen. 
 
+#### Horizontal Scalability
+
+
+![alt tag](https://raw.githubusercontent.com/puhfista/chatty-mcchatface/master/horizontal.png)
+
+As indicated earlier, this application makes use of JWTs for user persistence. As users make requests that require user context to the application, a JWT is sent with the HTTP header with each http payload. 
+
+
+Currently, the JWT is set on the production server using an environment variable.
+
+```
+module.exports = class AuthConfig {
+    
+    static getSecret() {
+      return (process.env.NODE_ENV === 'production') ? process.env.APP_SECRET : appConst.app_secret;
+    }
+};
+```
+
+In Heroku and AWS, this environment variable (process.env.APP_SECRET) is automatically propogated to all children processes within the load balancing process.
+With minimal effort, we could store this secret in a Redis instance or any other persistent store that we could then pull down as needed into the application.
+
+
+
+
+
+
+
 #### Things not yet implemented in this alpha release of Chatty McChatface
 1. "Last read" information. I want to indicate to the users visually what chats of unread chats in them. 
 
