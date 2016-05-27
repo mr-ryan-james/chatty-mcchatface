@@ -81,6 +81,7 @@ chatroomSchema.statics.getAll = (user) => {
         let _query =  {'users._id': user._id};
         Chatroom
             .find(_query)
+            .sort("-date")
             .select({ "chats": { "$slice": -2 }})
             .exec((err, chatrooms) => {
                 err ? reject(err) : resolve(chatrooms);
