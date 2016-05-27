@@ -12,7 +12,7 @@
     'ts':                         'https://npmcdn.com/plugin-typescript@4.0.10/lib/plugin.js',
     'typescript':                 'https://npmcdn.com/typescript@1.8.10/lib/typescript.js',
     'moment':                     'https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js',
-    'socket':                     'https://cdn.socket.io/socket.io-1.4.5.js'
+    'socket':                     'https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.6/socket.io.min.js'
  };
 
   //packages tells the System loader how to load when no filename and/or no extension
