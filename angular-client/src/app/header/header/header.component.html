@@ -1,0 +1,77 @@
+<header class="header">
+  <div class="header-inner">
+    <div class="logo-brand logo-font">
+      <a routerLink="/">
+        <canvas
+          #logoCanvas
+          width="300"
+          height="60"
+          style="vertical-align: middle"
+        ></canvas>
+        <!-- Text span as fallback if canvas fails to load -->
+        <span
+          class="logo-brand-inner"
+          style="font-family: 'Roboto'; display: none"
+        >
+          <span style="font-weight: 900">Chatty</span> McChatface
+        </span>
+      </a>
+    </div>
+
+    <!-- Logged In View -->
+    <div *ngIf="currentUser" class="header-btn-bar">
+      <div class="header-btn-wrapper clearfix">
+        <div class="header-btn-row half-row">
+          <a class="header-btn header-btn-xl">
+            <span class="header-btn-text">
+              Hello, {{ currentUser.firstName }} {{ currentUser.lastName }}
+            </span>
+          </a>
+        </div>
+        <div class="header-btn-row half-row">
+          <a class="header-btn header-btn-xl"></a>
+          <!-- Placeholder -->
+          <a
+            (click)="logout()"
+            class="header-btn header-btn-xl"
+            style="border-right: 0; cursor: pointer"
+          >
+            <i class="fa fa-sign-out header-icon"></i>
+            <!-- Updated icon -->
+            <span class="header-btn-text">Logout</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logged Out View -->
+    <div *ngIf="!currentUser" class="header-btn-bar">
+      <div class="header-btn-wrapper clearfix">
+        <div class="header-btn-row half-row">
+          <a
+            (click)="login()"
+            class="header-btn header-btn-xl"
+            style="cursor: pointer"
+          >
+            <i class="fa fa-sign-in header-icon"></i>
+            <span class="header-btn-text">Login</span>
+          </a>
+          <a class="header-btn header-btn-xl" style="border-right: 0"></a>
+          <!-- Placeholder -->
+        </div>
+        <div class="header-btn-row half-row">
+          <a class="header-btn header-btn-xl"></a>
+          <!-- Placeholder -->
+          <a
+            (click)="signUp()"
+            class="signin-toggle header-btn header-btn-xl"
+            style="border-right: 0; cursor: pointer"
+          >
+            <i class="fa fa-pencil header-icon"></i>
+            <span class="header-btn-text">Sign Up</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

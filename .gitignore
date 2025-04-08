@@ -1,4 +1,41 @@
-.vscode/
+# Dependencies
 node_modules/
-typings/
+
+# Build output
+dist/
+publish_output/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS generated files
 .DS_Store
+Thumbs.db
+
+# IDE settings
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Angular build artifacts
+angular-client/dist/
+angular-client/node_modules/
+
+# Other
+*.zip

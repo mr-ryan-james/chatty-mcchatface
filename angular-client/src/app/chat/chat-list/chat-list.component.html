@@ -1,0 +1,26 @@
+<div
+  class="col-sm-8 col-md-9 col-sm-push-4 col-md-push-3 primary-column"
+  role="main"
+>
+  <article class="entry-summary" *ngFor="let chatroom of chatrooms">
+    <header class="entry-header">
+      <h3 class="entry-title">
+        <a>{{ chatroom.users | userNames }}</a>
+      </h3>
+    </header>
+
+    <div class="row sixteen-gutter">
+      <div *ngIf="chatroom" class="col-sm-12 entry-content">
+        <p>
+          <button
+            (click)="enterChatroom(chatroom)"
+            class="btn btn-default"
+            href="blog-single.html"
+          >
+            Enter Chat
+          </button>
+        </p>
+      </div>
+    </div>
+  </article>
+</div>
