@@ -118,7 +118,7 @@ export class ChatService {
     console.log('Fetching chatrooms');
     return this.http
       .get<ChatroomDto[]>(
-        `${environment.apiUrl}/chatroom`,
+        `${environment.apiUrl}/chatrooms`,
         this.getAuthHeaders()
       )
       .pipe(
@@ -134,7 +134,7 @@ export class ChatService {
     console.log(`Fetching chatroom with ID: ${id}`);
     return this.http
       .get<ChatroomDetailDto>(
-        `${environment.apiUrl}/chatroom/${id}`,
+        `${environment.apiUrl}/chatrooms/${id}`,
         this.getAuthHeaders()
       )
       .pipe(
@@ -156,7 +156,7 @@ export class ChatService {
     console.log('Creating new chatroom:', createDto);
     return this.http
       .post<ChatroomDto>(
-        `${environment.apiUrl}/chatroom`,
+        `${environment.apiUrl}/chatrooms`,
         createDto,
         this.getAuthHeaders()
       )
@@ -171,7 +171,7 @@ export class ChatService {
     console.log(`Sending message to chatroom ${roomId}:`, messageDto);
     return this.http
       .post<ChatMessageDto>(
-        `${environment.apiUrl}/chatroom/${roomId}/chats`,
+        `${environment.apiUrl}/chatrooms/${roomId}/chats`,
         messageDto,
         this.getAuthHeaders()
       )
@@ -186,7 +186,7 @@ export class ChatService {
     console.log(`Updating chatroom ${id}:`, updateDto);
     return this.http
       .put<ChatroomDto>(
-        `${environment.apiUrl}/chatroom/${id}`,
+        `${environment.apiUrl}/chatrooms/${id}`,
         updateDto,
         this.getAuthHeaders()
       )
@@ -197,7 +197,7 @@ export class ChatService {
   deleteChatroom(id: string): Observable<any> {
     console.log(`Deleting chatroom ${id}`);
     return this.http
-      .delete(`${environment.apiUrl}/chatroom/${id}`, this.getAuthHeaders())
+      .delete(`${environment.apiUrl}/chatrooms/${id}`, this.getAuthHeaders())
       .pipe(catchError(this.handleError));
   }
 

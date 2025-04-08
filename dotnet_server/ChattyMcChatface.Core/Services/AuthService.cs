@@ -24,7 +24,7 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<User?> RegisterAsync(UserRegisterDto registerDto)
+    public async Task<(User? User, string? Token)> RegisterAsync(UserRegisterDto registerDto)
     {
         try
         {
@@ -32,7 +32,7 @@ public class AuthService : IAuthService
             if (await _dbContext.Users.AnyAsync(u => u.Email == registerDto.Email))
             {
                 _logger.LogWarning("Registration attempt with existing email: {Email}", registerDto.Email);
-                return null;
+                return (null, null);
             }
 
             // Hash the password
@@ -52,13 +52,16 @@ public class AuthService : IAuthService
             await _dbContext.Users.AddAsync(newUser);
             await _dbContext.SaveChangesAsync();
 
+            // Generate JWT token
+            var token = GenerateJwtToken(newUser);
+
             _logger.LogInformation("User registered successfully: {Email}", registerDto.Email);
-            return newUser;
+            return (newUser, token);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during user registration for {Email}", registerDto.Email);
-            return null;
+            return (null, null);
         }
     }
 

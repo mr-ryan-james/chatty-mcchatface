@@ -63,7 +63,7 @@ export class UserService {
   getUsers(): Observable<UserDto[]> {
     console.log('Fetching all users');
     return this.http
-      .get<UserDto[]>(`${environment.apiUrl}/user`, this.getAuthHeaders())
+      .get<UserDto[]>(`${environment.apiUrl}/users`, this.getAuthHeaders())
       .pipe(
         catchError((error) => {
           console.warn('API error, falling back to mock data', error);
@@ -76,7 +76,7 @@ export class UserService {
   getUser(id: string): Observable<UserDto> {
     console.log(`Fetching user with ID: ${id}`);
     return this.http
-      .get<UserDto>(`${environment.apiUrl}/user/${id}`, this.getAuthHeaders())
+      .get<UserDto>(`${environment.apiUrl}/users/${id}`, this.getAuthHeaders())
       .pipe(
         catchError((error) => {
           console.warn('API error, falling back to mock data', error);
@@ -93,7 +93,7 @@ export class UserService {
   deleteUser(id: string): Observable<any> {
     console.log(`Deleting user with ID: ${id}`);
     return this.http
-      .delete(`${environment.apiUrl}/user/${id}`, this.getAuthHeaders())
+      .delete(`${environment.apiUrl}/users/${id}`, this.getAuthHeaders())
       .pipe(catchError(this.handleError));
   }
 

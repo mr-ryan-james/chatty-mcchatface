@@ -7,7 +7,7 @@ import { User } from './user.service';
 import { environment } from '../../../environments/environment';
 
 export interface UserLoginDto {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -21,8 +21,12 @@ export interface UserRegisterDto {
 
 export interface AuthResponseDto {
   token: string;
-  user: User;
-  expiration: Date;
+  email: string; // Add
+  firstName: string; // Add
+  lastName: string; // Add
+  userId: number; // Add (use number to match backend)
+  // Remove user: User;
+  // Remove expiration: Date;
 }
 
 @Injectable({
@@ -57,7 +61,7 @@ export class AuthService {
   }
 
   login(loginDto: UserLoginDto): Observable<AuthResponseDto> {
-    console.log(`Attempting login with username: ${loginDto.username}`);
+    console.log(`Attempting login with email: ${loginDto.email}`);
 
     return this.http
       .post<AuthResponseDto>(`${environment.apiUrl}/auth/login`, loginDto)
@@ -67,10 +71,13 @@ export class AuthService {
       );
   }
 
-  register(registerDto: UserRegisterDto): Observable<any> {
+  register(registerDto: UserRegisterDto): Observable<AuthResponseDto> {
     return this.http
-      .post<any>(`${environment.apiUrl}/auth/register`, registerDto)
-      .pipe(catchError(this.handleError));
+      .post<AuthResponseDto>(`${environment.apiUrl}/auth/register`, registerDto)
+      .pipe(
+        tap((response) => this.handleAuthentication(response)),
+        catchError(this.handleError)
+      );
   }
 
   logout(): void {
@@ -99,14 +106,29 @@ export class AuthService {
   }
 
   private handleAuthentication(response: AuthResponseDto): void {
-    const { token, user } = response;
+    // Destructure directly from the response
+    const { token, userId, email, firstName, lastName } = response;
+    console.log(
+      '[AuthService] handleAuthentication called. Response:',
+      response
+    );
 
-    // Store token in localStorage
     localStorage.setItem('token', token);
 
-    // Update authentication state
+    // Create the User object expected by the frontend
+    const user: User = {
+      id: userId.toString(), // Convert number to string for User interface
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      // username is missing from backend response, set to email or similar?
+      username: email, // Or construct from first/last name if preferred
+    };
+
     this.isAuthenticatedSubject.next(true);
-    this.currentUserSubject.next(user);
+    console.log('[AuthService] isAuthenticatedSubject updated to true');
+    this.currentUserSubject.next(user); // Pass the constructed User object
+    console.log('[AuthService] currentUserSubject updated. User:', user);
   }
 
   // Helper methods for HTTP requests

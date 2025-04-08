@@ -47,13 +47,8 @@ export class RegisterComponent {
         console.log('Registration successful');
         this.loading = false;
 
-        // Redirect to login page after successful registration
-        this.router.navigate(['/user/login'], {
-          queryParams: {
-            registered: 'true',
-            email: formValue.email,
-          },
-        });
+        // Navigate to the chat page (or another appropriate page) after successful registration
+        this.router.navigate(['/chat']); // Or potentially '/dashboard' or '/'
       },
       error: (error) => {
         console.error('Registration error:', error);

@@ -10,8 +10,11 @@ using ChattyMcChatface.Api.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Add controller services
+builder.Services.AddControllers();
+
+// Add Swagger/OpenAPI support
+builder.Services.AddEndpointsApiExplorer();
 
 // Add SignalR services
 builder.Services.AddSignalR();
@@ -47,12 +50,28 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)) // Ensure Key is not null
     };
+    
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+
+            // If the request is for our hub...
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                (path.StartsWithSegments("/chathub"))) // Check if path starts with /chathub
+            {
+                // Read the token from the query string
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Configure Authorization
 builder.Services.AddAuthorization();
-
-// Add controller services
 builder.Services.AddControllers();
 
 // Define CORS policy
@@ -91,18 +110,23 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Development-specific middleware can be added here
 }
 app.UseHttpsRedirection();
-app.UseRouting(); // Add routing middleware explicitly
-app.UseCors(MyAllowSpecificOrigins); // Add CORS middleware
-app.UseAuthentication();
-app.UseAuthorization();
 
-// Map controllers and SignalR hub
-app.MapControllers();
-app.MapHub<ChatHub>("/chathub");
+app.UseRouting(); // 1. Routing
 
+app.UseCors(MyAllowSpecificOrigins); // 2. CORS
+app.UseAuthentication();           // 3. Authentication
+app.UseAuthorization();          // 4. Authorization
+
+app.MapControllers();            // 5. Map API Controllers
+app.MapHub<ChatHub>("/chathub"); // 6. Map SignalR Hub
+
+app.UseDefaultFiles();           // 7. Default Files (index.html)
+app.UseStaticFiles();            // 8. Static Files (js, css, images)
+
+app.MapFallbackToFile("index.html"); // 9. SPA Fallback
 
 var summaries = new[]
 {

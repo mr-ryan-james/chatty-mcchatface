@@ -36,7 +36,7 @@ export class LoginComponent {
     console.log('Login attempt for:', formValue.email);
 
     const loginDto: UserLoginDto = {
-      username: formValue.email, // Using email as username for now
+      email: formValue.email, // Use email property as expected by backend
       password: formValue.password,
     };
 

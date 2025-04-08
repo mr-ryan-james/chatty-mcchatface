@@ -171,7 +171,10 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (this.signalrService.isConnectedToHub() && this.roomId) {
       this.signalrService
         .joinRoom(this.roomId)
-        .then(() => console.log(`Joined room ${this.roomId} via SignalR`))
+        .then(() => {
+          console.log(`Joined room ${this.roomId} via SignalR`);
+          this.loadChatRoom(); // Ensure this line is present
+        })
         .catch((err) => {
           console.error('Error joining room via SignalR:', err);
           this.error =
