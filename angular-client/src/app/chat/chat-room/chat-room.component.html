@@ -49,8 +49,8 @@
             class="form-control"
             rows="5"
             id="comment"
-            (keydown.enter)="$event.ctrlKey && sendChat()"
-            placeholder="Type your message here... (Press Ctrl+Enter to send)"
+            (keydown)="handleKeyDown($event)"
+            placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
           ></textarea>
         </div>
         <span class="input-group-btn">

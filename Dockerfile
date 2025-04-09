@@ -17,6 +17,8 @@ COPY dotnet_server/ChattyMcChatface.sln ./dotnet_server/
 COPY dotnet_server/ChattyMcChatface.Api/ChattyMcChatface.Api.csproj ./dotnet_server/ChattyMcChatface.Api/
 COPY dotnet_server/ChattyMcChatface.Core/ChattyMcChatface.Core.csproj ./dotnet_server/ChattyMcChatface.Core/
 COPY dotnet_server/ChattyMcChatface.Data/ChattyMcChatface.Data.csproj ./dotnet_server/ChattyMcChatface.Data/
+COPY dotnet_server/ChattyMcChatface.Tests.Unit/ChattyMcChatface.Tests.Unit.csproj ./dotnet_server/ChattyMcChatface.Tests.Unit/
+COPY dotnet_server/ChattyMcChatface.Tests.Integration/ChattyMcChatface.Tests.Integration.csproj ./dotnet_server/ChattyMcChatface.Tests.Integration/
 
 # Restore dependencies
 RUN dotnet restore ./dotnet_server/ChattyMcChatface.sln

@@ -244,61 +244,30 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   sendChat(): void {
-    if (!this.text.trim() || this.sending) {
-      return;
+    // Check if the message is empty or whitespace
+    if (!this.text || this.text.trim() === '') {
+      return; // Don't send empty messages
     }
 
     const currentUser = this.authService.getUserInfo();
-    if (!currentUser) {
-      this.error = 'You must be logged in to send messages';
-      return;
-    }
-
-    this.sending = true;
-    console.log(`Sending message to room ${this.roomId}:`, this.text);
-
-    // Create a ChatMessageDto object with the current user's ID and name
     const messageDto: ChatMessageDto = {
-      id: '', // This will be assigned by the server
-      text: this.text.trim(),
-      date: new Date(),
-      userId: currentUser.id,
-      userName: `${currentUser.firstName} ${currentUser.lastName}`,
       chatroomId: this.roomId,
+      userId: currentUser?.id || '', // Use optional chaining and provide a default value
+      userName: currentUser?.username || '', // Use optional chaining and provide a default value
+      text: this.text,
+      date: new Date(), // Set timestamp on the client-side
+      id: '', // This will be assigned by the server
     };
 
-    // Send via HTTP API first
-    const sendSub = this.chatService
-      .sendMessage(this.roomId, messageDto)
-      .subscribe({
-        next: (message) => {
-          console.log('Message sent successfully:', message);
+    this.chatService.sendMessage(this.roomId, messageDto).subscribe(() => {
+      this.text = ''; // Clear the input field after successful send
+    });
+  }
 
-          // Add to our local list if it's not already there (might be added by SignalR already)
-          if (!this.chats.some((m) => m.id === message.id)) {
-            this.chats.push(message);
-            this.shouldScrollToBottom = true;
-          }
-
-          this.text = '';
-          this.sending = false;
-        },
-        error: (err) => {
-          console.error('Error sending message:', err);
-          this.error = 'Failed to send message. Please try again.';
-          this.sending = false;
-        },
-      });
-
-    this.subscriptions.push(sendSub);
-
-    // Also send via SignalR for real-time delivery
-    if (this.signalrService.isConnectedToHub()) {
-      this.signalrService
-        .sendMessage(this.roomId, this.text.trim())
-        .catch((err) =>
-          console.error('Error sending message via SignalR:', err)
-        );
+  handleKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault(); // Prevent default behavior (e.g., adding a new line)
+      this.sendChat(); // Send the message
     }
   }
 
