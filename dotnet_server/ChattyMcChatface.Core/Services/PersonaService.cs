@@ -84,7 +84,11 @@ namespace ChattyMcChatface.Core.Services
                         UserId = m.UserId,
                         UserFirstName = m.User.FirstName,
                         UserLastName = m.User.LastName,
-                        ChatroomId = m.ChatroomId
+                        ChatroomId = m.ChatroomId,
+                        // Set the role based on whether the message is from the persona or a regular user
+                        Role = m.UserId == chatroom.PersonaUserId
+                            ? MessageRole.Assistant
+                            : MessageRole.User
                     })
                     .ToList();
 
@@ -131,7 +135,9 @@ namespace ChattyMcChatface.Core.Services
                         UserId = responseMessage.UserId,
                         UserFirstName = personaUser.FirstName,
                         UserLastName = personaUser.LastName,
-                        ChatroomId = responseMessage.ChatroomId
+                        ChatroomId = responseMessage.ChatroomId,
+                        // This is a message from the AI assistant
+                        Role = MessageRole.Assistant
                     };
 
                     // Send the notification using the notification service

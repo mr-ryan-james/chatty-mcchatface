@@ -14,6 +14,6 @@ public interface IAiFallbackService
     /// </summary>
     /// <param name="config">The persona configuration for the AI</param>
     /// <param name="history">The conversation history as a list of messages</param>
-    /// <returns>The generated fallback response text</returns>
+    /// <returns>The generated fallback response as a string</returns>
     Task<string> GetResponseWithFallbackAsync(PersonaConfig config, List<ChatMessageDto> history);
 }

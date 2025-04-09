@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -8,6 +9,8 @@ using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 
 namespace ChattyMcChatface.Core.Services.AI;
 
@@ -20,6 +23,7 @@ public class GeminiProvider : IAiProvider
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
 
     // Base URL for the Gemini API
     private const string BaseApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/";
@@ -39,18 +43,37 @@ public class GeminiProvider : IAiProvider
         _httpClient = httpClientFactory?.CreateClient("GeminiApi") 
             ?? throw new ArgumentNullException(nameof(httpClientFactory));
         
-        _apiKey = configuration["Gemini:ApiKey"] 
+        _apiKey = configuration["Gemini:ApiKey"]
             ?? throw new InvalidOperationException("Gemini API key is not configured. Please add 'Gemini:ApiKey' to configuration.");
-
+            
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
+
+        // Configure retry policy for transient errors
+        _retryPolicy = Policy
+            .Handle<HttpRequestException>()
+            .OrResult<HttpResponseMessage>(r =>
+                (int)r.StatusCode >= 500 || // Server errors
+                r.StatusCode == System.Net.HttpStatusCode.RequestTimeout ||
+                r.StatusCode == System.Net.HttpStatusCode.TooManyRequests) // Rate limiting
+            .WaitAndRetryAsync(
+                3, // Retry 3 times
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff
+                onRetry: (outcome, timeSpan, retryAttempt, context) =>
+                {
+                    _logger.LogWarning(
+                        "Retrying Gemini API request after {RetryAttempt} attempts due to {StatusCode}. Waiting {TimeSpan} before next retry.",
+                        retryAttempt,
+                        outcome.Result?.StatusCode.ToString() ?? "unknown error",
+                        timeSpan);
+                });
     }
 
     /// <inheritdoc />
-    public async Task<string> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
+    public async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
     {
         try
         {
@@ -69,12 +92,17 @@ public class GeminiProvider : IAiProvider
                 Parts = new List<Part> { new Part { Text = systemPrompt } }
             });
             
-            // Add conversation history
+            // Add conversation history using the message role
             foreach (var message in history)
             {
-                // In a more complete implementation, you would determine the role based on the message
-                // For now, we'll assume all messages are from users
-                var role = IsUserMessage(message) ? "user" : "model";
+                // Map our MessageRole enum to Gemini's expected role values
+                var role = message.Role switch
+                {
+                    MessageRole.User => "user",
+                    MessageRole.Assistant => "model", // Gemini uses "model" instead of "assistant"
+                    MessageRole.System => "system",
+                    _ => throw new ArgumentException($"Unsupported message role: {message.Role}")
+                };
                 
                 contents.Add(new Content
                 {
@@ -96,8 +124,9 @@ public class GeminiProvider : IAiProvider
                 }
             };
             
-            // Send the HTTP request
-            var response = await _httpClient.PostAsJsonAsync(requestUrl, requestPayload, _jsonOptions);
+            // Send the HTTP request with retry policy
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.PostAsJsonAsync(requestUrl, requestPayload, _jsonOptions));
             
             // Ensure the request was successful
             response.EnsureSuccessStatusCode();
@@ -110,31 +139,44 @@ public class GeminiProvider : IAiProvider
                 throw new InvalidOperationException("Failed to parse response from Gemini API");
             }
             
-            // Extract the response text from the candidates
-            var firstCandidate = geminiResponse.Candidates?.FirstOrDefault();
-            var content = firstCandidate?.Content;
-            var firstPart = content?.Parts?.FirstOrDefault();
-            
-            if (firstPart?.Text != null)
+            // Check if candidates exist
+            if (geminiResponse.Candidates == null || !geminiResponse.Candidates.Any())
             {
-                return firstPart.Text;
+                throw new InvalidOperationException("No candidates were returned from Gemini API");
             }
             
-            throw new InvalidOperationException("No candidates were returned from Gemini API");
+            // Extract the text from the response
+            try
+            {
+                // Check if there's valid content to extract
+                if (geminiResponse?.Candidates != null &&
+                    geminiResponse.Candidates.Any() &&
+                    geminiResponse.Candidates[0]?.Content != null &&
+                    geminiResponse.Candidates[0].Content.Parts != null &&
+                    geminiResponse.Candidates[0].Content.Parts.Any() &&
+                    !string.IsNullOrEmpty(geminiResponse.Candidates[0].Content.Parts[0]?.Text))
+                {
+                    string extractedText = geminiResponse.Candidates[0].Content.Parts[0]?.Text ?? string.Empty;
+                    _logger.LogInformation("Successfully extracted text from Gemini response");
+                    return extractedText;
+                }
+                else
+                {
+                    _logger.LogWarning("No valid text content found in Gemini response");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error extracting text from Gemini API response");
+                return null;
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting completion from Gemini: {Message}", ex.Message);
             throw;
         }
-    }
-    
-    // Helper method to determine if a message is from a user
-    private bool IsUserMessage(ChatMessageDto message)
-    {
-        // In a more complete implementation, you would have a better way to determine the role
-        // For now, we'll assume all messages from users (not AI-generated)
-        return true;
     }
     
     #region API Models

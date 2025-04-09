@@ -35,7 +35,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
 
-// Register HttpClient for Gemini REST API
+// Register HttpClient for REST API clients
+builder.Services.AddHttpClient(); // General HTTP client factory registration
 builder.Services.AddHttpClient("GeminiApi", client =>
 {
     client.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -46,12 +47,14 @@ builder.Services.AddScoped<OpenAiProvider>();
 builder.Services.AddScoped<AzureAiProvider>();
 builder.Services.AddScoped<GeminiProvider>();
 builder.Services.AddScoped<ClaudeProvider>();
+builder.Services.AddScoped<VertexAiProvider>();
 
 // Register providers by interface for resolution via AiFallbackService
 builder.Services.AddScoped<IAiProvider, OpenAiProvider>();
 builder.Services.AddScoped<IAiProvider, AzureAiProvider>();
 builder.Services.AddScoped<IAiProvider, GeminiProvider>();
 builder.Services.AddScoped<IAiProvider, ClaudeProvider>();
+builder.Services.AddScoped<IAiProvider, VertexAiProvider>();
 
 // Register AI fallback service
 builder.Services.AddScoped<IAiFallbackService, AiFallbackService>();

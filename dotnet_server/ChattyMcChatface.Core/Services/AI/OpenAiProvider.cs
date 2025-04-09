@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Azure;
 using Azure.AI.OpenAI;
 using ChattyMcChatface.Core.Dtos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 
 namespace ChattyMcChatface.Core.Services.AI;
 
@@ -16,6 +19,7 @@ public class OpenAiProvider : IAiProvider
 {
     private readonly ILogger<OpenAiProvider> _logger;
     private readonly OpenAIClient _client;
+    private readonly AsyncRetryPolicy<string?> _retryPolicy;
 
     /// <summary>
     /// Initializes a new instance of the OpenAiProvider
@@ -34,13 +38,34 @@ public class OpenAiProvider : IAiProvider
         }
         
         _client = new OpenAIClient(apiKey);
+        
+        // Configure retry policy for transient errors
+        _retryPolicy = Policy<string?>
+            .Handle<RequestFailedException>(ex =>
+                // Retry on rate limit errors (429) or other transient errors (5xx)
+                ex.Status == 429 || (ex.Status >= 500 && ex.Status < 600))
+            .WaitAndRetryAsync(
+                3, // Retry 3 times
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff
+                (exception, timeSpan, retryCount, context) =>
+                {
+                    _logger.LogWarning(
+                        exception.Exception,
+                        "Attempt {RetryCount} failed with error {ErrorMessage}. Retrying in {RetryTimeSpan} seconds.",
+                        retryCount,
+                        exception.Exception?.Message ?? "Unknown error",
+                        timeSpan.TotalSeconds);
+                });
     }
 
     /// <inheritdoc />
-    public async Task<string> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
+    public async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
     {
-        try
+        // Execute with retry policy
+        return await _retryPolicy.ExecuteAsync(async () =>
         {
+            try
+            {
             _logger.LogInformation("Getting completion from OpenAI model {ModelId}", modelId);
             
             // Convert chat history to OpenAI message format
@@ -50,13 +75,26 @@ public class OpenAiProvider : IAiProvider
                 new ChatRequestSystemMessage(systemPrompt)
             };
             
-            // Add conversation history
+            // Add conversation history based on the message role
             foreach (var message in history)
             {
-                // Determine if message is from user or assistant based on role
-                // For simplicity, we assume messages are from users
-                // In a real application, you might need more information to determine the role
-                messages.Add(new ChatRequestUserMessage(message.Text));
+                // Convert our MessageRole enum to OpenAI message type
+                switch (message.Role)
+                {
+                    case MessageRole.User:
+                        messages.Add(new ChatRequestUserMessage(message.Text));
+                        break;
+                    case MessageRole.Assistant:
+                        messages.Add(new ChatRequestAssistantMessage(message.Text));
+                        break;
+                    case MessageRole.System:
+                        messages.Add(new ChatRequestSystemMessage(message.Text));
+                        break;
+                    default:
+                        _logger.LogWarning("Unknown message role: {Role}, treating as user message", message.Role);
+                        messages.Add(new ChatRequestUserMessage(message.Text));
+                        break;
+                }
             }
             
             // Create chat completion options
@@ -75,18 +113,27 @@ public class OpenAiProvider : IAiProvider
             Response<ChatCompletions> response = await _client.GetChatCompletionsAsync(options);
             ChatCompletions completions = response.Value;
             
+            // Extract the text content
             if (completions.Choices.Count > 0)
             {
-                return completions.Choices[0].Message.Content;
+                string extractedText = completions.Choices[0].Message.Content;
+                _logger.LogInformation("Successfully extracted text from OpenAI response");
+                return extractedText;
             }
             
-            // If no choices were returned, throw an exception
-            throw new InvalidOperationException("No completion choices were returned from OpenAI API");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting completion from OpenAI: {Message}", ex.Message);
-            throw;
-        }
+            _logger.LogWarning("No content found in OpenAI response");
+            return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error parsing JSON response from OpenAI: {Message}", ex.Message);
+                return null; // Return null if JSON parsing fails
+            }
+            catch (Exception ex) when (!(ex is RequestFailedException)) // Let RequestFailedException be caught by the retry policy
+            {
+                _logger.LogError(ex, "Error getting completion from OpenAI: {Message}", ex.Message);
+                throw;
+            }
+        });
     }
 }

@@ -68,15 +68,22 @@ public class AiFallbackService : IAiFallbackService
                 var provider = ResolveProviderForModel(modelId)
                     ?? throw new InvalidOperationException($"Failed to resolve provider for model {modelId}");
 
-                // The null check is no longer needed as we throw above if provider is null
-
                 // Attempt to get a response from this provider
                 var response = await provider.GetCompletionAsync(config.SystemPrompt, history, modelId);
                 
-                _logger.LogInformation("Successfully got response from provider {Provider} using model {ModelId} (attempt {Attempt}/{TotalAttempts})",
-                    provider.GetType().Name, modelId, attempt, modelIdsToTry.Count);
+                // Check if response is valid
+                if (!string.IsNullOrEmpty(response))
+                {
+                    _logger.LogInformation("Successfully got response from provider {Provider} using model {ModelId} (attempt {Attempt}/{TotalAttempts})",
+                        provider.GetType().Name, modelId, attempt, modelIdsToTry.Count);
+                    
+                    // Return the valid response text
+                    return response;
+                }
                 
-                return response;
+                _logger.LogWarning("Provider {Provider} returned null or empty response for model {ModelId}", 
+                    provider.GetType().Name, modelId);
+                // Continue to next fallback model
             }
             catch (Exception ex)
             {
@@ -113,21 +120,35 @@ public class AiFallbackService : IAiFallbackService
         try
         {
             // Match model ID to the appropriate provider type
-            if (modelId.StartsWith("gpt") || modelId.Contains("openai") || modelId.StartsWith("text-"))
+            
+            // Vertex AI models - check first to handle specific model patterns
+            if (modelId.StartsWith("gemini-") || 
+                modelId.Contains("claude-3") || 
+                modelId.Contains("@vertex") || 
+                modelId.Contains("vertex/"))
+            {
+                _logger.LogDebug("Using Vertex AI provider for model {ModelId}", modelId);
+                return _serviceProvider.GetRequiredService<VertexAiProvider>();
+            }
+            // Standard OpenAI models
+            else if (modelId.StartsWith("gpt") || modelId.Contains("openai") || modelId.StartsWith("text-"))
             {
                 _logger.LogDebug("Using OpenAI provider for model {ModelId}", modelId);
                 return _serviceProvider.GetRequiredService<OpenAiProvider>();
             }
+            // Azure OpenAI models
             else if (modelId.Contains("azure"))
             {
                 _logger.LogDebug("Using Azure AI provider for model {ModelId}", modelId);
                 return _serviceProvider.GetRequiredService<AzureAiProvider>();
             }
+            // Anthropic Claude models (not through Vertex)
             else if (modelId.Contains("claude"))
             {
                 _logger.LogDebug("Using Claude provider for model {ModelId}", modelId);
                 return _serviceProvider.GetRequiredService<ClaudeProvider>();
             }
+            // Google Gemini models (not through Vertex)
             else if (modelId.Contains("gemini"))
             {
                 _logger.LogDebug("Using Gemini provider for model {ModelId}", modelId);

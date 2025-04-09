@@ -16,5 +16,5 @@ public interface IAiProvider
     /// <param name="history">The conversation history as a list of messages</param>
     /// <param name="modelId">The identifier for the specific AI model to use</param>
     /// <returns>The generated completion text</returns>
-    Task<string> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId);
+    Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId);
 }
