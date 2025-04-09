@@ -28,7 +28,7 @@ public class AuthController : BaseApiController
         
         return Ok(new AuthResponseDto
         {
-            Token = token,
+            Token = token!, // Assumed non-null after successful registration check
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,

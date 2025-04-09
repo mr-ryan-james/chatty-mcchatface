@@ -213,16 +213,16 @@ public class VertexAiProvider : IAiProvider
                                 if (candidatesValue.ListValue?.Values.Count > 0)
                                 {
                                     var candidate = candidatesValue.ListValue.Values[0];
-                                    Google.Protobuf.WellKnownTypes.Value contentValue = null;
+                                    Google.Protobuf.WellKnownTypes.Value? contentValue = null;
                                     if (candidate.StructValue?.Fields.TryGetValue("content", out contentValue) == true && contentValue != null)
                                     {
-                                        Google.Protobuf.WellKnownTypes.Value partsValue = null;
+                                        Google.Protobuf.WellKnownTypes.Value? partsValue = null;
                                         if (contentValue.StructValue?.Fields.TryGetValue("parts", out partsValue) == true && partsValue != null)
                                         {
                                             if (partsValue.ListValue?.Values.Count > 0)
                                             {
                                                 var part = partsValue.ListValue.Values[0];
-                                                Google.Protobuf.WellKnownTypes.Value partTextValue = null;
+                                                Google.Protobuf.WellKnownTypes.Value? partTextValue = null;
                                                 if (part.StructValue?.Fields.TryGetValue("text", out partTextValue) == true && partTextValue != null)
                                                 {
                                                     responseText = partTextValue.StringValue;
@@ -237,13 +237,13 @@ public class VertexAiProvider : IAiProvider
                             {
                                 // Try to extract text from content.parts[0].text
                                 var contentValue = prediction.StructValue.Fields["content"];
-                                Google.Protobuf.WellKnownTypes.Value partsValue = null;
+                                Google.Protobuf.WellKnownTypes.Value? partsValue = null;
                                 if (contentValue.StructValue?.Fields.TryGetValue("parts", out partsValue) == true && partsValue != null)
                                 {
                                     if (partsValue.ListValue?.Values.Count > 0)
                                     {
                                         var part = partsValue.ListValue.Values[0];
-                                        Google.Protobuf.WellKnownTypes.Value textValue = null;
+                                        Google.Protobuf.WellKnownTypes.Value? textValue = null;
                                         if (part.StructValue?.Fields.TryGetValue("text", out textValue) == true && textValue != null)
                                         {
                                             responseText = textValue.StringValue;
@@ -259,7 +259,7 @@ public class VertexAiProvider : IAiProvider
                                 if (partsValue.ListValue?.Values.Count > 0)
                                 {
                                     var part = partsValue.ListValue.Values[0];
-                                    Google.Protobuf.WellKnownTypes.Value textValue = null;
+                                    Google.Protobuf.WellKnownTypes.Value? textValue = null;
                                     if (part.StructValue?.Fields.TryGetValue("text", out textValue) == true && textValue != null)
                                     {
                                         responseText = textValue.StringValue;

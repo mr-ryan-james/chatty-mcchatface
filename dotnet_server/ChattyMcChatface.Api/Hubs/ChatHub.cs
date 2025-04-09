@@ -71,7 +71,7 @@ namespace ChattyMcChatface.Api.Hubs
             chatroom = await _context.Chatrooms.FindAsync(chatroomId);
             
             // Check if the chatroom has a persona user assigned
-            if (chatroom.PersonaUserId.HasValue)
+            if (chatroom != null && chatroom.PersonaUserId.HasValue)
             {
                 // Use fire-and-forget pattern to generate a persona response
                 _ = Task.Run(() => _personaService.GenerateResponseAsync(chatroomId, chatMessageDto));

@@ -149,16 +149,12 @@ public class GeminiProvider : IAiProvider
             try
             {
                 // Check if there's valid content to extract
-                if (geminiResponse?.Candidates != null &&
-                    geminiResponse.Candidates.Any() &&
-                    geminiResponse.Candidates[0]?.Content != null &&
-                    geminiResponse.Candidates[0].Content.Parts != null &&
-                    geminiResponse.Candidates[0].Content.Parts.Any() &&
-                    !string.IsNullOrEmpty(geminiResponse.Candidates[0].Content.Parts[0]?.Text))
+                // Check if the first candidate, its content, its parts, and the first part's text exist and are not empty.
+                if (geminiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text is string text && !string.IsNullOrEmpty(text))
                 {
-                    string extractedText = geminiResponse.Candidates[0].Content.Parts[0]?.Text ?? string.Empty;
+                    // The 'text' variable now holds the non-null, non-empty text.
                     _logger.LogInformation("Successfully extracted text from Gemini response");
-                    return extractedText;
+                    return text; // Return the extracted text directly.
                 }
                 else
                 {

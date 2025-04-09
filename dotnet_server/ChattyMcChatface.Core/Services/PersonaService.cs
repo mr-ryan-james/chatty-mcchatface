@@ -116,10 +116,11 @@ namespace ChattyMcChatface.Core.Services
                 try
                 {
                     // Get AI response using the fallback utility instead of service
-                    responseText = await AiFallbackUtil.GetWithFallbackAsync(
+                    // Explicitly specify <string> to satisfy constraints and resolve nullability warnings
+                    responseText = await AiFallbackUtil.GetWithFallbackAsync<string>(
                         AiFallbackUtil.GlobalModelPriority, // Use the global priority list
                         config.PreferredModelId,
-                        async (modelId) => // Define the handler function
+                        async (modelId) => // Define the handler function (now matches Func<string, Task<string>>)
                         {
                             // Add a switch statement here to call the correct model-specific function
                             // based on the modelId passed by the fallback utility.
@@ -127,35 +128,35 @@ namespace ChattyMcChatface.Core.Services
                             {
                                 // OpenAI Cases
                                 case AiModels.OpenAiGpt4oLatest:
-                                    return await _openAiModels.Gpt4oLatest(config.SystemPrompt, historyDtoList);
+                                    return await _openAiModels.Gpt4oLatest(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.OpenAiGpt4o2024:
-                                    return await _openAiModels.Gpt4o2024(config.SystemPrompt, historyDtoList);
+                                    return await _openAiModels.Gpt4o2024(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.OpenAiGpt45Preview:
-                                    return await _openAiModels.Gpt45Preview(config.SystemPrompt, historyDtoList);
+                                    return await _openAiModels.Gpt45Preview(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.OpenAiGpt35Turbo:
-                                    return await _openAiModels.Gpt35Turbo(config.SystemPrompt, historyDtoList);
+                                    return await _openAiModels.Gpt35Turbo(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Azure Cases
                                 case AiModels.AzureGpt4oThrivify:
-                                    return await _azureAiModels.Gpt4oThrivify(config.SystemPrompt, historyDtoList);
+                                    return await _azureAiModels.Gpt4oThrivify(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.AzureGpt45PreviewRyan:
-                                    return await _azureAiModels.Gpt45PreviewRyan(config.SystemPrompt, historyDtoList);
+                                    return await _azureAiModels.Gpt45PreviewRyan(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Claude Cases
                                 case AiModels.Claude37Sonnet:
-                                    return await _claudeModels.Claude37Sonnet(config.SystemPrompt, historyDtoList);
+                                    return await _claudeModels.Claude37Sonnet(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.ClaudeInstant:
-                                    return await _claudeModels.ClaudeInstant(config.SystemPrompt, historyDtoList);
+                                    return await _claudeModels.ClaudeInstant(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Gemini Cases
                                 case AiModels.Gemini20Flash:
-                                    return await _geminiModels.Gemini20Flash(config.SystemPrompt, historyDtoList);
+                                    return await _geminiModels.Gemini20Flash(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.Gemini25Pro:
-                                    return await _geminiModels.Gemini25Pro(config.SystemPrompt, historyDtoList);
+                                    return await _geminiModels.Gemini25Pro(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Vertex Cases
                                 case AiModels.Claude37SonnetVertex:
-                                    return await _vertexAiModels.Claude37SonnetVertex(config.SystemPrompt, historyDtoList);
+                                    return await _vertexAiModels.Claude37SonnetVertex(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 default:
                                     _logger.LogWarning("Handler in AiFallbackUtil encountered unknown modelId: {ModelId}", modelId);
@@ -174,7 +175,7 @@ namespace ChattyMcChatface.Core.Services
                 // Create a new chat message for the persona's response
                 var responseMessage = new ChatMessage
                 {
-                    Text = responseText,
+                    Text = responseText ?? string.Empty, // Ensure non-null assignment
                     Date = DateTime.UtcNow,
                     UserId = chatroom.PersonaUserId.Value,
                     ChatroomId = chatroomId,
@@ -196,7 +197,7 @@ namespace ChattyMcChatface.Core.Services
                     // Create message DTO with persona user details
                     var personaMessageDto = new ChatMessageDto
                     {
-                        Id = responseMessage.Id,
+                        Id = responseMessage.Id!, // Suppress warning: EF Core should populate Id after SaveChangesAsync
                         Text = responseMessage.Text,
                         Date = responseMessage.Date,
                         UserId = responseMessage.UserId,
