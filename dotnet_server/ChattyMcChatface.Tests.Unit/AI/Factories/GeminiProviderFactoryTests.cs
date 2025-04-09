@@ -100,9 +100,10 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
         // Test helper class to track calls to GetCompletionAsync
         private class TestableGeminiProvider : GeminiProvider
         {
-            public string LastUsedModelId { get; private set; }
-            public string LastSystemPrompt { get; private set; }
-            public List<ChatMessageDto> LastHistory { get; private set; }
+            // Initialize non-nullable properties to avoid CS8618 warnings
+            public string LastUsedModelId { get; private set; } = string.Empty;
+            public string LastSystemPrompt { get; private set; } = string.Empty;
+            public List<ChatMessageDto> LastHistory { get; private set; } = new List<ChatMessageDto>();
             public int GetCompletionAsyncCallCount { get; private set; }
 
             public TestableGeminiProvider(
@@ -114,15 +115,16 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
                 GetCompletionAsyncCallCount = 0;
             }
 
-            public override async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
+            // Remove async keyword since there are no await operations - fixes CS1998 warning
+            public override Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
             {
                 LastUsedModelId = modelId;
                 LastSystemPrompt = systemPrompt;
                 LastHistory = history;
                 GetCompletionAsyncCallCount++;
 
-                // Return a mock response
-                return "Mock response from " + modelId;
+                // Return a mock response using Task.FromResult
+                return Task.FromResult<string?>("Mock response from " + modelId);
             }
         }
     }

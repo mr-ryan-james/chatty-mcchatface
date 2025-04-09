@@ -21,7 +21,7 @@ public class VertexAiProvider : IAiProvider
     private readonly ILogger<VertexAiProvider> _logger;
     private readonly string _projectId;
     private readonly string _location;
-    private readonly string _keyFilePath;
+    private readonly string _keyJsonContent;
     private readonly AsyncRetryPolicy _retryPolicy;
 
     /// <summary>
@@ -33,13 +33,57 @@ public class VertexAiProvider : IAiProvider
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         
-        _projectId = configuration["VertexAI:ProjectId"] 
-            ?? throw new InvalidOperationException("Vertex AI Project ID is not configured. Please add 'VertexAI:ProjectId' to configuration.");
         _location = configuration["VertexAI:Location"]
             ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'VertexAI:Location' to configuration.");
+        _keyJsonContent = configuration["VertexAI:KeyJsonContent"]
+            ?? throw new InvalidOperationException("Vertex AI Key JSON Content is not configured. Please add 'VertexAI:KeyJsonContent' to configuration.");
         
-        _keyFilePath = configuration["VertexAI:KeyFilePath"]
-            ?? throw new InvalidOperationException("Vertex AI Key File Path is not configured. Please add 'VertexAI:KeyFilePath' to configuration.");
+        // Extract project_id from the KeyJsonContent if it's provided
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_keyJsonContent))
+            {
+                var jsonDocument = System.Text.Json.JsonDocument.Parse(_keyJsonContent);
+                if (jsonDocument.RootElement.TryGetProperty("project_id", out var projectIdElement))
+                {
+                    _projectId = projectIdElement.GetString() ?? "";
+                }
+                // Fallback to configuration value if available
+                // No longer using fallback to configuration["VertexAI:ProjectId"]
+            }
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse Vertex AI Key JSON content to extract project_id.");
+            throw new InvalidOperationException("Failed to extract project_id from Vertex AI Key JSON content. The JSON content appears to be invalid.", ex);
+        }
+        
+        // Ensure we have a valid project ID from the service account key JSON
+        if (string.IsNullOrWhiteSpace(_projectId))
+        {
+            throw new InvalidOperationException("Could not determine Vertex AI Project ID. Please ensure it's included in the KeyJsonContent under the 'project_id' field.");
+        }
+        
+        // The 'keyJsonContent' should be the JSON content of the service account key file,
+        // typically obtained from Google Cloud IAM. It follows this structure:
+        // {
+        //   "type": "service_account",
+        //   "project_id": "your-project-id",
+        //   "private_key_id": "your-private-key-id",
+        //   "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+        //   "client_email": "your-service-account-email",
+        //   "client_id": "your-client-id",
+        //   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        //   "token_uri": "https://oauth2.googleapis.com/token",
+        //   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        //   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email"
+        // }
+        
+        if (string.IsNullOrWhiteSpace(_keyJsonContent))
+        {
+            throw new InvalidOperationException("Vertex AI Key JSON Content configuration value is empty.");
+        }
+        
         
         
         // Configure retry policy for transient errors
@@ -68,12 +112,8 @@ public class VertexAiProvider : IAiProvider
             _logger.LogInformation("Getting completion from Vertex AI model {ModelId}", modelId);
             return await _retryPolicy.ExecuteAsync<string?>(async () =>
             {
-                // Create the prediction service client using credentials from key file
-                if (string.IsNullOrEmpty(_keyFilePath) || !System.IO.File.Exists(_keyFilePath))
-                {
-                    throw new InvalidOperationException($"Vertex AI key file path is invalid or file not found: {_keyFilePath}");
-                }
-                var credential = GoogleCredential.FromFile(_keyFilePath)
+                // Create the prediction service client using credentials from JSON string
+                var credential = GoogleCredential.FromJson(_keyJsonContent)
                     .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
                 
                 var predictionServiceClient = await new PredictionServiceClientBuilder

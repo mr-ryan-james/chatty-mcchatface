@@ -60,11 +60,13 @@ namespace ChattyMcChatface.Tests.Unit.AI.Utils
             // Arrange
             var expectedResult = "Fallback response";
             var firstFallbackModel = _priorityList[0];
+            // Change return type to Task<string> to match AiFallbackUtil signature
             Func<string, Task<string>> handler = modelId =>
             {
                 if (modelId == _preferredModel)
                 {
-                    return Task.FromResult<string>(null);
+                    // Return empty string instead of null to avoid CS8619 warning
+                    return Task.FromResult(string.Empty);
                 }
                 if (modelId == firstFallbackModel)
                 {
@@ -134,7 +136,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Utils
                 }
                 if (modelId == firstFallbackModel)
                 {
-                    return Task.FromResult<string>(null);
+                    // Return empty string instead of null to avoid CS8619 warning
+                    return Task.FromResult(string.Empty);
                 }
                 if (modelId == secondFallbackModel)
                 {
@@ -161,7 +164,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Utils
         public async Task GetWithFallbackAsync_AllModelsReturnNull_ThrowsAggregateException()
         {
             // Arrange
-            Func<string, Task<string>> handler = _ => Task.FromResult<string>(null);
+            // Return empty string instead of null to satisfy the non-nullable constraint
+            Func<string, Task<string>> handler = _ => Task.FromResult(string.Empty);
 
             // Act
             Func<Task> act = async () => await AiFallbackUtil.GetWithFallbackAsync(
@@ -252,7 +256,9 @@ namespace ChattyMcChatface.Tests.Unit.AI.Utils
                 x => x.Log(
                     It.Is<LogLevel>(l => l == logLevel),
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(contains)),
+                    // Refine the check to satisfy nullability analysis within the expression tree
+                    It.Is<It.IsAnyType>((v, t) => v != null && (v.ToString() ?? string.Empty).Contains(contains)),
+                    // Allow any Exception including null
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 times);

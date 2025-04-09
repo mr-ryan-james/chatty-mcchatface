@@ -23,14 +23,12 @@ public class GeminiModels
     /// Initializes the GeminiModels class by creating configured delegates using the factory.
     /// Requires IServiceProvider to resolve necessary dependencies (IConfiguration, ILogger, IHttpClientFactory).
     /// </summary>
-    /// <param name="serviceProvider">The application's service provider.</param>
-    public GeminiModels(IServiceProvider serviceProvider)
+    /// <param name="configuration">The application's configuration.</param>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    public GeminiModels(IConfiguration configuration, ILogger<GeminiProvider> logger, IHttpClientFactory httpClientFactory)
     {
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        // Resolve the specific logger for GeminiProvider
-        var logger = serviceProvider.GetRequiredService<ILogger<GeminiProvider>>();
-        // Resolve the HTTP client factory (required by GeminiProvider)
-        var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+        // Dependencies are now injected directly
 
         // Create and store the delegates using the factory
         Gemini20Flash = GeminiProviderFactory.CreateGeminiCompletionProvider(

@@ -24,23 +24,22 @@ public class AzureAiProvider : IAiProvider
     /// <summary>
     /// Initializes a new instance of the AzureAiProvider
     /// </summary>
-    /// <param name="configuration">Configuration to retrieve API key and endpoint</param>
+    /// <param name="apiKey">API key for Azure OpenAI service</param>
+    /// <param name="endpoint">Endpoint URL for Azure OpenAI service</param>
     /// <param name="logger">Logger for capturing errors and information</param>
-    public AzureAiProvider(IConfiguration configuration, ILogger<AzureAiProvider> logger)
+    public AzureAiProvider(string apiKey, string endpoint, ILogger<AzureAiProvider> logger)
     {
         _logger = logger;
         
-        string? apiKey = configuration["AzureOpenAI:ApiKey"];
-        string? endpoint = configuration["AzureOpenAI:Endpoint"];
-        
+        // Ensure apiKey and endpoint are validated before use
         if (string.IsNullOrEmpty(apiKey))
         {
-            throw new InvalidOperationException("Azure OpenAI API key is not configured. Please add 'AzureOpenAI:ApiKey' to configuration.");
+            throw new ArgumentException("Azure OpenAI API key cannot be null or empty.", nameof(apiKey));
         }
         
         if (string.IsNullOrEmpty(endpoint))
         {
-            throw new InvalidOperationException("Azure OpenAI endpoint is not configured. Please add 'AzureOpenAI:Endpoint' to configuration.");
+            throw new ArgumentException("Azure OpenAI endpoint cannot be null or empty.", nameof(endpoint));
         }
         
         // Initialize Azure OpenAI client with endpoint and API key

@@ -15,8 +15,9 @@ namespace ChattyMcChatface.Core.Services.AI.Azure;
 public class AzureAiModels
 {
     // Pre-configured model-specific functions (delegates)
-    public Func<string, List<ChatMessageDto>, Task<string?>> Gpt4oThrivify { get; }
-    public Func<string, List<ChatMessageDto>, Task<string?>> Gpt45PreviewRyan { get; }
+    // Make properties virtual so they can be mocked by Moq
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt4oThrivify { get; }
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt45PreviewRyan { get; }
 
     /// <summary>
     /// Initializes the AzureAiModels class by creating configured delegates using the factory.
@@ -29,11 +30,11 @@ public class AzureAiModels
         // Resolve the specific logger for AzureAiProvider
         var logger = serviceProvider.GetRequiredService<ILogger<AzureAiProvider>>(); 
 
-        // Create and store the delegates using the factory
-        Gpt4oThrivify = AzureAiProviderFactory.CreateAzureAiCompletionProvider(
-            configuration, logger, AiModels.AzureGpt4oThrivify, 0.7);
+        // Create and store the delegates using the endpoint-specific factory methods
+        Gpt4oThrivify = AzureAiProviderFactory.CreateAzureThrivifyCompletionProvider(
+            configuration, logger, AiModels.AzureGpt4oThrivify);
 
-        Gpt45PreviewRyan = AzureAiProviderFactory.CreateAzureAiCompletionProvider(
-            configuration, logger, AiModels.AzureGpt45PreviewRyan, 0.5); // Example different temp
+        Gpt45PreviewRyan = AzureAiProviderFactory.CreateAzureRyanCompletionProvider(
+            configuration, logger, AiModels.AzureGpt45PreviewRyan);
     }
 }

@@ -15,10 +15,11 @@ namespace ChattyMcChatface.Core.Services.AI.OpenAI;
 public class OpenAiModels
 {
     // Pre-configured model-specific functions (delegates)
-    public Func<string, List<ChatMessageDto>, Task<string?>> Gpt4oLatest { get; }
-    public Func<string, List<ChatMessageDto>, Task<string?>> Gpt4o2024 { get; }
-    public Func<string, List<ChatMessageDto>, Task<string?>> Gpt45Preview { get; }
-    public Func<string, List<ChatMessageDto>, Task<string?>> Gpt35Turbo { get; }
+    // Make properties virtual so they can be mocked by Moq
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt4oLatest { get; }
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt4o2024 { get; }
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt45Preview { get; }
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt35Turbo { get; }
 
     /// <summary>
     /// Initializes the OpenAiModels class by creating configured delegates using the factory.

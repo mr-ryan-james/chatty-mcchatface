@@ -15,7 +15,8 @@ namespace ChattyMcChatface.Core.Services.AI.Vertex;
 public class VertexAiModels
 {
     // Pre-configured model-specific functions (delegates)
-    public Func<string, List<ChatMessageDto>, Task<string?>> Claude37SonnetVertex { get; }
+    // Make property virtual so it can be mocked by Moq
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Claude37SonnetVertex { get; }
 
     /// <summary>
     /// Initializes the VertexAiModels class by creating configured delegates using the factory.

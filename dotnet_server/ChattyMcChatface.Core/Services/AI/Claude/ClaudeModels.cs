@@ -15,8 +15,9 @@ namespace ChattyMcChatface.Core.Services.AI.Claude;
 public class ClaudeModels
 {
     // Pre-configured model-specific functions (delegates)
-    public Func<string, List<ChatMessageDto>, Task<string?>> Claude37Sonnet { get; }
-    public Func<string, List<ChatMessageDto>, Task<string?>> ClaudeInstant { get; }
+    // Make properties virtual so they can be mocked by Moq
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Claude37Sonnet { get; }
+    public virtual Func<string, List<ChatMessageDto>, Task<string?>> ClaudeInstant { get; }
 
     /// <summary>
     /// Initializes the ClaudeModels class by creating configured delegates using the factory.

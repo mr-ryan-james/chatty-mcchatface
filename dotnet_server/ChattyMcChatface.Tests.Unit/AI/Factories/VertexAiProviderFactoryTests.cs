@@ -26,9 +26,21 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             _mockLogger = new Mock<ILogger<VertexAiProvider>>();
             
             // Setup configuration values required by VertexAiProvider constructor
-            _mockConfiguration.Setup(c => c["VertexAI:ProjectId"]).Returns("mock-project-id");
+            // No ProjectId needed as it's extracted from KeyJsonContent
             _mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("us-central1");
-            _mockConfiguration.Setup(c => c["VertexAI:KeyFilePath"]).Returns("mock-key-file-path");
+            // Setup mock JSON content for the service account key
+            _mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
+                ""type"": ""service_account"",
+                ""project_id"": ""mock-project-id"",
+                ""private_key_id"": ""mock-key-id"",
+                ""private_key"": ""-----BEGIN PRIVATE KEY-----\nMOCKKEY\n-----END PRIVATE KEY-----\n"",
+                ""client_email"": ""mock@example.iam.gserviceaccount.com"",
+                ""client_id"": ""123456789"",
+                ""auth_uri"": ""https://accounts.google.com/o/oauth2/auth"",
+                ""token_uri"": ""https://oauth2.googleapis.com/token"",
+                ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
+                ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/mock@example.iam.gserviceaccount.com""
+            }");
         }
 
         [Fact]
@@ -92,9 +104,9 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
         // Test helper class to track calls to GetCompletionAsync
         private class TestableVertexAiProvider : VertexAiProvider
         {
-            public string LastUsedModelId { get; private set; }
-            public string LastSystemPrompt { get; private set; }
-            public List<ChatMessageDto> LastHistory { get; private set; }
+            public string LastUsedModelId { get; private set; } = string.Empty;
+            public string LastSystemPrompt { get; private set; } = string.Empty;
+            public List<ChatMessageDto> LastHistory { get; private set; } = new List<ChatMessageDto>();
             public int GetCompletionAsyncCallCount { get; private set; }
 
             public TestableVertexAiProvider(
@@ -105,7 +117,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
                 GetCompletionAsyncCallCount = 0;
             }
 
-            public override async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
+            // Removed async keyword since there's no await operations
+            public override Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
             {
                 LastUsedModelId = modelId;
                 LastSystemPrompt = systemPrompt;
@@ -113,7 +126,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
                 GetCompletionAsyncCallCount++;
 
                 // Return a mock response
-                return "Mock response from " + modelId;
+                return Task.FromResult<string?>("Mock response from " + modelId);
             }
         }
     }

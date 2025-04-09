@@ -17,24 +17,25 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
         private readonly Mock<IConfiguration> _mockConfiguration;
         private readonly Mock<ILogger<AzureAiProvider>> _mockLogger;
         private readonly string _testModelId = AiModels.AzureGpt4oThrivify;
-        private readonly string _testSystemPrompt = "Test system prompt";
+        // Remove unused field that was causing warning CS0414
         private readonly List<ChatMessageDto> _testHistory = new List<ChatMessageDto>();
 
         public AzureAiProviderFactoryTests()
         {
             _mockConfiguration = new Mock<IConfiguration>();
             _mockLogger = new Mock<ILogger<AzureAiProvider>>();
-            
-            // Setup configuration for Azure OpenAI
-            _mockConfiguration.Setup(c => c["AzureOpenAI:ApiKey"]).Returns("mock-api-key");
-            _mockConfiguration.Setup(c => c["AzureOpenAI:Endpoint"]).Returns("https://mock-endpoint.openai.azure.com/");
         }
 
+        #region Thrivify Provider Tests
+
         [Fact]
-        public void CreateAzureAiCompletionProvider_ReturnsNonNullDelegate()
+        public void CreateAzureThrivifyCompletionProvider_WithValidConfig_ReturnsNonNullDelegate()
         {
+            // Arrange
+            SetupThrivifyConfigurationMock("fake-thrivify-key", "https://fake-thrivify.openai.azure.com/");
+
             // Act
-            var completionDelegate = AzureAiProviderFactory.CreateAzureAiCompletionProvider(
+            var completionDelegate = AzureAiProviderFactory.CreateAzureThrivifyCompletionProvider(
                 _mockConfiguration.Object,
                 _mockLogger.Object,
                 _testModelId);
@@ -44,69 +45,111 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
         }
 
         [Fact]
-        public async Task InvokedDelegate_CallsGetCompletionAsyncWithCorrectModelId()
+        public void CreateAzureThrivifyCompletionProvider_WithMissingApiKey_ThrowsInvalidOperationException()
         {
             // Arrange
-            // Create a testable provider that tracks calls to GetCompletionAsync
-            var testProvider = new TestableAzureAiProvider(_mockConfiguration.Object, _mockLogger.Object);
-            
-            // Setup a delegate that uses our testable provider
-            var completionDelegate = async (string systemPrompt, List<ChatMessageDto> history) =>
-                await testProvider.GetCompletionAsync(systemPrompt, history, _testModelId);
+            SetupThrivifyConfigurationMock(null, "https://fake-thrivify.openai.azure.com/");
 
-            // Act
-            await completionDelegate(_testSystemPrompt, _testHistory);
+            // Act & Assert
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                AzureAiProviderFactory.CreateAzureThrivifyCompletionProvider(
+                    _mockConfiguration.Object,
+                    _mockLogger.Object,
+                    _testModelId));
 
-            // Assert
-            testProvider.LastUsedModelId.Should().Be(_testModelId);
-            testProvider.LastSystemPrompt.Should().Be(_testSystemPrompt);
-            testProvider.LastHistory.Should().BeSameAs(_testHistory);
-            testProvider.GetCompletionAsyncCallCount.Should().Be(1);
+            exception.Message.Should().Contain("AzureOpenAI:Thrivify:ApiKey");
         }
 
         [Fact]
-        public async Task InvokedDelegate_WithDifferentModelId_CallsGetCompletionAsyncWithThatModelId()
+        public void CreateAzureThrivifyCompletionProvider_WithMissingEndpoint_ThrowsInvalidOperationException()
+        {
+            // Arrange - Set API key but missing endpoint
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Thrivify:ApiKey"]).Returns("fake-api-key");
+            // Use string.Empty instead of null to avoid CS8600 warning
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Thrivify:Endpoint"]).Returns(string.Empty);
+
+            // Act & Assert
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                AzureAiProviderFactory.CreateAzureThrivifyCompletionProvider(
+                    _mockConfiguration.Object,
+                    _mockLogger.Object,
+                    _testModelId));
+
+            exception.Message.Should().Contain("AzureOpenAI:Thrivify:Endpoint");
+        }
+
+        #endregion
+
+        #region Ryan Provider Tests
+
+        [Fact]
+        public void CreateAzureRyanCompletionProvider_WithValidConfig_ReturnsNonNullDelegate()
         {
             // Arrange
-            var customModelId = AiModels.AzureGpt45PreviewRyan;
-            var testProvider = new TestableAzureAiProvider(_mockConfiguration.Object, _mockLogger.Object);
-            
-            // Setup a delegate that uses our testable provider
-            var completionDelegate = async (string systemPrompt, List<ChatMessageDto> history) =>
-                await testProvider.GetCompletionAsync(systemPrompt, history, customModelId);
+            SetupRyanConfigurationMock("fake-ryan-key", "https://fake-ryan.openai.azure.com/");
 
             // Act
-            await completionDelegate(_testSystemPrompt, _testHistory);
+            var completionDelegate = AzureAiProviderFactory.CreateAzureRyanCompletionProvider(
+                _mockConfiguration.Object,
+                _mockLogger.Object,
+                _testModelId);
 
             // Assert
-            testProvider.LastUsedModelId.Should().Be(customModelId);
-            testProvider.GetCompletionAsyncCallCount.Should().Be(1);
+            completionDelegate.Should().NotBeNull();
         }
 
-        // Test helper class to track calls to GetCompletionAsync
-        private class TestableAzureAiProvider : AzureAiProvider
+        [Fact]
+        public void CreateAzureRyanCompletionProvider_WithMissingApiKey_ThrowsInvalidOperationException()
         {
-            public string LastUsedModelId { get; private set; }
-            public string LastSystemPrompt { get; private set; }
-            public List<ChatMessageDto> LastHistory { get; private set; }
-            public int GetCompletionAsyncCallCount { get; private set; }
+            // Arrange
+            SetupRyanConfigurationMock(null, "https://fake-ryan.openai.azure.com/");
 
-            public TestableAzureAiProvider(IConfiguration configuration, ILogger<AzureAiProvider> logger)
-                : base(configuration, logger)
-            {
-                GetCompletionAsyncCallCount = 0;
-            }
+            // Act & Assert
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                AzureAiProviderFactory.CreateAzureRyanCompletionProvider(
+                    _mockConfiguration.Object,
+                    _mockLogger.Object,
+                    _testModelId));
 
-            public override async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
-            {
-                LastUsedModelId = modelId;
-                LastSystemPrompt = systemPrompt;
-                LastHistory = history;
-                GetCompletionAsyncCallCount++;
-
-                // Return a mock response
-                return "Mock response from " + modelId;
-            }
+            exception.Message.Should().Contain("AzureOpenAI:Ryan:ApiKey");
         }
+
+        [Fact]
+        public void CreateAzureRyanCompletionProvider_WithMissingEndpoint_ThrowsInvalidOperationException()
+        {
+            // Arrange - Set API key but missing endpoint
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns("fake-api-key");
+            // Use string.Empty instead of null to avoid CS8600 warning
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns(string.Empty);
+
+            // Act & Assert
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                AzureAiProviderFactory.CreateAzureRyanCompletionProvider(
+                    _mockConfiguration.Object,
+                    _mockLogger.Object,
+                    _testModelId));
+
+            exception.Message.Should().Contain("AzureOpenAI:Ryan:Endpoint");
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private void SetupThrivifyConfigurationMock(string? apiKey, string? endpoint)
+        {
+            // Setup configuration for Thrivify using indexer access
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Thrivify:ApiKey"]).Returns(apiKey);
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Thrivify:Endpoint"]).Returns(endpoint);
+        }
+
+        private void SetupRyanConfigurationMock(string? apiKey, string? endpoint)
+        {
+            // Setup configuration for Ryan using indexer access
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns(apiKey);
+            _mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns(endpoint);
+        }
+
+        #endregion
     }
 }

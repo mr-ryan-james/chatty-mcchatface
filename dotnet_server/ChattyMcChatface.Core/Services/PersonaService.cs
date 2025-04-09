@@ -183,7 +183,7 @@ namespace ChattyMcChatface.Core.Services
                 };
 
                 // Save the response to the database
-                _dbContext.ChatMessages.Add(responseMessage);
+                await _dbContext.ChatMessages.AddAsync(responseMessage);
                 await _dbContext.SaveChangesAsync();
 
                 // Create a DTO from the saved persona message entity
