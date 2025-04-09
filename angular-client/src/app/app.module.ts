@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { HeaderComponent } from './header/header.component';
 import { SharedModule } from './shared/shared.module';
 
 @NgModule({
@@ -19,7 +18,6 @@ import { SharedModule } from './shared/shared.module';
     FormsModule,
     SharedModule,
     AppComponent, // Import standalone component instead of declaring it
-    HeaderComponent, // Import standalone component instead of declaring it
   ],
   providers: [],
   bootstrap: [AppComponent],

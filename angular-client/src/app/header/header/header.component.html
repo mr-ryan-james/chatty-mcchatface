@@ -1,21 +1,17 @@
 <header class="header">
   <div class="header-inner">
     <div class="logo-brand logo-font">
-      <a routerLink="/">
-        <canvas
-          #logoCanvas
-          width="300"
-          height="60"
-          style="vertical-align: middle"
-        ></canvas>
-        <!-- Text span as fallback if canvas fails to load -->
-        <span
-          class="logo-brand-inner"
-          style="font-family: 'Roboto'; display: none"
-        >
-          <span style="font-weight: 900">Chatty</span> McChatface
-        </span>
-      </a>
+      <a
+        class="navbar-brand"
+        routerLink="/"
+        style="
+          color: #333333;
+          font-weight: bold;
+          min-width: 250px;
+          white-space: nowrap;
+        "
+        >{{ displayedTitle }}</a
+      >
     </div>
 
     <!-- Logged In View -->

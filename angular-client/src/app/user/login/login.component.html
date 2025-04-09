@@ -19,9 +19,7 @@
             #emailInput="ngModel"
           />
           <div
-            *ngIf="
-              emailInput.invalid && (emailInput.dirty || emailInput.touched)
-            "
+            *ngIf="emailInput.invalid && emailInput.touched"
             class="alert alert-danger"
           >
             <div *ngIf="emailInput.errors?.['required']">
@@ -43,10 +41,7 @@
             #passwordInput="ngModel"
           />
           <div
-            *ngIf="
-              passwordInput.invalid &&
-              (passwordInput.dirty || passwordInput.touched)
-            "
+            *ngIf="passwordInput.invalid && passwordInput.touched"
             class="alert alert-danger"
           >
             Password is required.

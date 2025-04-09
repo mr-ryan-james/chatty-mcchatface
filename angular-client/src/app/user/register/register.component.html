@@ -22,9 +22,7 @@
             #emailInput="ngModel"
           />
           <div
-            *ngIf="
-              emailInput.invalid && (emailInput.dirty || emailInput.touched)
-            "
+            *ngIf="emailInput.invalid && emailInput.touched"
             class="alert alert-danger"
           >
             <div *ngIf="emailInput.errors?.['required']">
@@ -47,10 +45,7 @@
             #passwordInput="ngModel"
           />
           <div
-            *ngIf="
-              passwordInput.invalid &&
-              (passwordInput.dirty || passwordInput.touched)
-            "
+            *ngIf="passwordInput.invalid && passwordInput.touched"
             class="alert alert-danger"
           >
             <div *ngIf="passwordInput.errors?.['required']">
@@ -72,10 +67,7 @@
             #firstNameInput="ngModel"
           />
           <div
-            *ngIf="
-              firstNameInput.invalid &&
-              (firstNameInput.dirty || firstNameInput.touched)
-            "
+            *ngIf="firstNameInput.invalid && firstNameInput.touched"
             class="alert alert-danger"
           >
             First name is required.
@@ -92,10 +84,7 @@
             #lastNameInput="ngModel"
           />
           <div
-            *ngIf="
-              lastNameInput.invalid &&
-              (lastNameInput.dirty || lastNameInput.touched)
-            "
+            *ngIf="lastNameInput.invalid && lastNameInput.touched"
             class="alert alert-danger"
           >
             Last name is required.
