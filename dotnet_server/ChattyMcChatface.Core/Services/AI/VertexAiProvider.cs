@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
 using Google.Api.Gax.ResourceNames;
+using Google.Apis.Auth.OAuth2;
 using Google.Cloud.AIPlatform.V1;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ public class VertexAiProvider : IAiProvider
     private readonly ILogger<VertexAiProvider> _logger;
     private readonly string _projectId;
     private readonly string _location;
+    private readonly string _keyFilePath;
     private readonly AsyncRetryPolicy _retryPolicy;
 
     /// <summary>
@@ -33,9 +35,12 @@ public class VertexAiProvider : IAiProvider
         
         _projectId = configuration["VertexAI:ProjectId"] 
             ?? throw new InvalidOperationException("Vertex AI Project ID is not configured. Please add 'VertexAI:ProjectId' to configuration.");
-        
-        _location = configuration["VertexAI:Location"] 
+        _location = configuration["VertexAI:Location"]
             ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'VertexAI:Location' to configuration.");
+        
+        _keyFilePath = configuration["VertexAI:KeyFilePath"]
+            ?? throw new InvalidOperationException("Vertex AI Key File Path is not configured. Please add 'VertexAI:KeyFilePath' to configuration.");
+        
         
         // Configure retry policy for transient errors
         _retryPolicy = Policy
@@ -56,17 +61,25 @@ public class VertexAiProvider : IAiProvider
     }
 
     /// <inheritdoc />
-    public async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
+    public virtual async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
     {
         try
         {
             _logger.LogInformation("Getting completion from Vertex AI model {ModelId}", modelId);
             return await _retryPolicy.ExecuteAsync<string?>(async () =>
             {
-                // Create the prediction service client using Application Default Credentials (ADC)
+                // Create the prediction service client using credentials from key file
+                if (string.IsNullOrEmpty(_keyFilePath) || !System.IO.File.Exists(_keyFilePath))
+                {
+                    throw new InvalidOperationException($"Vertex AI key file path is invalid or file not found: {_keyFilePath}");
+                }
+                var credential = GoogleCredential.FromFile(_keyFilePath)
+                    .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                
                 var predictionServiceClient = await new PredictionServiceClientBuilder
                 {
-                    Endpoint = $"{_location}-aiplatform.googleapis.com"
+                    Endpoint = $"{_location}-aiplatform.googleapis.com",
+                    Credential = credential
                 }.BuildAsync();
                 
                 // Format the model name

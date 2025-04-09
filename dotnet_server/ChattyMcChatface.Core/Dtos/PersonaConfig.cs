@@ -9,5 +9,4 @@ public record PersonaConfig
     public required string DisplayName { get; init; }
     public required string SystemPrompt { get; init; }
     public required string PreferredModelId { get; init; }
-    public required List<string> FallbackModelIds { get; init; }
 }

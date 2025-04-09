@@ -8,6 +8,11 @@ using ChattyMcChatface.Core.Services;
 using ChattyMcChatface.Core.Services.AI;
 using ChattyMcChatface.Api.Hubs;
 using ChattyMcChatface.Api.Services;
+using ChattyMcChatface.Core.Services.AI.OpenAI;
+using ChattyMcChatface.Core.Services.AI.Azure;
+using ChattyMcChatface.Core.Services.AI.Claude;
+using ChattyMcChatface.Core.Services.AI.Gemini;
+using ChattyMcChatface.Core.Services.AI.Vertex;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,15 +54,12 @@ builder.Services.AddScoped<GeminiProvider>();
 builder.Services.AddScoped<ClaudeProvider>();
 builder.Services.AddScoped<VertexAiProvider>();
 
-// Register providers by interface for resolution via AiFallbackService
-builder.Services.AddScoped<IAiProvider, OpenAiProvider>();
-builder.Services.AddScoped<IAiProvider, AzureAiProvider>();
-builder.Services.AddScoped<IAiProvider, GeminiProvider>();
-builder.Services.AddScoped<IAiProvider, ClaudeProvider>();
-builder.Services.AddScoped<IAiProvider, VertexAiProvider>();
-
-// Register AI fallback service
-builder.Services.AddScoped<IAiFallbackService, AiFallbackService>();
+// Register model classes for AI providers
+builder.Services.AddSingleton<OpenAiModels>();
+builder.Services.AddSingleton<AzureAiModels>();
+builder.Services.AddSingleton<ClaudeModels>();
+builder.Services.AddSingleton<GeminiModels>();
+builder.Services.AddSingleton<VertexAiModels>();
 
 // Register notification service
 builder.Services.AddScoped<INotificationService, SignalRNotificationService>();

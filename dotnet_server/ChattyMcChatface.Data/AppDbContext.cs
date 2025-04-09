@@ -9,10 +9,10 @@ namespace ChattyMcChatface.Data
         {
         }
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<Chatroom> Chatrooms { get; set; }
-        public DbSet<ChatMessage> ChatMessages { get; set; }
-        public DbSet<LastRead> LastReads { get; set; }
+        public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<Chatroom> Chatrooms { get; set; }
+        public virtual DbSet<ChatMessage> ChatMessages { get; set; }
+        public virtual DbSet<LastRead> LastReads { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

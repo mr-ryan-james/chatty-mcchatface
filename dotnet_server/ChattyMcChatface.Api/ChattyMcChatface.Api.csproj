@@ -5,7 +5,12 @@
     <LangVersion>13.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>chatty-mcchatface-api-secrets</UserSecretsId>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="ChattyMcChatface.Tests.Integration" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />

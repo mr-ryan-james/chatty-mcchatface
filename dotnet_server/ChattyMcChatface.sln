@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Data", "Ch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Core", "ChattyMcChatface.Core\ChattyMcChatface.Core.csproj", "{8EA02502-4FF3-4AA0-8DD8-6FA68C350CDB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Tests.Unit", "ChattyMcChatface.Tests.Unit\ChattyMcChatface.Tests.Unit.csproj", "{95246D55-B63E-4FA3-A598-8BB5841EB9C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Tests.Integration", "ChattyMcChatface.Tests.Integration\ChattyMcChatface.Tests.Integration.csproj", "{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{8EA02502-4FF3-4AA0-8DD8-6FA68C350CDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8EA02502-4FF3-4AA0-8DD8-6FA68C350CDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8EA02502-4FF3-4AA0-8DD8-6FA68C350CDB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95246D55-B63E-4FA3-A598-8BB5841EB9C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95246D55-B63E-4FA3-A598-8BB5841EB9C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95246D55-B63E-4FA3-A598-8BB5841EB9C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95246D55-B63E-4FA3-A598-8BB5841EB9C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -4,6 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
 using ChattyMcChatface.Core.Services.AI;
+using ChattyMcChatface.Core.Services.AI.Azure;
+using ChattyMcChatface.Core.Services.AI.Claude;
+using ChattyMcChatface.Core.Services.AI.Gemini;
+using ChattyMcChatface.Core.Services.AI.OpenAI;
+using ChattyMcChatface.Core.Services.AI.Vertex;
 using ChattyMcChatface.Data;
 using ChattyMcChatface.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -14,26 +19,41 @@ namespace ChattyMcChatface.Core.Services
     public class PersonaService : IPersonaService
     {
         private readonly AppDbContext _dbContext;
-        private readonly IAiFallbackService _fallbackService;
         private readonly IPersonaConfigService _personaConfigService;
         private readonly ILogger<PersonaService> _logger;
         private readonly INotificationService _notificationService;
+        
+        // Model-specific service dependencies
+        private readonly OpenAiModels _openAiModels;
+        private readonly AzureAiModels _azureAiModels;
+        private readonly ClaudeModels _claudeModels;
+        private readonly GeminiModels _geminiModels;
+        private readonly VertexAiModels _vertexAiModels;
 
         // Constants
         private const int MaxHistoryMessages = 20;
 
         public PersonaService(
             AppDbContext dbContext,
-            IAiFallbackService fallbackService,
             IPersonaConfigService personaConfigService,
             ILogger<PersonaService> logger,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            OpenAiModels openAiModels,
+            AzureAiModels azureAiModels,
+            ClaudeModels claudeModels,
+            GeminiModels geminiModels,
+            VertexAiModels vertexAiModels
+            )
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            _fallbackService = fallbackService ?? throw new ArgumentNullException(nameof(fallbackService));
             _personaConfigService = personaConfigService ?? throw new ArgumentNullException(nameof(personaConfigService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _openAiModels = openAiModels ?? throw new ArgumentNullException(nameof(openAiModels));
+            _azureAiModels = azureAiModels ?? throw new ArgumentNullException(nameof(azureAiModels));
+            _claudeModels = claudeModels ?? throw new ArgumentNullException(nameof(claudeModels));
+            _geminiModels = geminiModels ?? throw new ArgumentNullException(nameof(geminiModels));
+            _vertexAiModels = vertexAiModels ?? throw new ArgumentNullException(nameof(vertexAiModels));
         }
 
         public async Task GenerateResponseAsync(int chatroomId, ChatMessageDto triggeringMessage)
@@ -95,8 +115,55 @@ namespace ChattyMcChatface.Core.Services
                 string responseText;
                 try
                 {
-                    // Get AI response using the fallback service
-                    responseText = await _fallbackService.GetResponseWithFallbackAsync(config, historyDtoList);
+                    // Get AI response using the fallback utility instead of service
+                    responseText = await AiFallbackUtil.GetWithFallbackAsync(
+                        AiFallbackUtil.GlobalModelPriority, // Use the global priority list
+                        config.PreferredModelId,
+                        async (modelId) => // Define the handler function
+                        {
+                            // Add a switch statement here to call the correct model-specific function
+                            // based on the modelId passed by the fallback utility.
+                            switch (modelId)
+                            {
+                                // OpenAI Cases
+                                case AiModels.OpenAiGpt4oLatest:
+                                    return await _openAiModels.Gpt4oLatest(config.SystemPrompt, historyDtoList);
+                                case AiModels.OpenAiGpt4o2024:
+                                    return await _openAiModels.Gpt4o2024(config.SystemPrompt, historyDtoList);
+                                case AiModels.OpenAiGpt45Preview:
+                                    return await _openAiModels.Gpt45Preview(config.SystemPrompt, historyDtoList);
+                                case AiModels.OpenAiGpt35Turbo:
+                                    return await _openAiModels.Gpt35Turbo(config.SystemPrompt, historyDtoList);
+
+                                // Azure Cases
+                                case AiModels.AzureGpt4oThrivify:
+                                    return await _azureAiModels.Gpt4oThrivify(config.SystemPrompt, historyDtoList);
+                                case AiModels.AzureGpt45PreviewRyan:
+                                    return await _azureAiModels.Gpt45PreviewRyan(config.SystemPrompt, historyDtoList);
+
+                                // Claude Cases
+                                case AiModels.Claude37Sonnet:
+                                    return await _claudeModels.Claude37Sonnet(config.SystemPrompt, historyDtoList);
+                                case AiModels.ClaudeInstant:
+                                    return await _claudeModels.ClaudeInstant(config.SystemPrompt, historyDtoList);
+
+                                // Gemini Cases
+                                case AiModels.Gemini20Flash:
+                                    return await _geminiModels.Gemini20Flash(config.SystemPrompt, historyDtoList);
+                                case AiModels.Gemini25Pro:
+                                    return await _geminiModels.Gemini25Pro(config.SystemPrompt, historyDtoList);
+
+                                // Vertex Cases
+                                case AiModels.Claude37SonnetVertex:
+                                    return await _vertexAiModels.Claude37SonnetVertex(config.SystemPrompt, historyDtoList);
+
+                                default:
+                                    _logger.LogWarning("Handler in AiFallbackUtil encountered unknown modelId: {ModelId}", modelId);
+                                    throw new NotSupportedException($"Model ID '{modelId}' is not supported by the handler.");
+                            }
+                        },
+                        _logger // Pass the logger instance
+                    );
                 }
                 catch (Exception ex)
                 {

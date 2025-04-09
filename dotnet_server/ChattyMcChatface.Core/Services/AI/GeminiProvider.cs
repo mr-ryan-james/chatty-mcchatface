@@ -73,7 +73,7 @@ public class GeminiProvider : IAiProvider
     }
 
     /// <inheritdoc />
-    public async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
+    public virtual async Task<string?> GetCompletionAsync(string systemPrompt, List<ChatMessageDto> history, string modelId)
     {
         try
         {
