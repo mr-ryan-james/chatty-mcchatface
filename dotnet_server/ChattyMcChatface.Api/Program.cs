@@ -15,6 +15,7 @@ using ChattyMcChatface.Core.Services.AI.Gemini;
 using ChattyMcChatface.Core.Services.AI.Vertex;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Docker.json", optional: true, reloadOnChange: false);
 
 // Add services to the container.
 // Add controller services

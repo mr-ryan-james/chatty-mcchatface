@@ -9,7 +9,7 @@ COPY angular-client/. ./
 RUN npm run build -- --configuration production
 
 # Stage 2: Build .NET Backend
-FROM mcr.microsoft.com/dotnet/sdk:8.0 as dotnet_build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 as dotnet_build
 WORKDIR /app
 
 # Copy solution and project files first for layer caching
@@ -29,7 +29,7 @@ WORKDIR /app/dotnet_server/ChattyMcChatface.Api
 RUN dotnet publish -c Release -o /app/publish
 
 # Stage 3: Final Runtime Image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine
 WORKDIR /app
 EXPOSE 8080
 
@@ -42,4 +42,7 @@ COPY --from=angular_build /app/angular-client/dist/angular-client/browser ./wwwr
 # Set environment variable for ASP.NET Core port
 ENV ASPNETCORE_URLS=http://+:8080
 
-ENTRYPOINT ["dotnet", "ChattyMcChatface.Api.dll"]
+# WARNING: TEMPORARY DEBUGGING STEP - EXPOSES SECRETS IN LOGS
+# This entrypoint modification prints the content of the mounted secrets file.
+# REMOVE THIS MODIFICATION IMMEDIATELY AFTER VERIFYING THE VOLUME MOUNT.
+ENTRYPOINT ["sh", "-c", "echo '--- START appsettings.Docker.json ---' && cat /app/appsettings.Docker.json && echo '--- END appsettings.Docker.json ---' && echo 'Starting application...' && dotnet ChattyMcChatface.Api.dll"]

@@ -50,6 +50,71 @@ This will concurrently:
 
 Open your browser to `http://localhost:4200` to use the application.
 
+### Running with Docker
+
+This project includes a `Dockerfile` to build and run the application in a container. To handle
+secrets securely when running with Docker, follow these steps:
+
+1.  **Prerequisites:**
+
+    -   Docker installed and running.
+    -   Node.js installed (for the secrets generation script).
+    -   Ensure your .NET user secrets are configured correctly for the
+        `dotnet_server/ChattyMcChatface.Api` project (as described in the Configuration (Secrets)
+        section below).
+
+2.  **Generate Docker Secrets File:** Before building or running the container, execute the helper
+    script from the project root directory (`/Users/ryanpfister/Dev/chatty-mcchatface`) to convert
+    your user secrets into a Docker-compatible JSON file:
+
+    ```bash
+    node generate-docker-secrets.js
+    ```
+
+    This creates an `appsettings.Docker.json` file in the project root (this file is ignored by
+    git).
+
+3.  **Build the Docker Image:** From the project root directory, build the image:
+
+    ```bash
+    docker build -t chatty-mcchatface .
+    ```
+
+4.  **Run the Docker Container:** Run the container, mounting the generated
+    `appsettings.Docker.json` file as a volume. This makes the secrets available to the application
+    inside the container.
+
+    ```bash
+    # Example: Run container named 'chatty', mapping host port 8080 to container port 8080
+    docker run -d --name chatty -p 8080:8080 -v "$(pwd)/appsettings.Docker.json:/app/appsettings.Docker.json:ro" chatty-mcchatface
+    ```
+
+    -   `-d`: Run in detached mode.
+    -   `--name chatty`: Assign a name to the container.
+    -   `-p 8080:8080`: Map port 8080 on your host to port 8080 in the container.
+    -   `-v "$(pwd)/appsettings.Docker.json:/app/appsettings.Docker.json:ro"`: Mount the generated
+        secrets file into the container's `/app` directory as `appsettings.Docker.json`. The `:ro`
+        makes it read-only inside the container for added security.
+    -   `chatty-mcchatface`: The name of the image to run.
+
+    The application should now be accessible at `http://localhost:8080`.
+
+### Configuration (Secrets)
+
+The .NET backend requires API keys and other sensitive configuration for AI providers (like OpenAI,
+Azure, Vertex AI, etc.). These are managed using the .NET Secret Manager, which keeps them separate
+from the source code.
+
+During development, these secrets need to be set up for the API project. If you followed the setup
+instructions involving external secret files, this should already be done.
+
+To view the secrets currently configured for the API project on your local machine, run the
+following command from the project root directory (`/Users/ryanpfister/Dev/chatty-mcchatface`):
+
+```bash
+dotnet user-secrets list --project dotnet_server/ChattyMcChatface.Api
+```
+
 ---
 
 #### Technologies used in this application
