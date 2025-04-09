@@ -83,9 +83,12 @@ The core functionality involves generating text responses using specific AI mode
     handling API keys during local integration testing.
 -   Ensure User Secrets are initialized for the `ChattyMcChatface.Tests.Integration` project and
     populated with the necessary API keys.
--   For Vertex AI, configure the `VertexAI:KeyFilePath` secret using `dotnet user-secrets set` to
-    point to the location of your downloaded service account key JSON file on your local machine.
-    Ensure this key file is stored securely and **not** checked into source control.
+-   For Vertex AI, configure the `VertexAI:KeyJsonContent` secret using `dotnet user-secrets set` to
+    contain the _entire JSON content_ of your downloaded service account key. Ensure this JSON
+    content is stored securely and **not** checked into source control.
+-   For Azure OpenAI, secrets should be set for each deployment under test, following the nested
+    structure, e.g., `dotnet user-secrets set AzureOpenAI:Thrivify:ApiKey YOUR_KEY` and
+    `dotnet user-secrets set AzureOpenAI:Thrivify:Endpoint YOUR_ENDPOINT`.
 
 ## 5. Test Implementation Details
 
@@ -135,15 +138,16 @@ The core functionality involves generating text responses using specific AI mode
 
 -   **Configure Test Secrets:** Before running the integration tests, ensure the `secrets.json` file
     is properly configured for the integration test project (once created). Use the
-    `dotnet user-secrets set` command to add the necessary keys (including API keys and the
-    `VertexAI:KeyFilePath`), referencing the `secrets.example.json` template. This step should be
-    performed after the test project is created and before the tests are executed.
+    `dotnet user-secrets set` command to add the necessary keys (including API keys, the
+    `VertexAI:KeyJsonContent`, and nested Azure keys like `AzureOpenAI:Thrivify:ApiKey`,
+    `AzureOpenAI:Thrivify:Endpoint`, etc.), referencing the `secrets.example.json` template. This
+    step should be performed after the test project is created and before the tests are executed.
 
 -   **Test Fixture (`IntegrationTestFixture.cs`):**
     -   Essential for setting up `IConfiguration` (including User Secrets) and a real
         `IServiceProvider` with all services registered as in `Program.cs`.
     -   Ensure it correctly loads configuration including User Secrets where the
-        `VertexAI:KeyFilePath` would be defined.
+        `VertexAI:KeyJsonContent` would be defined.
 -   **End-to-End `PersonaServiceIntegrationTests.cs`:**
     -   Use the fixture to get an instance of `IPersonaService`.
     -   Seed test data (chatroom, user, persona config with a specific `preferredModelId`).
@@ -158,8 +162,8 @@ The core functionality involves generating text responses using specific AI mode
         `new OpenAiProvider(_fixture.Configuration, _fixture.Logger)`).
     -   Call `GetCompletionAsync` with a specific model ID and basic input.
     -   Assert non-null/non-empty response.
-    -   For Vertex AI tests, ensure the `VertexAI:KeyFilePath` secret is correctly set for the test
-        to pass.
+    -   For Vertex AI tests, ensure the `VertexAI:KeyJsonContent` secret contains the valid service
+        account JSON for the test to pass.
     -   Use `[Fact(Skip = "...")]` to skip in CI.
 
 #### 5.2.1. Example Test Structure (from SoundLikeUs project)
