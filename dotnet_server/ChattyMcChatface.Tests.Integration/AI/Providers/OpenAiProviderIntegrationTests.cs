@@ -23,7 +23,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             _logger = _fixture.Services.GetRequiredService<ILogger<OpenAiProvider>>();
         }
 
-        [Fact(Skip = "Requires secrets configuration and live API calls")]
+        [Fact]
         public async Task GetCompletionAsync_WithValidInput_ReturnsResponse()
         {
             // Arrange
@@ -46,7 +46,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             result.Should().NotBeNullOrWhiteSpace();
         }
 
-        [Fact(Skip = "Requires secrets configuration and live API calls")]
+        [Fact]
         public async Task GetCompletionAsync_WithHistory_ReturnsContextualResponse()
         {
             // Arrange

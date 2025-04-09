@@ -25,7 +25,7 @@ namespace ChattyMcChatface.Tests.Integration
             _personaService = _fixture.Services.GetRequiredService<IPersonaService>();
         }
 
-        [Fact(Skip = "Requires secrets configuration and live API calls")]
+        [Fact]
         public async Task GenerateResponseAsync_WithValidInput_ReturnsResponse()
         {
             // Arrange

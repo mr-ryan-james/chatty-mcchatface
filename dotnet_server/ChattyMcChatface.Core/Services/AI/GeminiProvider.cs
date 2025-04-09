@@ -85,12 +85,6 @@ public class GeminiProvider : IAiProvider
             // Create the contents array for the request
             var contents = new List<Content>();
             
-            // Add system prompt as first message with system role
-            contents.Add(new Content
-            {
-                Role = "system",
-                Parts = new List<Part> { new Part { Text = systemPrompt } }
-            });
             
             // Add conversation history using the message role
             foreach (var message in history)
@@ -111,6 +105,13 @@ public class GeminiProvider : IAiProvider
                 });
             }
             
+            // Add the current user prompt as the last message
+            contents.Add(new Content
+            {
+                Role = "user",
+                Parts = new List<Part> { new Part { Text = systemPrompt } }
+            });
+            
             // Create the request payload
             var requestPayload = new GenerateContentRequest
             {
@@ -120,7 +121,15 @@ public class GeminiProvider : IAiProvider
                     Temperature = 0.7,
                     MaxOutputTokens = 1024,
                     TopP = 0.95,
-                    TopK = 40
+                    TopK = 40,
+                    ResponseMimeType = "application/json"
+                },
+                SafetySettings = new List<SafetySetting>
+                {
+                    new SafetySetting { Category = "HARM_CATEGORY_DANGEROUS_CONTENT", Threshold = "BLOCK_NONE" },
+                    new SafetySetting { Category = "HARM_CATEGORY_HARASSMENT", Threshold = "BLOCK_NONE" },
+                    new SafetySetting { Category = "HARM_CATEGORY_HATE_SPEECH", Threshold = "BLOCK_NONE" },
+                    new SafetySetting { Category = "HARM_CATEGORY_SEXUALLY_EXPLICIT", Threshold = "BLOCK_NONE" }
                 }
             };
             

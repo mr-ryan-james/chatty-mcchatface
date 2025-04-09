@@ -58,7 +58,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             }
         }
 
-        [Fact(Skip = "Requires secrets configuration and live API calls")]
+        [Fact]
         public async Task GetCompletionAsync_WithThrivifyProvider_ReturnsResponse()
         {
             // Arrange
@@ -72,7 +72,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             result.Should().NotBeNullOrWhiteSpace();
         }
 
-        [Fact(Skip = "Requires secrets configuration and live API calls")]
+        [Fact]
         public async Task GetCompletionAsync_WithRyanProvider_ReturnsResponse()
         {
             // Arrange
@@ -86,7 +86,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             result.Should().NotBeNullOrWhiteSpace();
         }
 
-        [Fact(Skip = "Requires secrets configuration and live API calls")]
+        [Fact]
         public async Task GetCompletionAsync_WithHistory_MaintainsContext()
         {
             // Arrange

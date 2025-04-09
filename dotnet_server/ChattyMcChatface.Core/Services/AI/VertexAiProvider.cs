@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
-using Google.Api.Gax.ResourceNames;
 using Google.Apis.Auth.OAuth2;
-using Google.Cloud.AIPlatform.V1;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -14,7 +15,7 @@ using Polly.Retry;
 namespace ChattyMcChatface.Core.Services.AI;
 
 /// <summary>
-/// Google Vertex AI provider implementation using Google.Cloud.AIPlatform.V1 SDK
+/// Google Vertex AI provider implementation using direct HTTP calls to Claude API
 /// </summary>
 public class VertexAiProvider : IAiProvider
 {
@@ -33,10 +34,21 @@ public class VertexAiProvider : IAiProvider
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         
-        _location = configuration["VertexAI:Location"]
-            ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'VertexAI:Location' to configuration.");
-        _keyJsonContent = configuration["VertexAI:KeyJsonContent"]
-            ?? throw new InvalidOperationException("Vertex AI Key JSON Content is not configured. Please add 'VertexAI:KeyJsonContent' to configuration.");
+        _location = configuration["Vertex:Region"]
+            ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'Vertex:Region' to configuration.");
+        string rawJson = configuration["Vertex:ServiceAccountJson"];
+        if (string.IsNullOrWhiteSpace(rawJson))
+        {
+            throw new InvalidOperationException("Vertex AI Service Account JSON configuration is missing or empty.");
+        }
+        
+        // Log the raw value length for debugging
+        _logger.LogDebug("Raw Vertex AI Service Account JSON length: {Length} chars", rawJson.Length);
+        _logger.LogDebug("Raw JSON starts with: {Start}", rawJson.Substring(0, Math.Min(50, rawJson.Length)));
+        
+        // Use the JSON directly without Base64 decoding
+        _keyJsonContent = rawJson;
+        _logger.LogDebug("Successfully loaded Vertex AI service account JSON.");
         
         // Extract project_id from the KeyJsonContent if it's provided
         try
@@ -84,8 +96,6 @@ public class VertexAiProvider : IAiProvider
             throw new InvalidOperationException("Vertex AI Key JSON Content configuration value is empty.");
         }
         
-        
-        
         // Configure retry policy for transient errors
         _retryPolicy = Policy
             .Handle<Exception>(ex => IsTransientException(ex))
@@ -112,196 +122,249 @@ public class VertexAiProvider : IAiProvider
             _logger.LogInformation("Getting completion from Vertex AI model {ModelId}", modelId);
             return await _retryPolicy.ExecuteAsync<string?>(async () =>
             {
-                // Create the prediction service client using credentials from JSON string
-                var credential = GoogleCredential.FromJson(_keyJsonContent)
-                    .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                // Create GoogleCredential for authenticating with Vertex AI
+                _logger.LogDebug("Validating and preparing service account JSON with length: {Length}", _keyJsonContent.Length);
                 
-                var predictionServiceClient = await new PredictionServiceClientBuilder
-                {
-                    Endpoint = $"{_location}-aiplatform.googleapis.com",
-                    Credential = credential
-                }.BuildAsync();
-                
-                // Format the model name
-                // For Vertex AI, we need to construct the full resource path
-                var modelName = $"projects/{_projectId}/locations/{_location}/publishers/google/models/{modelId}";
-                
-                // Build the content for the request
-                var contentList = new List<object>();
-                
-                // Handle system prompt - Some models use a special system message format
-                if (!string.IsNullOrWhiteSpace(systemPrompt))
-                {
-                    // For Vertex AI, we'll add it as a system message at the beginning
-                    contentList.Add(new
-                    {
-                        role = "system",
-                        parts = new[] { new { text = systemPrompt } }
-                    });
+                // Validate JSON before passing to GoogleCredential
+                try {
+                    // Make sure we have valid JSON
+                    var jsonDoc = JsonDocument.Parse(_keyJsonContent);
+                    // Log some key fields to verify structure (without logging sensitive data)
+                    if (jsonDoc.RootElement.TryGetProperty("type", out var typeElement)) {
+                        _logger.LogDebug("Service account JSON type: {Type}", typeElement.GetString());
+                    }
+                    if (jsonDoc.RootElement.TryGetProperty("client_email", out var emailElement)) {
+                        _logger.LogDebug("Service account email: {Email}", emailElement.GetString());
+                    }
+                    
+                    // Specifically check private_key format since that's what's failing
+                    if (jsonDoc.RootElement.TryGetProperty("private_key", out var privateKeyElement)) {
+                        string privateKey = privateKeyElement.GetString() ?? "";
+                        _logger.LogDebug("Private key found, starts with: {PrivateKeyStart}", 
+                            privateKey.Length > 30 ? privateKey.Substring(0, 30) + "..." : "[empty]");
+                        // Check if private key has expected format
+                        if (!privateKey.StartsWith("-----BEGIN PRIVATE KEY-----")) {
+                            _logger.LogWarning("Private key does not have expected format, missing BEGIN marker");
+                        }
+                    } else {
+                        _logger.LogWarning("No private_key property found in service account JSON");
+                    }
+                } catch (JsonException jsonEx) {
+                    _logger.LogError(jsonEx, "Invalid JSON format in service account credentials");
+                    throw;
                 }
                 
-                // Add conversation history
+                GoogleCredential credential;
+                try {
+                    // Parse the JSON to fix the private key format
+                    var jsonDoc = JsonDocument.Parse(_keyJsonContent);
+                    string fixedJson = _keyJsonContent;
+                    
+                    // Check if we need to fix the private key format
+                    if (jsonDoc.RootElement.TryGetProperty("private_key", out var privateKeyElement)) {
+                        string privateKey = privateKeyElement.GetString() ?? "";
+                        _logger.LogDebug("Original private key length: {Length}", privateKey.Length);
+                        
+                        // Make a deep copy of the JSON to avoid modifying the original
+                        using var memoryStream = new MemoryStream();
+                        using var writer = new Utf8JsonWriter(memoryStream, new JsonWriterOptions { Indented = true });
+                        writer.WriteStartObject();
+                        
+                        // First properly fix the private key format
+                        string fixedPrivateKey = privateKey;
+                        
+                        // Step 1: If it contains escaped newlines (\n), replace them with actual newlines
+                        if (fixedPrivateKey.Contains("\\n")) {
+                            _logger.LogDebug("Found escaped newlines in private key, replacing with actual newlines");
+                            fixedPrivateKey = fixedPrivateKey.Replace("\\n", "\n");
+                        }
+                        
+                        // Step 2: Ensure it has proper BEGIN/END markers with newlines
+                        if (!fixedPrivateKey.StartsWith("-----BEGIN PRIVATE KEY-----\n")) {
+                            _logger.LogDebug("Fixing BEGIN marker in private key");
+                            fixedPrivateKey = fixedPrivateKey.Replace("-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n");
+                        }
+                        
+                        if (!fixedPrivateKey.EndsWith("\n-----END PRIVATE KEY-----\n")) {
+                            _logger.LogDebug("Fixing END marker in private key");
+                            fixedPrivateKey = fixedPrivateKey.Replace("-----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----\n");
+                        }
+                        
+                        // Log the final private key details
+                        _logger.LogDebug("Fixed private key length: {Length}", fixedPrivateKey.Length);
+                        _logger.LogDebug("Fixed private key starts with: {Start} and ends with: {End}", 
+                            fixedPrivateKey.Substring(0, Math.Min(30, fixedPrivateKey.Length)),
+                            fixedPrivateKey.Length > 30 ? 
+                                fixedPrivateKey.Substring(Math.Max(0, fixedPrivateKey.Length - 30)) : 
+                                "[too short]");
+                        
+                        // Write all properties except private_key
+                        foreach (var prop in jsonDoc.RootElement.EnumerateObject()) {
+                            if (prop.Name != "private_key") {
+                                prop.WriteTo(writer);
+                            }
+                        }
+                        
+                        // Write the fixed private_key
+                        writer.WritePropertyName("private_key");
+                        writer.WriteStringValue(fixedPrivateKey);
+                        
+                        writer.WriteEndObject();
+                        writer.Flush();
+                        
+                        // Get the fixed JSON
+                        memoryStream.Position = 0;
+                        using var reader = new StreamReader(memoryStream);
+                        fixedJson = reader.ReadToEnd();
+                        _logger.LogDebug("Created fixed JSON with properly formatted private key");
+                    }
+                    
+                    // Create credential with the fixed JSON
+                    credential = GoogleCredential.FromJson(fixedJson)
+                        .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                    _logger.LogDebug("Successfully created GoogleCredential");
+                } catch (Exception ex) {
+                    _logger.LogError(ex, "Error creating GoogleCredential from JSON: {Message}", ex.Message);
+                    throw;
+                }
+                
+                // Build the messages in the format expected by Vertex AI's Claude implementation
+                var messagesList = new List<object>();
+                
+                // Add conversation history, skipping any system messages (we handle system prompt differently)
                 foreach (var message in history)
                 {
-                    // Map our MessageRole enum to Vertex AI's expected role values
-                    string role = message.Role switch
+                    // Map our MessageRole enum to Claude's expected role values
+                    if (message.Role != MessageRole.System) // Skip system messages in the message list
                     {
-                        MessageRole.User => "user",
-                        MessageRole.Assistant => "model", // Some models use "model" instead of "assistant"
-                        MessageRole.System => "system",
-                        _ => throw new ArgumentException($"Unsupported message role: {message.Role}")
-                    };
-                    
-                    contentList.Add(new
-                    {
-                        role = role,
-                        parts = new[] { new { text = message.Text } }
-                    });
+                        string role = message.Role switch
+                        {
+                            MessageRole.User => "user",
+                            MessageRole.Assistant => "assistant", // Claude uses "assistant"
+                            _ => throw new ArgumentException($"Unsupported message role: {message.Role}")
+                        };
+                        
+                        // For content that is just text (not attachments or structured content)
+                        // we need to create a content array with a single text item
+                        messagesList.Add(new
+                        {
+                            role = role,
+                            content = new object[]
+                            {
+                                new 
+                                {
+                                    type = "text",
+                                    text = message.Text
+                                }
+                            }
+                        });
+                    }
                 }
                 
-                // Create the request payload structure - varies by model
-                var requestContent = new
+                // Create the request payload for Claude on Vertex AI
+                // Format based on the successful direct Claude API call we made earlier
+                object requestContent;
+                
+                // For Claude via Vertex AI with system prompt
+                if (!string.IsNullOrWhiteSpace(systemPrompt))
                 {
-                    contents = contentList,
-                    generation_config = new
+                    // For Claude on Vertex, we can put the system prompt as a separate field
+                    requestContent = new
                     {
+                        anthropic_version = "vertex-2023-10-16", // Required version for Vertex AI Claude
+                        system = systemPrompt,
+                        messages = messagesList,
+                        max_tokens = 1024,
                         temperature = 0.2,
-                        max_output_tokens = 1024
-                    }
-                };
-                
-                // Serialize to JSON for the API request
-                var instances = new List<JsonElement>
+                        stream = false // Explicitly disable streaming
+                    };
+                }
+                else
                 {
-                    JsonSerializer.SerializeToElement(requestContent)
-                };
-                
-                // Create the appropriate request payload based on the model type
-                var jsonString = JsonSerializer.Serialize(instances);
-                // Convert the JSON string to a Google.Protobuf.WellKnownTypes.Value
-                var instanceValue = Google.Protobuf.JsonParser.Default.Parse<Google.Protobuf.WellKnownTypes.Value>(jsonString);
-                
-                // Create the predict request with the model name and instances
-                var request = new PredictRequest
-                {
-                    Endpoint = modelName,
-                    Instances = { instanceValue }
-                };
-                
-                // Make the API call to Vertex AI
-                var response = await predictionServiceClient.PredictAsync(request);
-                
-                // Extract and process the response
-                if (response?.Predictions != null && response.Predictions.Count > 0)
-                {
-                    try
+                    // No system prompt
+                    requestContent = new
                     {
-                        // The prediction result structure depends on the model
-                        var prediction = response.Predictions[0];
-                        
-                        // Try to extract the text from the prediction
-                        string? responseText = null;
-                        
-                        // Handle different response formats based on model
-                        if (prediction.StructValue?.Fields != null)
-                        {
-                            // For structured responses (like Gemini)
-                            if (prediction.StructValue.Fields.ContainsKey("candidates"))
-                            {
-                                // Try to extract text from candidates[0].content.parts[0].text
-                                var candidatesValue = prediction.StructValue.Fields["candidates"];
-                                if (candidatesValue.ListValue?.Values.Count > 0)
-                                {
-                                    var candidate = candidatesValue.ListValue.Values[0];
-                                    Google.Protobuf.WellKnownTypes.Value? contentValue = null;
-                                    if (candidate.StructValue?.Fields.TryGetValue("content", out contentValue) == true && contentValue != null)
-                                    {
-                                        Google.Protobuf.WellKnownTypes.Value? partsValue = null;
-                                        if (contentValue.StructValue?.Fields.TryGetValue("parts", out partsValue) == true && partsValue != null)
-                                        {
-                                            if (partsValue.ListValue?.Values.Count > 0)
-                                            {
-                                                var part = partsValue.ListValue.Values[0];
-                                                Google.Protobuf.WellKnownTypes.Value? partTextValue = null;
-                                                if (part.StructValue?.Fields.TryGetValue("text", out partTextValue) == true && partTextValue != null)
-                                                {
-                                                    responseText = partTextValue.StringValue;
-                                                    _logger.LogDebug("Successfully extracted text from candidates[0].content.parts[0].text");
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            else if (prediction.StructValue.Fields.ContainsKey("content"))
-                            {
-                                // Try to extract text from content.parts[0].text
-                                var contentValue = prediction.StructValue.Fields["content"];
-                                Google.Protobuf.WellKnownTypes.Value? partsValue = null;
-                                if (contentValue.StructValue?.Fields.TryGetValue("parts", out partsValue) == true && partsValue != null)
-                                {
-                                    if (partsValue.ListValue?.Values.Count > 0)
-                                    {
-                                        var part = partsValue.ListValue.Values[0];
-                                        Google.Protobuf.WellKnownTypes.Value? textValue = null;
-                                        if (part.StructValue?.Fields.TryGetValue("text", out textValue) == true && textValue != null)
-                                        {
-                                            responseText = textValue.StringValue;
-                                            _logger.LogDebug("Successfully extracted text from content.parts[0].text");
-                                        }
-                                    }
-                                }
-                            }
-                            else if (prediction.StructValue.Fields.ContainsKey("parts"))
-                            {
-                                // Try to extract text from parts[0].text
-                                var partsValue = prediction.StructValue.Fields["parts"];
-                                if (partsValue.ListValue?.Values.Count > 0)
-                                {
-                                    var part = partsValue.ListValue.Values[0];
-                                    Google.Protobuf.WellKnownTypes.Value? textValue = null;
-                                    if (part.StructValue?.Fields.TryGetValue("text", out textValue) == true && textValue != null)
-                                    {
-                                        responseText = textValue.StringValue;
-                                        _logger.LogDebug("Successfully extracted text from parts[0].text");
-                                    }
-                                }
-                            }
-                            else if (prediction.StructValue.Fields.TryGetValue("text", out var textValue))
-                            {
-                                // Direct text field
-                                responseText = textValue.StringValue;
-                                _logger.LogDebug("Successfully extracted text from direct text field");
-                            }
-                        }
-                        
-                        // If we couldn't extract structured JSON, use the raw string
-                        if (responseText == null)
-                        {
-                            responseText = prediction.ToString();
-                        }
-                        
-                        // Return the extracted text
-                        if (!string.IsNullOrEmpty(responseText))
-                        {
-                            _logger.LogInformation("Successfully extracted text from Vertex AI response");
-                            return responseText;
-                        }
-                        else
-                        {
-                            _logger.LogWarning("Failed to extract text from Vertex AI response");
-                            return null;
-                        }
-                    }
-                    catch (Exception ex)
+                        anthropic_version = "vertex-2023-10-16", // Required version for Vertex AI Claude
+                        messages = messagesList,
+                        max_tokens = 1024,
+                        temperature = 0.2,
+                        stream = false // Explicitly disable streaming
+                    };
+                }
+                
+                // Debug the JSON request
+                var requestJson = JsonSerializer.Serialize(requestContent, new JsonSerializerOptions { WriteIndented = true });
+                _logger.LogDebug("Request JSON: {Json}", requestJson);
+                
+                // Format the request URL for direct API call to Vertex AI's Claude
+                // Note: For Claude, we must use 'publishers/anthropic' (not 'publishers/google')
+                string requestUrl = $"https://{_location}-aiplatform.googleapis.com/v1/projects/{_projectId}/locations/{_location}/publishers/anthropic/models/{modelId}:rawPredict";
+                _logger.LogDebug("Request URL: {Url}", requestUrl);
+                
+                // Get an access token for authentication
+                string token = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+                _logger.LogDebug("Got access token of length: {Length}", token?.Length ?? 0);
+                
+                // Make a direct HTTP request to the Vertex AI Claude endpoint
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+                
+                // Create the request content
+                var content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
+                
+                // Make the API call
+                _logger.LogInformation("Sending direct HTTP request to Claude API...");
+                var httpResponse = await httpClient.PostAsync(requestUrl, content);
+                
+                // Process the response
+                _logger.LogInformation("Response status: {StatusCode}", httpResponse.StatusCode);
+                
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                    _logger.LogDebug("Raw response: {Response}", responseBody);
+                    
+                    // Parse the response JSON
+                    try 
                     {
-                        _logger.LogError(ex, "Error processing Vertex AI response: {Message}", ex.Message);
+                        var responseJson = JsonDocument.Parse(responseBody);
+                        
+                        // Claude response format contains a 'content' array with text items
+                        if (responseJson.RootElement.TryGetProperty("content", out var contentElement))
+                        {
+                            _logger.LogDebug("Found 'content' array in response");
+                            
+                            if (contentElement.ValueKind == JsonValueKind.Array && contentElement.GetArrayLength() > 0)
+                            {
+                                var firstContent = contentElement[0];
+                                
+                                if (firstContent.TryGetProperty("text", out var textElement))
+                                {
+                                    string text = textElement.GetString() ?? "";
+                                    _logger.LogInformation("Successfully extracted text from Claude response");
+                                    return text;
+                                }
+                            }
+                        }
+                        
+                        _logger.LogWarning("Could not find expected content structure in response");
+                        return null;
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        _logger.LogError(jsonEx, "Error parsing Claude API response: {Message}", jsonEx.Message);
                         return null;
                     }
                 }
-                
-                _logger.LogWarning("No predictions returned from Vertex AI");
-                return null;
+                else
+                {
+                    // Log the error response
+                    string errorContent = await httpResponse.Content.ReadAsStringAsync();
+                    _logger.LogError("Claude API error: {StatusCode}, Response: {Response}", 
+                        httpResponse.StatusCode, errorContent);
+                    return null;
+                }
             });
         }
         catch (Exception ex)
@@ -310,7 +373,6 @@ public class VertexAiProvider : IAiProvider
             return null;
         }
     }
-    
     
     /// <summary>
     /// Determines if an exception is transient and should be retried

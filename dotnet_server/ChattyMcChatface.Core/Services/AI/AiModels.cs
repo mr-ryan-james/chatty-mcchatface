@@ -12,8 +12,8 @@ public static class AiModels
     public const string OpenAiGpt35Turbo = "gpt-3.5-turbo"; // Added from original personas.json
 
     // Azure OpenAI (Using custom identifiers for routing logic)
-    public const string AzureGpt4oThrivify = "azure-gpt-4o-thrivify";
-    public const string AzureGpt45PreviewRyan = "azure-gpt-4.5-preview-ryan";
+    public const string AzureGpt4oThrivify = "gpt-4o";
+    public const string AzureGpt45PreviewRyan = "gpt-4.5-preview";
 
     // Claude (Anthropic)
     public const string Claude37Sonnet = "claude-3-7-sonnet-20250219";

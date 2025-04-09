@@ -12,6 +12,8 @@ using ChattyMcChatface.Core.Services.AI.Azure;
 using ChattyMcChatface.Core.Services.AI.Claude;
 using ChattyMcChatface.Core.Services.AI.Gemini;
 using ChattyMcChatface.Core.Services.AI.Vertex;
+using ChattyMcChatface.Api.Services;
+
 
 namespace ChattyMcChatface.Tests.Integration
 {
@@ -37,6 +39,9 @@ namespace ChattyMcChatface.Tests.Integration
             
             // Add configuration
             services.AddSingleton(Configuration);
+            
+            // Register SignalR services
+            services.AddSignalR();
             
             // Add SQLite in-memory database for testing
             services.AddDbContext<AppDbContext>(options =>
@@ -68,6 +73,7 @@ namespace ChattyMcChatface.Tests.Integration
             // Register persona services
             services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
             services.AddScoped<IPersonaService, PersonaService>();
+            services.AddScoped<INotificationService, SignalRNotificationService>();
             
             // Build the service provider
             _serviceProvider = services.BuildServiceProvider();

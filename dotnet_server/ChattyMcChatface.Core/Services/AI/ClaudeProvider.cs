@@ -37,8 +37,8 @@ public class ClaudeProvider : IAiProvider
     {
         _logger = logger;
         
-        _apiKey = configuration["Anthropic:ApiKey"]
-                 ?? throw new InvalidOperationException("Anthropic API key is not configured. Please add 'Anthropic:ApiKey' to configuration.");
+        _apiKey = configuration["Claude:ApiKey"]
+                 ?? throw new InvalidOperationException("Claude API key is not configured. Please add 'Claude:ApiKey' to configuration.");
         
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
@@ -92,23 +92,23 @@ public class ClaudeProvider : IAiProvider
                 messages.Add(new Message
                 {
                     Role = role,
-                    Content = new List<Content>
-                    {
-                        new TextContent
-                        {
-                            Type = "text",
-                            Text = message.Text
-                        }
-                    }
+                    Content = message.Text
                 });
             }
             
+            // Add the current system prompt as a user message
+            messages.Add(new Message
+            {
+                Role = "user",
+                Content = systemPrompt
+            });
+
             // Create request body
             var requestBody = new ClaudeRequest
             {
                 Model = modelId,
                 Messages = messages,
-                System = systemPrompt,
+                System = null, // System prompt is now sent as a user message
                 MaxTokens = 1000 // Configurable parameter if needed
             };
             
@@ -187,25 +187,9 @@ public class ClaudeProvider : IAiProvider
         public string Role { get; set; } = "";
         
         [JsonPropertyName("content")]
-        public List<Content> Content { get; set; } = new();
+        public string? Content { get; set; } = null;
     }
     
-    private abstract class Content
-    {
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = "";
-    }
-    
-    private class TextContent : Content
-    {
-        public TextContent()
-        {
-            Type = "text";
-        }
-        
-        [JsonPropertyName("text")]
-        public string Text { get; set; } = "";
-    }
     
     #endregion
 }
