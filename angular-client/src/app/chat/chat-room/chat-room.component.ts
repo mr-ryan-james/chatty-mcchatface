@@ -41,6 +41,10 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
   loading: boolean = false;
   sending: boolean = false;
   error: string = '';
+
+  // Persona information
+  personaId: string = '';
+  personaName: string = '';
   private subscriptions: Subscription[] = [];
 
   constructor(
@@ -57,8 +61,24 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
       const id = params.get('id');
       if (id) {
         this.roomId = id;
-        this.loadChatRoom();
+
+        // Fetch persona details for the chatroom
+        this.loadPersonaDetails();
+
+        // Fetch messages including persona messages
+        this.loadMessagesWithPersona();
+
         this.setupSignalRConnection();
+
+        // Subscribe to the ChatService's message observable for real-time updates
+        const messagesSub = this.chatService
+          .getChatroomMessages$(this.roomId, true)
+          .subscribe((messages) => {
+            this.chats = messages;
+            this.shouldScrollToBottom = true;
+          });
+
+        this.subscriptions.push(messagesSub);
       } else {
         console.error('No room ID provided');
         this.router.navigate(['/chat']);
@@ -96,7 +116,6 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
       next: (chatroom) => {
         console.log('Loaded chatroom:', chatroom);
         this.chatroom = chatroom;
-        this.chats = chatroom.chats || [];
         this.usersInRoom = chatroom.users || [];
         this.loading = false;
         this.shouldScrollToBottom = true;
@@ -109,6 +128,47 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
     });
 
     this.subscriptions.push(roomSub);
+  }
+
+  loadPersonaDetails(): void {
+    console.log(`Loading persona details for chatroom ${this.roomId}`);
+    const personaSub = this.chatService
+      .getChatroomPersona(this.roomId)
+      .subscribe({
+        next: (persona) => {
+          console.log('Loaded persona:', persona);
+          this.personaId = persona.id;
+          this.personaName = `${persona.firstName} ${persona.lastName}`;
+        },
+        error: (err) => {
+          console.error('Error loading persona:', err);
+        },
+      });
+
+    this.subscriptions.push(personaSub);
+  }
+
+  loadMessagesWithPersona(): void {
+    console.log(`Loading messages with persona for chatroom ${this.roomId}`);
+    this.loading = true;
+
+    const messagesSub = this.chatService
+      .getChatroomMessagesWithPersona(this.roomId)
+      .subscribe({
+        next: (messages) => {
+          console.log('Loaded messages with persona:', messages);
+          this.chats = messages || [];
+          this.loading = false;
+          this.shouldScrollToBottom = true;
+        },
+        error: (err) => {
+          console.error('Error loading messages with persona:', err);
+          this.error = 'Failed to load chat messages. Please try again.';
+          this.loading = false;
+        },
+      });
+
+    this.subscriptions.push(messagesSub);
   }
 
   setupSignalRConnection(): void {
@@ -197,9 +257,14 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.sending = true;
     console.log(`Sending message to room ${this.roomId}:`, this.text);
 
-    const messageDto: CreateMessageDto = {
+    // Create a ChatMessageDto object with the current user's ID and name
+    const messageDto: ChatMessageDto = {
+      id: '', // This will be assigned by the server
       text: this.text.trim(),
+      date: new Date(),
       userId: currentUser.id,
+      userName: `${currentUser.firstName} ${currentUser.lastName}`,
+      chatroomId: this.roomId,
     };
 
     // Send via HTTP API first

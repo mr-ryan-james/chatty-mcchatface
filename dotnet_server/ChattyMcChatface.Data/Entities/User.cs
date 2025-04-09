@@ -11,6 +11,7 @@ namespace ChattyMcChatface.Data.Entities
         public required string Email { get; set; }
         public required string PasswordHash { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsPersona { get; set; } = false;
         
         // Navigation properties
         public virtual ICollection<Chatroom> Chatrooms { get; set; } = new List<Chatroom>();

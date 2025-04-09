@@ -1,0 +1,4 @@
+.icon-list a.selected {
+  background-color: #e9ecef; /* A light grey background */
+  font-weight: bold;
+}

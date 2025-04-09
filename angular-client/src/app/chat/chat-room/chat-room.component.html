@@ -9,8 +9,17 @@
         id="chatContainer"
         style="overflow-y: auto; max-height: 500px"
       >
-        <article *ngFor="let chat of chats">
-          <div class="testimonial">
+        <article
+          *ngFor="let chat of chats"
+          [ngClass]="{
+            'persona-message': chat.userId === personaId,
+            'user-message': chat.userId !== personaId
+          }"
+        >
+          <div
+            class="testimonial"
+            [ngClass]="{ 'persona-testimonial': chat.userId === personaId }"
+          >
             <blockquote>
               <p>{{ chat.text }}</p>
             </blockquote>
@@ -19,7 +28,13 @@
           <div class="author-wrapper">
             <div class="arrow"></div>
             <div class="cite">
-              {{ chat.user?.firstName }} {{ chat.user?.lastName }},
+              <!-- Use userName if available, otherwise fallback to user object -->
+              <ng-container *ngIf="chat.userName; else userFullName">
+                {{ chat.userName }}
+              </ng-container>
+              <ng-template #userFullName>
+                {{ chat.user?.firstName }} {{ chat.user?.lastName }}
+              </ng-template>
               <span>
                 {{ chat.date | date : "short" }}
               </span>
@@ -34,6 +49,8 @@
             class="form-control"
             rows="5"
             id="comment"
+            (keydown.enter)="$event.ctrlKey && sendChat()"
+            placeholder="Type your message here... (Press Ctrl+Enter to send)"
           ></textarea>
         </div>
         <span class="input-group-btn">
@@ -41,10 +58,14 @@
             (click)="sendChat()"
             type="submit"
             class="btn btn-default btn-lg"
+            [disabled]="sending"
           >
-            Do Chat Thing
+            Send Message
           </button>
         </span>
+        <div *ngIf="error" class="alert alert-danger mt-2">
+          {{ error }}
+        </div>
       </div>
 
       <div class="hidden-sm">&nbsp;</div>
@@ -56,6 +77,11 @@
       role="complementary"
     >
       <div class="blog-summary-sidebar">
+        <!-- Display persona info if available -->
+        <aside class="widget persona-info" *ngIf="personaName">
+          <h5 class="widget-title"><span>Chatting with AI Persona</span></h5>
+          <div class="persona-name">{{ personaName }}</div>
+        </aside>
         <aside class="widget">
           <h5 class="widget-title"><span>Users in chat</span></h5>
           <ul class="list-unstyled icon-list">

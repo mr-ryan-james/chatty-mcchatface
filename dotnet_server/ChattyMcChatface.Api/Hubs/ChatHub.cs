@@ -5,6 +5,7 @@ using ChattyMcChatface.Core.Dtos;
 using ChattyMcChatface.Data;
 using ChattyMcChatface.Data.Entities;
 using System.Security.Claims;
+using ChattyMcChatface.Core.Services;
 
 namespace ChattyMcChatface.Api.Hubs
 {
@@ -12,10 +13,12 @@ namespace ChattyMcChatface.Api.Hubs
     public class ChatHub : Hub
     {
         private readonly AppDbContext _context;
+        private readonly IPersonaService _personaService;
 
-        public ChatHub(AppDbContext context)
+        public ChatHub(AppDbContext context, IPersonaService personaService)
         {
             _context = context;
+            _personaService = personaService;
         }
 
         public async Task SendMessage(int chatroomId, string message)
@@ -63,6 +66,16 @@ namespace ChattyMcChatface.Api.Hubs
 
             // Broadcast the message to all clients connected to the specific chatroom group
             await Clients.Group(chatroomId.ToString()).SendAsync("ReceiveMessage", chatroomId, chatMessageDto);
+
+            // Retrieve the chatroom entity again to ensure PersonaUserId is loaded
+            chatroom = await _context.Chatrooms.FindAsync(chatroomId);
+            
+            // Check if the chatroom has a persona user assigned
+            if (chatroom.PersonaUserId.HasValue)
+            {
+                // Use fire-and-forget pattern to generate a persona response
+                _ = Task.Run(() => _personaService.GenerateResponseAsync(chatroomId, chatMessageDto));
+            }
         }
 
         public async Task JoinRoom(int chatroomId)

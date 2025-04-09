@@ -43,6 +43,13 @@ namespace ChattyMcChatface.Data
                 .WithMany(cr => cr.LastReads)
                 .HasForeignKey(lr => lr.ChatroomId);
 
+            // Configure the optional one-to-many relationship between Chatroom and PersonaUser
+            modelBuilder.Entity<Chatroom>()
+                .HasOne(c => c.PersonaUser)
+                .WithMany()
+                .HasForeignKey(c => c.PersonaUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // The many-to-many relationship between User and Chatroom
             // is handled automatically by EF Core 5+ through the navigation properties
         }

@@ -1,0 +1,79 @@
+/* Chat container styling */
+#chatContainer {
+  overflow-y: auto;
+  max-height: 500px;
+  padding: 10px;
+}
+
+/* Styling for user messages */
+.user-message .testimonial {
+  background-color: #f0f0f0;
+  border-left: 4px solid #007bff;
+}
+
+/* Styling for persona messages */
+.persona-message .testimonial {
+  background-color: #e6f7ff;
+  border-left: 4px solid #00a86b;
+}
+
+.persona-message blockquote {
+  color: #005a45;
+}
+
+.persona-message .author-wrapper .cite {
+  color: #00a86b;
+  font-weight: bold;
+}
+
+/* Persona info in sidebar */
+.persona-info {
+  background-color: #f8f9fa;
+  border-left: 4px solid #00a86b;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.persona-name {
+  font-weight: bold;
+  color: #00a86b;
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+/* Message input area */
+.form-group textarea {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.form-group textarea:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Button styling */
+.btn-default {
+  transition: background-color 0.2s ease;
+}
+
+.btn-default:hover {
+  background-color: #e9ecef;
+}
+
+.btn-default:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Alert message styling */
+.alert {
+  margin-top: 10px;
+  padding: 10px 15px;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}

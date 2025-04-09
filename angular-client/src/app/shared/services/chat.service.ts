@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, throwError, BehaviorSubject } from 'rxjs';
 import { delay, map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
@@ -12,6 +12,7 @@ export interface ChatMessageDto {
   text: string;
   date: Date;
   userId: string;
+  userName?: string;
   user?: User;
   chatroomId: string;
 }
@@ -42,6 +43,7 @@ export interface UpdateChatroomDto {
 export interface CreateMessageDto {
   text: string;
   userId: string;
+  userName?: string;
 }
 
 @Injectable({
@@ -111,6 +113,11 @@ export class ChatService {
     },
   };
 
+  // Message storage - holds messages by chatroom ID
+  private messagesByRoom: {
+    [roomId: string]: BehaviorSubject<ChatMessageDto[]>;
+  } = {};
+
   constructor(private http: HttpClient, private authService: AuthService) {}
 
   // Get all chatrooms
@@ -166,13 +173,39 @@ export class ChatService {
   // Send a message to a chatroom
   sendMessage(
     roomId: string,
-    messageDto: CreateMessageDto
+    messageDto: ChatMessageDto
   ): Observable<ChatMessageDto> {
     console.log(`Sending message to chatroom ${roomId}:`, messageDto);
     return this.http
       .post<ChatMessageDto>(
         `${environment.apiUrl}/chatrooms/${roomId}/chats`,
         messageDto,
+        this.getAuthHeaders()
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Get chatroom persona details
+  getChatroomPersona(chatroomId: string): Observable<User> {
+    console.log(`Fetching persona for chatroom with ID: ${chatroomId}`);
+    return this.http
+      .get<User>(
+        `${environment.apiUrl}/chatrooms/${chatroomId}/persona`,
+        this.getAuthHeaders()
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Get chatroom messages including those from the persona
+  getChatroomMessagesWithPersona(
+    chatroomId: string
+  ): Observable<ChatMessageDto[]> {
+    console.log(
+      `Fetching messages with persona for chatroom with ID: ${chatroomId}`
+    );
+    return this.http
+      .get<ChatMessageDto[]>(
+        `${environment.apiUrl}/chatrooms/${chatroomId}/messagesWithPersona`,
         this.getAuthHeaders()
       )
       .pipe(catchError(this.handleError));
@@ -199,6 +232,80 @@ export class ChatService {
     return this.http
       .delete(`${environment.apiUrl}/chatrooms/${id}`, this.getAuthHeaders())
       .pipe(catchError(this.handleError));
+  }
+
+  // Get messages observable for a specific chatroom
+  getChatroomMessages$(
+    chatroomId: string,
+    includePersona: boolean = false
+  ): Observable<ChatMessageDto[]> {
+    if (!this.messagesByRoom[chatroomId]) {
+      // Initialize with an empty array if this is the first request
+      this.messagesByRoom[chatroomId] = new BehaviorSubject<ChatMessageDto[]>(
+        []
+      );
+
+      // Load initial messages (with or without persona messages)
+      if (includePersona) {
+        this.loadMessagesWithPersona(chatroomId);
+      } else {
+        this.loadStandardMessages(chatroomId);
+      }
+    }
+
+    return this.messagesByRoom[chatroomId].asObservable();
+  }
+
+  // Load standard messages (without persona)
+  private loadStandardMessages(chatroomId: string): void {
+    this.getChatroom(chatroomId).subscribe((room) => {
+      if (room && room.chats) {
+        this.messagesByRoom[chatroomId].next(room.chats);
+      }
+    });
+  }
+
+  // Load messages including persona messages
+  private loadMessagesWithPersona(chatroomId: string): void {
+    this.getChatroomMessagesWithPersona(chatroomId).subscribe((messages) => {
+      if (messages) {
+        this.messagesByRoom[chatroomId].next(messages);
+      }
+    });
+  }
+
+  // Connect to SignalR hub and set up message handling
+  connect(signalrService: any): void {
+    // Subscribe to the newMessage$ observable from the SignalR service
+    signalrService.newMessage$.subscribe((message: ChatMessageDto) => {
+      this.handleNewMessage(message);
+    });
+  }
+
+  // Handle new incoming messages (both user and persona messages)
+  private handleNewMessage(message: ChatMessageDto): void {
+    console.log('Handling new message:', message);
+
+    if (!message || !message.chatroomId) {
+      console.error('Received invalid message:', message);
+      return;
+    }
+
+    const chatroomId = message.chatroomId;
+
+    // Initialize the BehaviorSubject if it doesn't exist for this room
+    if (!this.messagesByRoom[chatroomId]) {
+      this.messagesByRoom[chatroomId] = new BehaviorSubject<ChatMessageDto[]>(
+        []
+      );
+    }
+
+    // Get current messages and add the new one
+    const currentMessages = this.messagesByRoom[chatroomId].getValue();
+    const updatedMessages = [...currentMessages, message];
+
+    // Update the BehaviorSubject with the new messages array
+    this.messagesByRoom[chatroomId].next(updatedMessages);
   }
 
   // Helper method for auth headers

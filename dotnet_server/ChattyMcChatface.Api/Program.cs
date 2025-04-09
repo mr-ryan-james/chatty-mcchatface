@@ -5,7 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ChattyMcChatface.Data;
 using ChattyMcChatface.Core.Services;
+using ChattyMcChatface.Core.Services.AI;
 using ChattyMcChatface.Api.Hubs;
+using ChattyMcChatface.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,8 +31,36 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(keepAliveConnection); // Use the shared connection
 });
 
-// Register the AuthService
+// Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
+
+// Register HttpClient for Gemini REST API
+builder.Services.AddHttpClient("GeminiApi", client =>
+{
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+// Register all AI providers
+builder.Services.AddScoped<OpenAiProvider>();
+builder.Services.AddScoped<AzureAiProvider>();
+builder.Services.AddScoped<GeminiProvider>();
+builder.Services.AddScoped<ClaudeProvider>();
+
+// Register providers by interface for resolution via AiFallbackService
+builder.Services.AddScoped<IAiProvider, OpenAiProvider>();
+builder.Services.AddScoped<IAiProvider, AzureAiProvider>();
+builder.Services.AddScoped<IAiProvider, GeminiProvider>();
+builder.Services.AddScoped<IAiProvider, ClaudeProvider>();
+
+// Register AI fallback service
+builder.Services.AddScoped<IAiFallbackService, AiFallbackService>();
+
+// Register notification service
+builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
+
+// Register persona service
+builder.Services.AddScoped<IPersonaService, PersonaService>();
 
 // Configure Authentication
 builder.Services.AddAuthentication(options =>
@@ -91,7 +121,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Ensure database is created (for in-memory)
+// Ensure database is created (for in-memory) and seed persona users
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -99,11 +129,70 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         context.Database.EnsureCreated();
+        
+        // Seed persona users in development environment
+        if (app.Environment.IsDevelopment())
+        {
+            SeedPersonaUsers(services);
+        }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred creating the DB.");
+        logger.LogError(ex, "An error occurred creating the DB or seeding data.");
+    }
+}
+
+/// <summary>
+/// Seeds user accounts for each persona defined in the configuration
+/// </summary>
+/// <param name="serviceProvider">Application service provider</param>
+static void SeedPersonaUsers(IServiceProvider serviceProvider)
+{
+    using var scope = serviceProvider.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+    var dbContext = scopedServices.GetRequiredService<AppDbContext>();
+    var personaConfigService = scopedServices.GetRequiredService<IPersonaConfigService>();
+    var logger = scopedServices.GetRequiredService<ILogger<Program>>();
+    
+    try
+    {
+        logger.LogInformation("Seeding persona user accounts...");
+        
+        // Get all persona configurations
+        var personaConfigs = personaConfigService.GetAllConfigs();
+        
+        foreach (var persona in personaConfigs)
+        {
+            // Check if this persona user already exists
+            var existingUser = dbContext.Users.FirstOrDefault(u => u.Id == persona.PersonaUserId);
+            
+            if (existingUser == null)
+            {
+                // Create new user entity for the persona
+                var personaUser = new ChattyMcChatface.Data.Entities.User
+                {
+                    Id = persona.PersonaUserId,
+                    FirstName = persona.DisplayName,
+                    LastName = "AI",
+                    Email = $"{persona.DisplayName.ToLower().Replace(" ", "")}@chatty.ai",
+                    PasswordHash = "PERSONA_NO_LOGIN", // Personas don't login with passwords
+                    IsPersona = true
+                };
+                
+                // Add the new persona user
+                dbContext.Users.Add(personaUser);
+                logger.LogInformation($"Added persona user: {persona.DisplayName} (ID: {persona.PersonaUserId})");
+            }
+        }
+        
+        // Save changes to the database
+        dbContext.SaveChanges();
+        logger.LogInformation("Persona users seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding persona users.");
     }
 }
 

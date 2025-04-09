@@ -25,6 +25,7 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
   loading = false;
   creating = false;
   error = '';
+  userFilter: string = '';
   chatroomName = '';
   private subscriptions: Subscription[] = [];
 
@@ -78,23 +79,45 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
     // Prevent adding duplicates
     if (!this.selectedUsers.some((u) => u.id === user.id)) {
       this.selectedUsers.push(user);
-
-      // Remove from available users list
-      this.users = this.users.filter((u) => u.id !== user.id);
     }
   }
 
   removeUser(user: UserDto): void {
     // Remove from selected users
     this.selectedUsers = this.selectedUsers.filter((u) => u.id !== user.id);
+  }
 
-    // Add back to available users list
-    this.users.push(user);
+  isSelected(user: UserDto): boolean {
+    return this.selectedUsers.some((u) => u.id === user.id);
+  }
+
+  toggleUserSelection(user: UserDto): void {
+    if (this.isSelected(user)) {
+      this.removeUser(user);
+    } else {
+      this.addUser(user);
+    }
+  }
+
+  getFilteredUsers(): UserDto[] {
+    if (!this.userFilter) {
+      return this.users;
+    }
+    const filter = this.userFilter.toLowerCase();
+    return this.users.filter(
+      (user) =>
+        user.firstName.toLowerCase().includes(filter) ||
+        user.lastName.toLowerCase().includes(filter) ||
+        user.email.toLowerCase().includes(filter)
+    );
   }
 
   createChat(): void {
-    if (this.selectedUsers.length === 0) {
-      this.error = 'Please select at least one user to chat with';
+    if (this.selectedUsers.length === 0 || this.creating) {
+      // Added || this.creating
+      if (this.selectedUsers.length === 0) {
+        this.error = 'Please select at least one user to chat with';
+      }
       return;
     }
 
