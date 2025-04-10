@@ -74,7 +74,7 @@ client-side routing.
 -   **General Settings:**
     -   Ensure **WebSockets** is **On** (Configuration -> General settings). Required for integrated
         SignalR.
-    -   Verify the **Stack** settings (e.g., .NET version, Windows/Linux). This plan assumes .NET 8.
+    -   Verify the **Stack** settings (e.g., .NET version, Windows/Linux). This plan assumes .NET 9.
 -   **Application Settings:**
     -   Add necessary key-value pairs under Configuration -> Application settings:
         -   `ASPNETCORE_ENVIRONMENT`: `Production`

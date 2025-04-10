@@ -1,424 +1,259 @@
-# chatty-mcchatface
+# ChattyMcChatface - AI-Powered Chat Application
 
-To try out this app, navigate to https://chatty-mcchatface.herokuapp.com
+Welcome to ChattyMcChatface, a modern real-time chat application featuring AI-powered personas! This
+application allows users to chat with each other and interact with different AI personalities.
 
-OR, if you would rather set it up on your own machine, follow the below:
+## Features
 
-1. Make sure you have mongo installed, and start an instance on your machine
-2. Clone the git repo
-3. npm install everything
-4. open up a terminal, and cd into the cloned directory, and type in
-5. npm start
-6. Register a user for yourself.
+-   **Real-time Chat:** Engage in instant messaging with other users using SignalR.
+-   **AI Persona Integration:** Chat with AI personas powered by various large language models
+    (LLMs). Each persona has a distinct personality defined by a system prompt.
+-   **Flexible AI Backend:** Supports multiple AI providers (OpenAI, Azure OpenAI, Gemini, Claude
+    via Anthropic/Vertex) with fallback capabilities.
+-   **User Authentication:** Secure registration and login.
+-   **Modern Tech Stack:** Built with a .NET 9 backend and an Angular frontend.
 
-The app will seem rather underwhelming by yourself, but either get a friend, or open up an incognito
-Chrome window and talk with yourself. I talk to myself all the time! It's fun! That's not weird at
-all, right?
+## Technology Stack
 
-Right??
+-   **Backend:** .NET 9, ASP.NET Core Web API, SignalR
+-   **Frontend:** Angular, TypeScript, RxJS
+-   **Database:** Entity Framework Core with SQLite (for development)
+-   **AI Integration:** Configurable providers for various LLMs.
 
-Guys?
+## Architecture Overview
 
-## Running Locally (Modernized Version)
+The application uses a client-server architecture:
 
-This project now consists of a .NET 8 backend API and an Angular frontend.
+-   **Frontend (Angular):** Single Page Application (SPA) that handles user interaction, displays
+    messages, connects to the SignalR hub for real-time updates, and communicates with the backend
+    API for data and actions.
+-   **Backend API (.NET 9):** Provides RESTful endpoints for user management, chatroom operations,
+    and message handling. It orchestrates AI interactions, manages database operations via EF Core,
+    and pushes real-time updates via the SignalR Hub.
+-   **SignalR Hub:** Facilitates real-time bidirectional communication between the server and
+    connected clients.
+-   **Database (SQLite):** Stores user accounts, chatroom details, message history, and persona
+    associations.
+-   **AI Services:** External LLM APIs are called by the backend to generate responses for AI
+    personas.
+
+```mermaid
+graph TD
+    subgraph Browser
+        F[Angular Frontend]
+    end
+
+    subgraph Server
+        B[ASP.NET Core API]
+        H[SignalR Hub]
+        D["Database (SQLite)"]
+        P["personas.json"]
+    end
+
+    subgraph "External Services"
+        AI["AI Provider APIs (OpenAI, Azure, etc.)"]
+    end
+
+    F -- HTTP API Calls --> B;
+    B -- Reads/Writes --> D;
+    B -- Reads --> P;
+    B -- Calls --> AI;
+    B -- Sends Updates Via --> H;
+    F -- SignalR Connection --> H;
+    H -- Pushes Updates --> F;
+
+    style F fill:#ccf,stroke:#333,stroke-width:2px
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#f9f,stroke:#333,stroke-width:2px
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style P fill:#f9f,stroke:#333,stroke-width:2px
+    style AI fill:#9cf,stroke:#333,stroke-width:2px
+```
+
+## Project Structure
+
+-   **`angular-client/`**: Contains the Angular frontend application.
+    -   `src/app/`: Core application modules, components, and services.
+    -   `src/environments/`: Environment-specific configurations (API URLs).
+-   **`dotnet_server/`**: Contains the .NET 9 backend API.
+    -   `ChattyMcChatface.Api/`: The main ASP.NET Core project (controllers, `Program.cs`, SignalR
+        Hub, `personas.json`).
+    -   `ChattyMcChatface.Core/`: Business logic, services (including `PersonaService` and AI
+        providers), DTOs.
+    -   `ChattyMcChatface.Data/`: Entity Framework Core context, entities, and migrations.
+    -   `ChattyMcChatface.Tests.Unit/`: Unit tests.
+    -   `ChattyMcChatface.Tests.Integration/`: Integration tests.
+
+## Getting Started
 
 **Prerequisites:**
 
--   .NET 8 SDK
--   Node.js (v18+ recommended) and npm
--   Run `npm install` inside the `angular-client` directory:
+-   [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+-   [Node.js](https://nodejs.org/) (v18+ recommended) and npm
+-   [Git](https://git-scm.com/)
+
+**Setup & Running:**
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone <repository_url>
+    cd chatty-mcchatface
+    ```
+
+2.  **Install Frontend Dependencies:**
+
     ```bash
     cd angular-client
     npm install
     cd ..
     ```
 
-**Running the Application:**
-
-From the root project directory (`/Users/ryanpfister/Dev/chatty-mcchatface`), run the following
-command:
-
-```bash
-npm run dev
-```
-
-This will concurrently:
-
--   Start the .NET backend API (listening on `http://localhost:5124` and `https://localhost:7045`).
--   Start the Angular frontend development server (available at `http://localhost:4200`).
-
-Open your browser to `http://localhost:4200` to use the application.
-
-### Running with Docker
-
-This project includes a `Dockerfile` to build and run the application in a container. To handle
-secrets securely when running with Docker, follow these steps:
-
-1.  **Prerequisites:**
-
-    -   Docker installed and running.
-    -   Node.js installed (for the secrets generation script).
-    -   Ensure your .NET user secrets are configured correctly for the
-        `dotnet_server/ChattyMcChatface.Api` project (as described in the Configuration (Secrets)
-        section below).
-
-2.  **Generate Docker Secrets File:** Before building or running the container, execute the helper
-    script from the project root directory (`/Users/ryanpfister/Dev/chatty-mcchatface`) to convert
-    your user secrets into a Docker-compatible JSON file:
+3.  **Configure Backend Secrets:** The backend requires API keys for the AI providers. Use the .NET
+    Secret Manager:
 
     ```bash
-    node generate-docker-secrets.js
+    cd dotnet_server/ChattyMcChatface.Api
+    dotnet user-secrets init # Only needed once per project
+
+    # Example: Set OpenAI Key
+    dotnet user-secrets set "OpenAI:ApiKey" "YOUR_OPENAI_API_KEY"
+
+    # Example: Set Azure OpenAI Keys (using 'Thrivify' deployment name from config)
+    dotnet user-secrets set "AzureOpenAI:Thrivify:ApiKey" "YOUR_AZURE_API_KEY"
+    dotnet user-secrets set "AzureOpenAI:Thrivify:Endpoint" "YOUR_AZURE_ENDPOINT"
+
+    # Example: Set Anthropic Key
+    dotnet user-secrets set "Anthropic:ApiKey" "YOUR_ANTHROPIC_API_KEY"
+
+    # Example: Set Gemini Key
+    dotnet user-secrets set "Gemini:ApiKey" "YOUR_GEMINI_API_KEY"
+
+    # Example: Set Vertex AI Key (Requires JSON content and Location)
+    dotnet user-secrets set "VertexAI:Location" "YOUR_VERTEX_LOCATION" # e.g., us-central1
+    # Use single quotes if your shell needs it for the JSON string
+    dotnet user-secrets set 'VertexAI:KeyJsonContent' '{"type": "service_account", ...}'
+
+    cd ../..
     ```
 
-    This creates an `appsettings.Docker.json` file in the project root (this file is ignored by
-    git).
+    _Refer to `dotnet_server/ChattyMcChatface.Api/secrets.example.json` for the full structure._
 
-3.  **Build the Docker Image:** From the project root directory, build the image:
+4.  **Apply Database Migrations (Optional - Seeded DB included):** The repository includes a
+    pre-populated SQLite database (`chatty.db`). If you need to re-apply migrations:
 
     ```bash
-    docker build -t chatty-mcchatface .
+    cd dotnet_server/ChattyMcChatface.Api
+    dotnet ef database update
+    cd ../..
     ```
 
-4.  **Run the Docker Container:** Run the container, mounting the generated
-    `appsettings.Docker.json` file as a volume. This makes the secrets available to the application
-    inside the container.
+    _(Requires EF Core tools: `dotnet tool install --global dotnet-ef`)_
+
+5.  **Run the Application:** From the **root** project directory (`chatty-mcchatface`), run:
 
     ```bash
-    # Example: Run container named 'chatty', mapping host port 8080 to container port 8080
-    docker run -d --name chatty -p 8080:8080 -v "$(pwd)/appsettings.Docker.json:/app/appsettings.Docker.json:ro" chatty-mcchatface
+    npm run dev
     ```
 
-    -   `-d`: Run in detached mode.
-    -   `--name chatty`: Assign a name to the container.
-    -   `-p 8080:8080`: Map port 8080 on your host to port 8080 in the container.
-    -   `-v "$(pwd)/appsettings.Docker.json:/app/appsettings.Docker.json:ro"`: Mount the generated
-        secrets file into the container's `/app` directory as `appsettings.Docker.json`. The `:ro`
-        makes it read-only inside the container for added security.
-    -   `chatty-mcchatface`: The name of the image to run.
+    This command concurrently starts:
 
-    The application should now be accessible at `http://localhost:8080`.
+    -   The .NET backend API (listening on `http://localhost:5124` and `https://localhost:7045`).
+    -   The Angular frontend development server.
 
-### Configuration (Secrets)
+6.  **Access the App:** Open your browser to `http://localhost:4200`. Register a new user or log in.
 
-The .NET backend requires API keys and other sensitive configuration for AI providers (like OpenAI,
-Azure, Vertex AI, etc.). These are managed using the .NET Secret Manager, which keeps them separate
-from the source code.
+## Configuration
 
-During development, these secrets need to be set up for the API project. If you followed the setup
-instructions involving external secret files, this should already be done.
+### AI Provider API Keys
 
-To view the secrets currently configured for the API project on your local machine, run the
-following command from the project root directory (`/Users/ryanpfister/Dev/chatty-mcchatface`):
+Sensitive API keys for external AI services (OpenAI, Azure, etc.) are managed using the **.NET
+Secret Manager** during local development. See the "Configure Backend Secrets" step in the Getting
+Started section.
 
-```bash
-dotnet user-secrets list --project dotnet_server/ChattyMcChatface.Api
+For production deployments, these keys should be configured using environment variables or Azure App
+Configuration / Key Vault.
+
+### AI Personas (`personas.json`)
+
+AI personas are defined in `dotnet_server/ChattyMcChatface.Api/personas.json`. Each persona object
+includes:
+
+-   `personaUserId`: The ID of the corresponding `User` in the database (must have
+    `IsPersona=true`).
+-   `displayName`: The name shown in the UI.
+-   `systemPrompt`: Instructions defining the AI's personality and behavior.
+-   `preferredModelId`: The identifier (from `AiModels.cs`) for the primary AI model this persona
+    should use.
+
+**Note:** The current frontend UI (`chat-create.component`) does not yet allow selecting a specific
+persona when creating a chatroom. This feature requires further development. Chatrooms must
+currently be associated with personas directly via the database or potentially through future API
+extensions.
+
+## AI Persona System Flow
+
+When a user sends a message in a chatroom associated with an AI persona:
+
+1.  The message is saved, and the `PersonaService` is triggered.
+2.  The service retrieves the persona's configuration (`systemPrompt`, `preferredModelId`) from
+    `personas.json` via `IPersonaConfigService`.
+3.  Recent chat history is fetched to provide context.
+4.  The `AiFallbackUtil` attempts to generate a response using the `preferredModelId`.
+5.  A handler function within `PersonaService` maps the `modelId` to the correct AI provider
+    delegate (e.g., `_openAiModels.Gpt4oLatest(...)`).
+6.  The delegate calls the specific AI provider's implementation (e.g.,
+    `OpenAiProvider.GenerateResponseAsync`).
+7.  If the preferred model fails, `AiFallbackUtil` tries models from a global priority list
+    (`AiFallbackUtil.GlobalModelPriority`).
+8.  The successful AI response is saved as a new `ChatMessage` linked to the persona's user ID.
+9.  The response is broadcast to all clients in the chatroom via SignalR (`INotificationService`).
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant ChatController
+    participant PersonaService
+    participant AiFallbackUtil
+    participant AiModelDelegate
+    participant AiProvider
+    participant External AI API
+    participant NotificationService
+
+    User->>Frontend: Send Message
+    Frontend->>ChatController: POST /chats (messageDto)
+    ChatController->>ChatController: Save User Message
+    ChatController->>PersonaService: GenerateResponseAsync(roomId, message)
+    PersonaService->>PersonaService: Get Persona Config (from personas.json)
+    PersonaService->>PersonaService: Get Chat History
+    PersonaService->>AiFallbackUtil: GetWithFallbackAsync(priority, preferredModelId, handler)
+    AiFallbackUtil->>PersonaService: Invoke handler(preferredModelId)
+    PersonaService->>AiModelDelegate: Call specific delegate (e.g., _openAiModels.Gpt4oLatest)
+    AiModelDelegate->>AiProvider: GenerateResponseAsync(prompt, history)
+    AiProvider->>External AI API: Request Completion
+    External AI API-->>AiProvider: AI Response
+    alt Preferred Model Fails
+        AiProvider-->>AiModelDelegate: Throw Exception
+        AiModelDelegate-->>PersonaService: Throw Exception
+        PersonaService-->>AiFallbackUtil: Catch Exception
+        AiFallbackUtil->>AiFallbackUtil: Loop through GlobalModelPriority
+        AiFallbackUtil->>PersonaService: Invoke handler(fallbackModelId)
+        PersonaService->>AiModelDelegate: Call fallback delegate
+        AiModelDelegate->>AiProvider: GenerateResponseAsync(...)
+        AiProvider->>External AI API: Request Completion
+        External AI API-->>AiProvider: AI Response
+        AiProvider-->>AiModelDelegate: Return Response Text
+        AiModelDelegate-->>PersonaService: Return Response Text
+        PersonaService-->>AiFallbackUtil: Return Response Text
+    else Preferred Model Succeeds
+        AiProvider-->>AiModelDelegate: Return Response Text
+        AiModelDelegate-->>PersonaService: Return Response Text
+        PersonaService-->>AiFallbackUtil: Return Response Text
+    end
+    AiFallbackUtil-->>PersonaService: Return Final Response Text
+    PersonaService->>PersonaService: Save AI Response Message
+    PersonaService->>NotificationService: SendMessageToGroupAsync(roomId, aiMessageDto)
+    NotificationService->>Frontend: Push Message via SignalR
+    Frontend->>User: Display AI Message
 ```
-
-Example keys to set (replace values with your actual secrets):
-
-```bash
-# For OpenAI
-dotnet user-secrets set "OpenAI:ApiKey" "sk-..." --project dotnet_server/ChattyMcChatface.Api
-
-# For Azure OpenAI (using 'Thrivify' deployment as example)
-dotnet user-secrets set "AzureOpenAI:Thrivify:ApiKey" "..." --project dotnet_server/ChattyMcChatface.Api
-dotnet user-secrets set "AzureOpenAI:Thrivify:Endpoint" "https://..." --project dotnet_server/ChattyMcChatface.Api
-
-# For Anthropic/Claude
-dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..." --project dotnet_server/ChattyMcChatface.Api
-
-# For Google Gemini
-dotnet user-secrets set "Gemini:ApiKey" "..." --project dotnet_server/ChattyMcChatface.Api
-
-# For Google Vertex AI
-dotnet user-secrets set "VertexAI:Location" "us-central1" --project dotnet_server/ChattyMcChatface.Api
-# Note: Use single quotes for KeyJsonContent if your shell requires it
-dotnet user-secrets set 'VertexAI:KeyJsonContent' '{ "type": "service_account", ... }' --project dotnet_server/ChattyMcChatface.Api
-```
-
-Refer to `secrets.example.json` for the full list and structure.
-
-## Getting Started for Developers
-
-This section provides a high-level overview for developers looking to contribute to either the
-backend or frontend of ChattyMcChatface.
-
-### Project Structure
-
-The project is organized into two main parts:
-
--   **`dotnet_server/`**: Contains the .NET 8 backend API.
-    -   `ChattyMcChatface.Api/`: ASP.NET Core Web API project (controllers, SignalR hub,
-        `Program.cs`).
-    -   `ChattyMcChatface.Core/`: Core business logic, services (including AI providers), DTOs.
-    -   `ChattyMcChatface.Data/`: Entity Framework Core setup, DbContext, entities, migrations
-        (using SQLite).
-    -   `ChattyMcChatface.Tests.Unit/`: Unit tests.
-    -   `ChattyMcChatface.Tests.Integration/`: Integration tests (may require secrets).
--   **`angular-client/`**: Contains the Angular frontend application.
-    -   `src/app/`: Main application code (modules, components, services).
-    -   `src/app/shared/services/`: Core services for API interaction (e.g., `chat.service.ts`,
-        `auth.service.ts`, `signalr.service.ts`).
-    -   `src/environments/`: Environment configuration (API URLs).
-
-### Backend Development (.NET)
-
--   **Technology**: .NET 8, ASP.NET Core Web API, Entity Framework Core, SignalR.
--   **Database**: SQLite (`dotnet_server/ChattyMcChatface.Data/chatty.db`). Migrations are managed
-    via EF Core (`dotnet ef migrations add ...`, `dotnet ef database update ...` within the
-    `dotnet_server/ChattyMcChatface.Api` directory).
--   **Running**: Navigate to `dotnet_server/ChattyMcChatface.Api` and run `dotnet run`.
--   **Testing**: Navigate to the respective test project directory (`Tests.Unit` or
-    `Tests.Integration`) and run `dotnet test`. Integration tests require secrets.
--   **Configuration/Secrets**: API keys for AI providers are managed using .NET User Secrets. Set
-    them using
-    `dotnet user-secrets set "Provider:KeyName" "KeyValue" --project dotnet_server/ChattyMcChatface.Api`
-    (e.g., `Anthropic:ApiKey`, `VertexAI:Location`). See `secrets.example.json` for expected keys.
--   **AI Integration**: The system uses a provider model (`IAiProvider`) with specific
-    implementations (OpenAI, Azure, Gemini, Claude, Vertex). `PersonaService` orchestrates responses
-    using `AiFallbackUtil` and provider-specific delegates configured via factories and singleton
-    model classes. See `documentation/ai_provider_development_guide.md` and
-    `documentation/persona_model_mapping.md` for details.
--   **Real-time**: SignalR is used for real-time communication
-    (`dotnet_server/ChattyMcChatface.Api/Hubs/ChatHub.cs`).
-
-### Frontend Development (Angular)
-
--   **Technology**: Angular, TypeScript, RxJS.
--   **Running**: Navigate to `angular-client/` and run `npm install` (if needed), then `ng serve`.
-    The app will be available at `http://localhost:4200`.
--   **API Interaction**: Uses Angular's `HttpClient` within services found in
-    `src/app/shared/services/`. Base API URL is configured in `src/environments/`.
--   **Real-time**: Connects to the backend SignalR hub via `@microsoft/signalr` library, managed by
-    `src/app/shared/services/signalr.service.ts`.
--   **Components**: Feature components are organized within `src/app/` (e.g., `chat/`, `user/`,
-    `auth/`).
-
-### Combined Development
-
-The easiest way to run both backend and frontend for development is using the script in the root
-`package.json`:
-
-```bash
-# From the root project directory
-npm run dev
-```
-
-This uses `concurrently` to start both the .NET API and the Angular development server.
-
-### Further Documentation
-
-More detailed guides can be found in the `documentation/` directory, including:
-
--   `ai_provider_development_guide.md`
--   `persona_model_mapping.md`
--   `ai-persona-plan-overview.md` (and backend/frontend specifics)
-
----
-
-#### Technologies used in this application
-
-1. Node.js v6.1.0
-2. Angular 2 RC1
-3. Mongoose/Mongo
-4. Typescript
-
-#### Tested in Chrome, Firefox, Safari, all on MAC OS X
-
-#### Detailed explanation of what's happening
-
-![alt tag](https://raw.githubusercontent.com/puhfista/chatty-mcchatface/master/highlevel.png)
-
-This application starts off by having a person identify themselves in a registration/login
-component.
-
-A user sees all other users in the application, and can add them into a chat.
-
-The chatroom model consists of an array of users, an array of chats, an array of lastreads, and a
-created/last updated date.
-
-I am using a denormalized strategy here. Instead of having to read someone's first name, last name
-for every chatroom that is created, I simply store those pieces of information with the user \_id.
-That way I don't have to go grab that information every time I need it. Ask yourself, how often do
-people change their names when using an application? I propose it is less expensive to update all of
-someone's chat information the few times they change their name (if ever), than to read that
-information from the User store every time we open a chat.
-
-I'm storing the abbreviated user information with every chat instance. After going down the rabbit
-hole a bit, I realized I could optimize the application a bit. Before I took this to production, I
-would want to change this:
-
-```
-
-AbbreviatedUser: {firstName, lastName, Id}
-
-Chatroom: {
-    _id: ObjectId,
-    Users: [AbbreviatedUser],
-    Chats: [
-        {
-            AbbreviatedUser,
-            Text,
-            Date
-        }],
-    LastReads: [LastReadModel],
-    Date: Date
-}
-```
-
-To this ...
-
-```
-Chatroom: {
-    _id: ObjectId,
-    Users: [AbbreviatedUser],
-    Chats: [
-        {
-            UserId,
-            Text,
-            Date
-        }],
-    LastReads: [LastReadModel],
-    Date: Date
-}
-```
-
-...and in the UI, store one instance of the first name, last name, and use that same object when
-iterating through the chats. I would still keep storing first name, last name information in the
-chat, to save a lookup against the User collection. Again, we can go find every one of these
-instances and change them in the future, if the user changes their name. That isn't going to happen
-very often. Loading the chats is going to happen a lot in a moderatly used application.
-
-When a user creates a chatroom, that chatroom is persisted to Mongo, and an event is broadcasted via
-socket.io, and all users who are a part of that chatroom will see it show up in their list of
-chatrooms. They are free to join or not join at this point. Users who are not in a chatroom will see
-the last two most recent chats automatically refreshed as they are sent in the chatroom.
-
-If a user joins the chatroom, they will see a live feed of chats, again thanks to the magic of
-socketio.
-
-Authentication in the application is handled with JWTs (JSON Web Tokens). After a user
-registers/logs in, a token is sent down with the user information, which is stored in the local
-store. When this token expires, if the user is in the middle of doing something, they will be
-automatically redirected back to the login screen.
-
-#### Horizontal Scalability
-
-![alt tag](https://raw.githubusercontent.com/puhfista/chatty-mcchatface/master/horizontal.png)
-
-As indicated earlier, this application makes use of JWTs for user persistence. As users make
-requests that require user context to the application, a JWT is sent in the HTTP header
-(x-access-token) with each http request payload.
-
-Currently, the JWT verifying signature is created on the production server using an app_secret saved
-in an environment variable.
-
-server/auth/index.js
-
-```
-    static generateToken(userId) {
-
-        let obj = {
-            id: userId,
-        };
-
-        return jwt.sign(obj, authConfig.getSecret(), {
-            expiresIn: "1d"
-        });
-    }
-
-    static authorize(req, res, next) {
-        var token = req.body.token || req.query.token || req.headers['x-access-token'];
-
-        if (!token) {
-
-            return res.status(403).send({
-                message: 'No token provided.'
-            });
-        }
-
-        jwt.verify(token, authConfig.getSecret(), function (err, decoded) {
-            if (err) {
-                return res.status(401).json({
-                    message: 'Failed to authenticate token.'
-                });
-            } else {
-                req.decoded = decoded;
-                next();
-            }
-        });
-    }
-```
-
-server/config/auth.conf.js
-
-```
-module.exports = class AuthConfig {
-
-    static getSecret() {
-      return (process.env.NODE_ENV === 'production') ? process.env.APP_SECRET : appConst.app_secret;
-    }
-};
-```
-
-In Heroku and AWS, this environment variable (process.env.APP_SECRET) is automatically propogated to
-all children processes within the load balancing process. With minimal effort, we could store this
-secret in a Redis instance or any other persistent store that we could then pull down as needed into
-the application.
-
-If you want to have fun plugging in your token and seeing what the result looks like, you can do so
-fairly simply.
-
-Assuming you are authenticated into Chatty-McChatface ->
-
-1. Open up Developer Tools in Chrome
-2. Navigate to the Resources bar
-3. Expand "Local Storage"
-4. Click on https://chatty-mcchatface.herokuapp.com ⋅⋅\* You should see a "user" key and a "token"
-   key.
-5. Copy the entire value of the Token key.
-6. Go to https://jwt.io/
-7. Paste the oken into the "Encoded" field on the page.
-
-There should be 3 sections seperated by . in the JWT. The first is a base64 encoded header, the
-second is a base64 encoded payload (which shows the user id and expiration), and the third is the
-verifying signature.  
-These three components make up our JWT.
-
-#### Things not yet implemented in this alpha release of Chatty McChatface
-
-1. "Last read" information. I want to indicate to the users visually what chatrooms have unread
-   chats in them.
-
-    The way I would accomplish this is best explained by pointing to the lastreadschema:
-
-    ```
-    const _lastReadSchema = {
-        userId: mongoose.Schema.Types.ObjectId,
-        lastReadDate: Date
-    }
-    ```
-
-    Every chatroom has an array of these for every user. Every time you join a chatroom, I update
-    the corresponding "last read" object for that user. Any chatroom that has an "created/updated"
-    date that is after this date would have some sort of visual indication.
-
-2. Paging. We would need it for chatrooms with chats of any significant size, and for users who join
-   quite a few chatrooms. With a bit of Mongo querying magic, paging could be done fairly simply.
-
-#### Cool bonus things that I may actually do
-
-I obviously copied the name for this app from Boaty McBoatface, the famous boat name that never came
-to be. Google also copied the naming idea for their deep-learning project Tensorflow.
-
-Google trained Tensorflow to break down the composition of speech. They named that project Parsey
-McParseface.
-
-You can read more about that here:
-
-https://github.com/tensorflow/models/tree/master/syntaxnet
-
-Eventually, I would want to allow users the option to have Google break down their sentence
-structures in real time. Does this have any practical value? Not really. Would it be super cool?
-Yes, yes it would.

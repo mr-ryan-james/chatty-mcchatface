@@ -24,7 +24,8 @@ development server concurrently.
 **Implementation Plan:**
 
 1.  **Prerequisites:**
-    -   Ensure .NET 8 SDK is installed.
+
+    -   Ensure .NET 9 SDK is installed.
     -   Ensure Node.js (compatible with Angular 17+, likely v18+ recommended) and npm are installed.
     -   Run `npm install` in the `/Users/ryanpfister/Dev/chatty-mcchatface/angular-client` directory
         to install frontend dependencies. (The root `package.json` dependencies seem outdated and
@@ -35,33 +36,35 @@ development server concurrently.
         npm install
         cd ..
         ```
-2.  **Modify Root `package.json`:**
-    -   Open `/Users/ryanpfister/Dev/chatty-mcchatface/package.json`.
-    -   Add a new script to the `"scripts"` section:
-        ```json
-        "dev": "concurrently \\\"cd dotnet_server/ChattyMcChatface.Api && dotnet run\\\" \\\"cd angular-client && npm start\\\""
-        ```
-        _(Note: Using escaped quotes for robustness across shells)._
-3.  **Update `README.md`:**
 
-    -   Open `/Users/ryanpfister/Dev/chatty-mcchatface/README.md`.
-    -   Add a new section, for example:
-
-        ````markdown
-        ## Running Locally (Modernized Version)
-
-        This project now consists of a .NET 8 backend API and an Angular frontend.
-
-        **Prerequisites:**
-
-        -   .NET 8 SDK
-        -   Node.js (v18+ recommended) and npm
-        -   Run `npm install` inside the `angular-client` directory:
-            ```bash
-            cd angular-client
-            npm install
-            cd ..
+    2.  **Modify Root `package.json`:**
+        -   Open `/Users/ryanpfister/Dev/chatty-mcchatface/package.json`.
+        -   Add a new script to the `"scripts"` section:
+            ```json
+            "dev": "concurrently \\\"cd dotnet_server/ChattyMcChatface.Api && dotnet run\\\" \\\"cd angular-client && npm start\\\""
             ```
+            _(Note: Using escaped quotes for robustness across shells)._
+    3.  **Update `README.md`:**
+
+        -   Open `/Users/ryanpfister/Dev/chatty-mcchatface/README.md`.
+        -   Add a new section, for example:
+
+            ````markdown
+            ## Running Locally (Modernized Version)
+
+            This project now consists of a .NET 9 backend API and an Angular frontend.
+
+            **Prerequisites:**
+
+            -   .NET 9 SDK
+            -   Node.js (v18+ recommended) and npm
+            -   Run `npm install` inside the `angular-client` directory:
+                ```bash
+                cd angular-client
+                npm install
+                cd ..
+                ```
+            ````
 
         **Running the Application:**
 
@@ -71,6 +74,7 @@ development server concurrently.
         ```bash
         npm run dev
         ```
+
         ````
 
         This will concurrently:
@@ -84,6 +88,7 @@ development server concurrently.
         ```
 
         ```
+        ````
 
 **Next Steps (Task 1):**
 

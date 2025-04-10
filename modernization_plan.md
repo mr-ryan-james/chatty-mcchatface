@@ -1,14 +1,14 @@
 # Project Modernization Plan: Chatty McChatface
 
 This document outlines the plan to modernize the Angular frontend and rewrite the Node.js backend in
-.NET 8 with SQLite.
+.NET 9 with SQLite.
 
-## Phase 1: Backend Rewrite (.NET 8 & SQLite)
+## Phase 1: Backend Rewrite (.NET 9 & SQLite)
 
-The goal is to replace the existing Node.js/Express/MongoDB backend with a new ASP.NET Core 8 Web
+The goal is to replace the existing Node.js/Express/MongoDB backend with a new ASP.NET Core 9 Web
 API using EF Core and SQLite (in-memory).
 
-**1. Setup .NET 8 Project:** _ Create a new .NET 8 Web API project solution (e.g.,
+**1. Setup .NET 9 Project:** _ Create a new .NET 9 Web API project solution (e.g.,
 `ChattyMcChatface.sln`). _ Create projects within the solution: _ `ChattyMcChatface.Api`: ASP.NET
 Core Web API project (Controllers/Minimal APIs, Startup/Program.cs). _ `ChattyMcChatface.Data`:
 Class library for EF Core (DbContext, Migrations, Models/Entities). _ `ChattyMcChatface.Core`: Class
