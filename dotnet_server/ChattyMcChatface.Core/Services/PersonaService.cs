@@ -182,7 +182,32 @@ namespace ChattyMcChatface.Core.Services
                 // Save the response to the database
                 await _dbContext.ChatMessages.AddAsync(responseMessage);
                 await _dbContext.SaveChangesAsync();
+                
+                // ---> START ADDED CODE <---
+                // Update LastRead status for the persona user
+                int personaUserId = chatroom.PersonaUserId.Value;
+                var lastRead = await _dbContext.LastReads
+                    .FirstOrDefaultAsync(lr => lr.ChatroomId == chatroomId && lr.UserId == personaUserId);
 
+                if (lastRead != null)
+                {
+                    // Update existing record
+                    lastRead.LastReadDate = responseMessage.Date;
+                }
+                else
+                {
+                    // Create new record if none exists
+                    lastRead = new LastRead
+                    {
+                        ChatroomId = chatroomId,
+                        UserId = personaUserId,
+                        LastReadDate = responseMessage.Date
+                    };
+                    _dbContext.LastReads.Add(lastRead);
+                }
+                await _dbContext.SaveChangesAsync(); // Save LastRead changes
+                // ---> END ADDED CODE <---
+                
                 // Create a DTO from the saved persona message entity
                 // Get persona user details to populate the DTO correctly
                 var personaUser = await _dbContext.Users
