@@ -25,8 +25,7 @@ public static class VertexAiProviderFactory
         IConfiguration configuration,
         ILogger<VertexAiProvider> logger, // Logger specifically for VertexAiProvider
         IHttpClientFactory httpClientFactory,
-        string modelId,
-        double temperature = 0.7) // Default temperature if not specified
+        string modelId)
     {
         // Note: We create a new provider instance here. If performance becomes an issue,
         // consider injecting the provider instance instead, but that complicates the factory pattern.
@@ -35,8 +34,6 @@ public static class VertexAiProviderFactory
         // Return the delegate that captures the provider instance and modelId
         return async (systemPrompt, history) =>
         {
-            // TODO: Potentially add temperature or other settings to GetCompletionAsync if needed
-            // For now, the provider uses the modelId directly.
             return await provider.GetCompletionAsync(systemPrompt, history, modelId);
         };
     }

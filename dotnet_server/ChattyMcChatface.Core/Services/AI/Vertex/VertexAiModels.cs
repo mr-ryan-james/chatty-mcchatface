@@ -33,7 +33,7 @@ public class VertexAiModels
 
         // Create and store the delegates using the factory
         Claude37SonnetVertex = VertexAiProviderFactory.CreateVertexAiCompletionProvider(
-            configuration, logger, httpClientFactory, AiModels.Claude37SonnetVertex, 0.7);
+            configuration, logger, httpClientFactory, AiModels.Claude37SonnetVertex);
             
         // Add other Vertex AI models here if needed in the future
     }
