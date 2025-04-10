@@ -7,6 +7,8 @@ using ChattyMcChatface.Core.Services.AI;
 using ChattyMcChatface.Core.Dtos;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Net.Http;
+using System;
 
 namespace ChattyMcChatface.Tests.Integration.AI.Providers
 {
@@ -15,12 +17,14 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         private readonly IntegrationTestFixture _fixture;
         private readonly IConfiguration _config;
         private readonly ILogger<VertexAiProvider> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public VertexAiProviderIntegrationTests(IntegrationTestFixture fixture)
         {
             _fixture = fixture;
             _config = _fixture.Configuration;
             _logger = _fixture.Services.GetRequiredService<ILogger<VertexAiProvider>>();
+            _httpClientFactory = _fixture.Services.GetRequiredService<IHttpClientFactory>();
         }
 
         [Fact]
@@ -40,7 +44,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
                 }
 
                 // Create provider
-                var provider = new VertexAiProvider(_config, _logger);
+                var provider = new VertexAiProvider(_config, _logger, _httpClientFactory);
                 
                 // Use a carefully constructed prompt that should have a deterministic answer
                 var systemPrompt = "You are a helpful assistant that answers questions briefly and accurately.";
@@ -110,7 +114,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
                 return;
             }
 
-            var provider = new VertexAiProvider(_config, _logger);
+            var provider = new VertexAiProvider(_config, _logger, _httpClientFactory);
             var modelId = AiModels.Claude37SonnetVertex;
             
             // In this test, we'll evaluate the model's ability to detect contradictions or problems

@@ -5,6 +5,7 @@ using ChattyMcChatface.Core.Dtos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 namespace ChattyMcChatface.Core.Services.AI.Vertex;
 
@@ -27,11 +28,12 @@ public class VertexAiModels
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         // Resolve the specific logger for VertexAiProvider
-        var logger = serviceProvider.GetRequiredService<ILogger<VertexAiProvider>>(); 
+        var logger = serviceProvider.GetRequiredService<ILogger<VertexAiProvider>>();
+        var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
 
         // Create and store the delegates using the factory
         Claude37SonnetVertex = VertexAiProviderFactory.CreateVertexAiCompletionProvider(
-            configuration, logger, AiModels.Claude37SonnetVertex, 0.7);
+            configuration, logger, httpClientFactory, AiModels.Claude37SonnetVertex, 0.7);
             
         // Add other Vertex AI models here if needed in the future
     }

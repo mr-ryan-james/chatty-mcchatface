@@ -8,6 +8,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Net.Http;
 using Xunit;
 
 namespace ChattyMcChatface.Tests.Unit.AI.Factories
@@ -16,6 +17,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
     {
         private readonly Mock<IConfiguration> _mockConfiguration;
         private readonly Mock<ILogger<VertexAiProvider>> _mockLogger;
+        private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
         private readonly string _testModelId = AiModels.Claude37SonnetVertex;
         private readonly string _testSystemPrompt = "Test system prompt";
         private readonly List<ChatMessageDto> _testHistory = new List<ChatMessageDto>();
@@ -24,6 +26,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
         {
             _mockConfiguration = new Mock<IConfiguration>();
             _mockLogger = new Mock<ILogger<VertexAiProvider>>();
+            _mockHttpClientFactory = new Mock<IHttpClientFactory>();
             
             // Setup required configuration mocks
             _mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
@@ -49,6 +52,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             var completionDelegate = VertexAiProviderFactory.CreateVertexAiCompletionProvider(
                 _mockConfiguration.Object,
                 _mockLogger.Object,
+                _mockHttpClientFactory.Object,
                 _testModelId);
 
             // Assert
@@ -62,7 +66,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             // Create a testable provider that tracks calls to GetCompletionAsync
             var testProvider = new TestableVertexAiProvider(
                 _mockConfiguration.Object,
-                _mockLogger.Object);
+                _mockLogger.Object,
+                _mockHttpClientFactory.Object);
             
             // Setup a delegate that uses our testable provider
             var completionDelegate = async (string systemPrompt, List<ChatMessageDto> history) =>
@@ -86,7 +91,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             var customModelId = "custom-vertex-model";
             var testProvider = new TestableVertexAiProvider(
                 _mockConfiguration.Object,
-                _mockLogger.Object);
+                _mockLogger.Object,
+                _mockHttpClientFactory.Object);
             
             // Setup a delegate that uses our testable provider
             var completionDelegate = async (string systemPrompt, List<ChatMessageDto> history) =>
@@ -110,8 +116,9 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
 
             public TestableVertexAiProvider(
                 IConfiguration configuration,
-                ILogger<VertexAiProvider> logger)
-                : base(configuration, logger)
+                ILogger<VertexAiProvider> logger,
+                IHttpClientFactory httpClientFactory)
+                : base(configuration, logger, httpClientFactory)
             {
                 GetCompletionAsyncCallCount = 0;
             }

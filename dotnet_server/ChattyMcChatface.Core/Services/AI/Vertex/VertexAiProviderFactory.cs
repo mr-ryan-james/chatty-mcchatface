@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 namespace ChattyMcChatface.Core.Services.AI.Vertex;
 
@@ -23,12 +24,13 @@ public static class VertexAiProviderFactory
     public static Func<string, List<ChatMessageDto>, Task<string?>> CreateVertexAiCompletionProvider(
         IConfiguration configuration,
         ILogger<VertexAiProvider> logger, // Logger specifically for VertexAiProvider
+        IHttpClientFactory httpClientFactory,
         string modelId,
         double temperature = 0.7) // Default temperature if not specified
     {
         // Note: We create a new provider instance here. If performance becomes an issue,
         // consider injecting the provider instance instead, but that complicates the factory pattern.
-        var provider = new VertexAiProvider(configuration, logger);
+        var provider = new VertexAiProvider(configuration, logger, httpClientFactory);
 
         // Return the delegate that captures the provider instance and modelId
         return async (systemPrompt, history) =>

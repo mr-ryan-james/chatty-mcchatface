@@ -274,6 +274,7 @@ namespace ChattyMcChatface.Tests.Unit.Services
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<OpenAiProvider>))).Returns(mockOpenAiLogger.Object); // Assuming OpenAiModels still uses SP
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<ClaudeProvider>))).Returns(mockClaudeLogger.Object); // Assuming ClaudeModels still uses SP
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>))).Returns(mockVertexLogger.Object); // Assuming VertexAiModels still uses SP
+            mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(IHttpClientFactory))).Returns(mockHttpClientFactory.Object);
             // Note: IHttpClientFactory setup might still be needed here if other models resolve it via SP
 
             var mockOpenAiModels = new Mock<OpenAiModels>(mockServiceProviderForOthers.Object); // Adjust if OpenAiModels constructor changes
@@ -448,6 +449,7 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<OpenAiProvider>))).Returns(mockOpenAiLogger.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<ClaudeProvider>))).Returns(mockClaudeLogger.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>))).Returns(mockVertexLogger.Object);
+            mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(IHttpClientFactory))).Returns(mockHttpClientFactory.Object);
     
             var mockOpenAiModels = new Mock<OpenAiModels>(mockServiceProviderForOthers.Object);
             var mockAzureAiModels = new Mock<AzureAiModels>(mockServiceProviderForOthers.Object);

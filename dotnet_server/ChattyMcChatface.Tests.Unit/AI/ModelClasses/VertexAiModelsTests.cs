@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Net.Http;
 using Xunit;
 
 namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
@@ -40,6 +41,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
             mockConfiguration.Setup(c => c.GetSection("Vertex")).Returns(mockVertexSection.Object);
             
             var mockLogger = new Mock<ILogger<VertexAiProvider>>();
+            var mockHttpClientFactory = new Mock<IHttpClientFactory>();
             // Ensure the service provider is non-null
             var mockServiceProvider = new Mock<IServiceProvider>(MockBehavior.Strict);
 
@@ -52,6 +54,10 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
             mockServiceProvider
                 .Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>)))
                 .Returns(mockLogger.Object);
+                
+            mockServiceProvider
+                .Setup(sp => sp.GetService(typeof(IHttpClientFactory)))
+                .Returns(mockHttpClientFactory.Object);
 
             // Act
             var vertexAiModels = new VertexAiModels(mockServiceProvider.Object);
