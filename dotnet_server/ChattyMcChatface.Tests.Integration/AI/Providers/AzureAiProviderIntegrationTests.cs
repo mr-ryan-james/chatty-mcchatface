@@ -23,7 +23,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public AzureAiProviderIntegrationTests(IntegrationTestFixture fixture)
         {
             _fixture = fixture;
-            _config = _fixture.Configuration;
+            _config = _fixture.Services.GetRequiredService<IConfiguration>();
             _serviceProvider = _fixture.Services;
 
             // Validate configuration exists

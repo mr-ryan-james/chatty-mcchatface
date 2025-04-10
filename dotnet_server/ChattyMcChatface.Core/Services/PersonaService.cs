@@ -201,7 +201,9 @@ namespace ChattyMcChatface.Core.Services
                     {
                         ChatroomId = chatroomId,
                         UserId = personaUserId,
-                        LastReadDate = responseMessage.Date
+                        LastReadDate = responseMessage.Date,
+                        User = null!,
+                        Chatroom = null!
                     };
                     _dbContext.LastReads.Add(lastRead);
                 }

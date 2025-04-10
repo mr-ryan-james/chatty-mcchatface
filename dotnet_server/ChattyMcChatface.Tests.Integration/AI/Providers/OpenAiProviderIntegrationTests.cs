@@ -19,7 +19,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public OpenAiProviderIntegrationTests(IntegrationTestFixture fixture)
         {
             _fixture = fixture;
-            _config = _fixture.Configuration;
+            _config = _fixture.Services.GetRequiredService<IConfiguration>();
             _logger = _fixture.Services.GetRequiredService<ILogger<OpenAiProvider>>();
         }
 

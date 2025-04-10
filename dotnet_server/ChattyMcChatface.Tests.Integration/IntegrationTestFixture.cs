@@ -1,123 +1,249 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moq;
 using ChattyMcChatface.Core.Services;
-using ChattyMcChatface.Core.Services.AI;
 using ChattyMcChatface.Data;
-using System;
-using System.Net.Http;
+using ChattyMcChatface.Data.Entities;
+using System.Threading;
 using ChattyMcChatface.Core.Services.AI.OpenAI;
 using ChattyMcChatface.Core.Services.AI.Azure;
 using ChattyMcChatface.Core.Services.AI.Claude;
 using ChattyMcChatface.Core.Services.AI.Gemini;
 using ChattyMcChatface.Core.Services.AI.Vertex;
-using ChattyMcChatface.Api.Services;
-using ChattyMcChatface.Data.Entities;
-
 
 namespace ChattyMcChatface.Tests.Integration
 {
-    public class IntegrationTestFixture : IDisposable
+    public class IntegrationTestFixture : WebApplicationFactory<ChattyMcChatface.Api.Program>, IAsyncLifetime
     {
-        public IServiceProvider Services { get; }
-        public IConfiguration Configuration { get; }
-        private readonly ServiceProvider _serviceProvider;
-        private static readonly object _dbLock = new object();
-        private static bool _databaseInitialized = false;
+        private AppDbContext? _setupDbContext;
+
+        public Mock<INotificationService> MockNotificationService { get; }
 
         public IntegrationTestFixture()
         {
-            // Build configuration with user secrets and environment variables
-            Configuration = new ConfigurationBuilder()
-                .AddUserSecrets<IntegrationTestFixture>(optional: true)
-                .AddEnvironmentVariables()
-                .Build();
-
-            // Set up service collection
-            var services = new ServiceCollection();
-            
-            // Add logging
-            services.AddLogging(configure => configure.AddConsole());
-            
-            // Add configuration
-            services.AddSingleton(Configuration);
-            
-            // Register SignalR services
-            services.AddSignalR();
-            
-            // Add SQLite in-memory database for testing
-            services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseSqlite("DataSource=TestDatabase;Mode=Memory;Cache=Shared");
-            });
-            
-            // Add HTTP client factory
-            services.AddHttpClient();
-            services.AddHttpClient("GeminiApi", client =>
-            {
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-            });
-            
-            // Register AI services
-            services.AddScoped<OpenAiProvider>();
-            services.AddScoped<AzureAiProvider>();
-            services.AddScoped<GeminiProvider>();
-            services.AddScoped<ClaudeProvider>();
-            services.AddScoped<VertexAiProvider>();
-
-            // Register model classes
-            services.AddSingleton<OpenAiModels>();
-            services.AddSingleton<AzureAiModels>();
-            services.AddSingleton<ClaudeModels>();
-            services.AddSingleton<GeminiModels>();
-            services.AddSingleton<VertexAiModels>();
-
-            // Register persona services
-            services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
-            services.AddScoped<IPersonaService, PersonaService>();
-            services.AddScoped<INotificationService, SignalRNotificationService>();
-            
-            // Build the service provider
-            _serviceProvider = services.BuildServiceProvider();
-            Services = _serviceProvider;
-            
-            // Initialize database only once across all fixture instances
-            lock (_dbLock)
-            {
-                if (!_databaseInitialized)
-                {
-                    using var scope = _serviceProvider.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    // Keep connection open for shared in-memory DB. Important!
-                    dbContext.Database.OpenConnection();
-                    // Apply migrations
-                    dbContext.Database.Migrate();
-
-                    // Seed basic data
-                    var testUser = new User { Id = 1, FirstName = "Test", LastName = "User", Email = "test@example.com", PasswordHash = "hash" };
-                    var testChatroom = new Chatroom { Id = 1, Title = "Integration Test Chatroom" };
-                    // Add user first if Chatroom has FK constraint (or handle relationships appropriately)
-                    if (!dbContext.Users.Any(u => u.Id == testUser.Id))
-                    {
-                        dbContext.Users.Add(testUser);
-                    }
-                    if (!dbContext.Chatrooms.Any(c => c.Id == testChatroom.Id))
-                    {
-                        dbContext.Chatrooms.Add(testChatroom);
-                    }
-                    dbContext.SaveChanges(); // Save seeded data
-
-                    _databaseInitialized = true;
-                }
-            }
-            Services = _serviceProvider; // Ensure Services is assigned after potential initialization
+            MockNotificationService = new Mock<INotificationService>();
         }
 
-        public void Dispose()
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            _serviceProvider?.Dispose();
-            GC.SuppressFinalize(this);
+            builder.ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+            });
+
+            builder.ConfigureServices(services =>
+            {
+                // Replace AppDbContext with in-memory SQLite
+                var descriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
+
+                services.AddDbContext<AppDbContext>(options =>
+                {
+                    options.UseSqlite("DataSource=TestDatabase;Mode=Memory;Cache=Shared");
+                });
+                services.AddHttpClient();
+                services.AddSignalR();
+
+                services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
+                services.AddScoped<IPersonaService, PersonaService>();
+
+                services.AddSingleton<OpenAiModels>();
+                services.AddSingleton<AzureAiModels>();
+                services.AddSingleton<ClaudeModels>();
+                services.AddSingleton<GeminiModels>();
+                services.AddSingleton<VertexAiModels>();
+
+                // Replace INotificationService with mock
+                var notifDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(INotificationService));
+                if (notifDescriptor != null)
+                {
+                    services.Remove(notifDescriptor);
+                }
+
+                services.AddSingleton(MockNotificationService);
+                services.AddSingleton(sp => sp.GetRequiredService<Mock<INotificationService>>().Object);
+
+                // Add test authentication
+                services.AddAuthentication("Test")
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", options => { });
+            });
+        }
+
+        public async Task InitializeAsync()
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+            optionsBuilder.UseSqlite("DataSource=TestDatabase;Mode=Memory;Cache=Shared");
+            // Ensure logging is configured if needed, e.g., optionsBuilder.UseLoggerFactory(...)
+
+            _setupDbContext = new AppDbContext(optionsBuilder.Options);
+
+            await _setupDbContext.Database.OpenConnectionAsync();
+            await _setupDbContext.Database.MigrateAsync();
+        }
+
+        public new async Task DisposeAsync()
+        {
+            if (_setupDbContext != null)
+            {
+                await _setupDbContext.Database.CloseConnectionAsync();
+                await _setupDbContext.DisposeAsync();
+            }
+            await base.DisposeAsync();
+        }
+
+        public HttpClient CreateClientWithAuth(string userId = "1", string userName = "TestUser")
+        {
+            var client = CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+            return client;
+        }
+
+        public async Task ResetDatabaseAsync(IServiceScopeFactory scopeFactory)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM ChatMessages");
+            await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM LastReads");
+            await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Chatrooms");
+            await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Users");
+        }
+
+        public async Task<User> SeedUserAsync(string firstName, string lastName, string email, bool isPersona, IServiceScopeFactory scopeFactory, int? id = null)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var user = new User
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                IsPersona = isPersona,
+                PasswordHash = "hash"
+            };
+
+            if (id.HasValue)
+            {
+                user.Id = id.Value;
+            }
+
+            // Check if user with this ID already exists
+            if (id.HasValue)
+            {
+                var existingUser = await dbContext.Users.FindAsync(id.Value);
+                if (existingUser != null)
+                {
+                    // Update existing user properties
+                    existingUser.FirstName = firstName;
+                    existingUser.LastName = lastName;
+                    existingUser.Email = email;
+                    existingUser.IsPersona = isPersona;
+                    await dbContext.SaveChangesAsync();
+                    return existingUser;
+                }
+            }
+            
+            dbContext.Users.Add(user);
+            await dbContext.SaveChangesAsync();
+            return user;
+        }
+
+        public async Task<Chatroom> SeedChatroomAsync(List<User> users, int? personaUserId, string title, IServiceScopeFactory scopeFactory)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var chatroom = new Chatroom { Title = title, PersonaUserId = personaUserId };
+
+            foreach (var user in users)
+            {
+                // For each user in the list, check if it's already in the database
+                var existingUser = await dbContext.Users.FindAsync(user.Id);
+                if (existingUser != null)
+                {
+                    // If it exists, add the existing user to the chatroom
+                    chatroom.Users.Add(existingUser);
+                }
+                else
+                {
+                    // If it doesn't exist, add the original user
+                    chatroom.Users.Add(user);
+                }
+            }
+
+            dbContext.Chatrooms.Add(chatroom);
+            await dbContext.SaveChangesAsync();
+            return chatroom;
+        }
+
+        public async Task SeedMessagesAsync(int chatroomId, int count, DateTime startDate, IServiceScopeFactory scopeFactory)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var chatroom = await dbContext.Chatrooms.FindAsync(chatroomId);
+            if (chatroom == null) throw new Exception($"Chatroom with ID {chatroomId} not found for seeding messages.");
+
+            var user1 = await dbContext.Users.FindAsync(1);
+            var user1001 = await dbContext.Users.FindAsync(1001);
+            if (user1 == null || user1001 == null) throw new Exception("Required users (1 or 1001) not found for seeding messages.");
+
+            var messages = new List<ChatMessage>();
+            for (int i = 0; i < count; i++)
+            {
+                var userId = (i % 2 == 0) ? 1 : 1001;
+                messages.Add(new ChatMessage
+                {
+                    ChatroomId = chatroomId,
+                    UserId = userId,
+                    Text = $"Message {i + 1}",
+                    Date = startDate.AddMinutes(i),
+                    Chatroom = chatroom,
+                    User = (userId == 1) ? user1 : user1001
+                });
+            }
+            await dbContext.ChatMessages.AddRangeAsync(messages);
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task SeedLastReadAsync(int chatroomId, int userId, DateTime lastReadDate, IServiceScopeFactory scopeFactory)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+            var user = await dbContext.Users.FindAsync(userId);
+            var chatroom = await dbContext.Chatrooms.FindAsync(chatroomId);
+            if (user == null) throw new Exception($"User with ID {userId} not found");
+            if (chatroom == null) throw new Exception($"Chatroom with ID {chatroomId} not found");
+    
+            var lastRead = new LastRead
+            {
+                ChatroomId = chatroomId,
+                UserId = userId,
+                LastReadDate = lastReadDate,
+                User = user,
+                Chatroom = chatroom
+            };
+    
+            dbContext.LastReads.Add(lastRead);
+            await dbContext.SaveChangesAsync();
         }
     }
 }

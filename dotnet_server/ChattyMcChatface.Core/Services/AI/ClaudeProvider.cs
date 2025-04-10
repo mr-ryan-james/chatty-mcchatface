@@ -37,8 +37,8 @@ public class ClaudeProvider : IAiProvider
     {
         _logger = logger;
         
-        _apiKey = configuration["Claude:ApiKey"]
-                 ?? throw new InvalidOperationException("Claude API key is not configured. Please add 'Claude:ApiKey' to configuration.");
+        _apiKey = configuration["Anthropic:ApiKey"]
+                 ?? throw new InvalidOperationException("Claude API key is not configured. Please add 'Anthropic:ApiKey' to configuration.");
         
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);

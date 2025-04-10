@@ -19,7 +19,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public ClaudeProviderIntegrationTests(IntegrationTestFixture fixture)
         {
             _fixture = fixture;
-            _config = _fixture.Configuration;
+            _config = _fixture.Services.GetRequiredService<IConfiguration>();
             _logger = _fixture.Services.GetRequiredService<ILogger<ClaudeProvider>>();
         }
 
@@ -27,11 +27,11 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public async Task GetCompletionAsync_WithValidInput_ReturnsResponse()
         {
             // Arrange
-            var apiKey = _config["Claude:ApiKey"];
+            var apiKey = _config["Anthropic:ApiKey"];
             
             if (string.IsNullOrEmpty(apiKey))
             {
-                Assert.Fail("Claude API Key not configured in User Secrets.");
+                Assert.Fail("Claude API Key not configured as Anthropic:ApiKey in User Secrets.");
                 return;
             }
 
@@ -51,11 +51,11 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public async Task GetCompletionAsync_WithHistory_ProcessesConversationContext()
         {
             // Arrange
-            var apiKey = _config["Claude:ApiKey"];
+            var apiKey = _config["Anthropic:ApiKey"];
             
             if (string.IsNullOrEmpty(apiKey))
             {
-                Assert.Fail("Claude API Key not configured in User Secrets.");
+                Assert.Fail("Claude API Key not configured as Anthropic:ApiKey in User Secrets.");
                 return;
             }
 

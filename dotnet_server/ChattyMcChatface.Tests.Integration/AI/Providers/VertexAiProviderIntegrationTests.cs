@@ -24,7 +24,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public VertexAiProviderIntegrationTests(IntegrationTestFixture fixture, ITestOutputHelper output)
         {
             _fixture = fixture;
-            _config = _fixture.Configuration;
+            _config = _fixture.Services.GetRequiredService<IConfiguration>();
             _logger = _fixture.Services.GetRequiredService<ILogger<VertexAiProvider>>();
             _httpClientFactory = _fixture.Services.GetRequiredService<IHttpClientFactory>();
             _output = output;
@@ -37,12 +37,12 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             try
             {
                 // Arrange
-                var region = _config["Vertex:Region"];
-                var serviceAccountJson = _config["Vertex:ServiceAccountJson"];
+                var region = _config["VertexAI:Location"];
+                var serviceAccountJson = _config["VertexAI:KeyJsonContent"];
                 
                 if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(serviceAccountJson))
                 {
-                    Assert.Fail("Vertex AI configuration is missing from user secrets. Please configure the credentials to run this test.");
+                    Assert.Fail("Vertex AI configuration is missing from user secrets as VertexAI:Location or VertexAI:KeyJsonContent.");
                     return;
                 }
 
@@ -108,12 +108,12 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public async Task GetCompletionAsync_WithContentionDetection_ReturnsValidResponse()
         {
             // Arrange
-            var region = _config["Vertex:Region"];
-            var serviceAccountJson = _config["Vertex:ServiceAccountJson"];
+            var region = _config["VertexAI:Location"];
+            var serviceAccountJson = _config["VertexAI:KeyJsonContent"];
             
             if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(serviceAccountJson))
             {
-                Assert.Fail("Vertex AI configuration is missing from user secrets. Please configure the credentials to run this test.");
+                Assert.Fail("Vertex AI configuration is missing from user secrets as VertexAI:Location or VertexAI:KeyJsonContent.");
                 return;
             }
 

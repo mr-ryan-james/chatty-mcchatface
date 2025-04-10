@@ -21,7 +21,7 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         public GeminiProviderIntegrationTests(IntegrationTestFixture fixture)
         {
             _fixture = fixture;
-            _config = _fixture.Configuration;
+            _config = _fixture.Services.GetRequiredService<IConfiguration>();
             _logger = _fixture.Services.GetRequiredService<ILogger<GeminiProvider>>();
             _httpClientFactory = _fixture.Services.GetRequiredService<IHttpClientFactory>();
         }

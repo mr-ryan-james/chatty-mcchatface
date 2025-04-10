@@ -46,9 +46,9 @@ public class VertexAiProvider : IAiProvider
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         
-        _location = configuration["Vertex:Region"]
-            ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'Vertex:Region' to configuration.");
-        string? rawJson = configuration["Vertex:ServiceAccountJson"]; // Allow null
+        _location = configuration["VertexAI:Location"]
+            ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'VertexAI:Location' to configuration.");
+        string? rawJson = configuration["VertexAI:KeyJsonContent"]; // Allow null
         if (string.IsNullOrWhiteSpace(rawJson))
         {
             throw new InvalidOperationException("Vertex AI Service Account JSON configuration is missing or empty.");
