@@ -26,6 +26,14 @@ public class VertexAiProvider : IAiProvider
     private readonly string _keyJsonContent;
     private readonly AsyncRetryPolicy _retryPolicy;
     private readonly IHttpClientFactory _httpClientFactory;
+    private static readonly string AnthropicPublisher = "anthropic";
+    private static readonly string AnthropicApiVersion = "vertex-2023-10-16";
+    private static readonly string RawPredictEndpointSuffix = ":rawPredict";
+    private static readonly string JsonContentType = "application/json";
+    private static readonly string BearerAuthenticationScheme = "Bearer";
+    private static readonly string UserRole = "user";
+    private static readonly string AssistantRole = "assistant";
+    private static readonly string TextContentType = "text";
 
     /// <summary>
     /// Initializes a new instance of the VertexAiProvider using Google Cloud SDK
@@ -255,66 +263,69 @@ public class VertexAiProvider : IAiProvider
     /// </summary>
     private VertexRequest BuildRequestPayload(string systemPrompt, List<ChatMessageDto> history)
     {
-        // Build the messages in the format expected by Vertex AI's Claude implementation
+        var messagesList = MapHistoryToVertexMessages(history);
+        var requestContent = CreateVertexRequest(systemPrompt, messagesList);
+
+        var requestJson = JsonSerializer.Serialize(requestContent, new JsonSerializerOptions { WriteIndented = true });
+        _logger.LogDebug("Request JSON: {Json}", requestJson);
+
+        return requestContent;
+    }
+
+    private List<VertexMessage> MapHistoryToVertexMessages(List<ChatMessageDto> history)
+    {
         var messagesList = new List<VertexMessage>();
-        
-        // Add conversation history, skipping any system messages (we handle system prompt differently)
+
         foreach (var message in history)
         {
-            // Map our MessageRole enum to Claude's expected role values
-            if (message.Role != MessageRole.System) // Skip system messages in the message list
+            if (message.Role != MessageRole.System)
             {
                 string role = message.Role switch
                 {
-                    MessageRole.User => "user",
-                    MessageRole.Assistant => "assistant", // Claude uses "assistant"
+                    MessageRole.User => UserRole,
+                    MessageRole.Assistant => AssistantRole,
                     _ => throw new ArgumentException($"Unsupported message role: {message.Role}")
                 };
-                
-                // For content that is just text (not attachments or structured content)
-                // we need to create a content array with a single text item
+
                 messagesList.Add(new VertexMessage(
                     role,
                     new List<VertexContentBlock>
                     {
-                        new VertexContentBlock("text", message.Text)
+                        new VertexContentBlock(TextContentType, message.Text)
                     }
                 ));
             }
         }
-        
-        // Create the request payload for Claude on Vertex AI
+
+        return messagesList;
+    }
+
+    private VertexRequest CreateVertexRequest(string systemPrompt, List<VertexMessage> messagesList)
+    {
         VertexRequest requestContent;
-        
-        // For Claude via Vertex AI with system prompt
+
         if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
-            // For Claude on Vertex, we can put the system prompt as a separate field
             requestContent = new VertexRequest(
-                AnthropicVersion: "vertex-2023-10-16", // Required version for Vertex AI Claude
+                AnthropicVersion: AnthropicApiVersion,
                 Messages: messagesList,
                 MaxTokens: 1024,
                 Temperature: 0.2,
-                Stream: false, // Explicitly disable streaming
+                Stream: false,
                 System: systemPrompt
             );
         }
         else
         {
-            // No system prompt
             requestContent = new VertexRequest(
-                AnthropicVersion: "vertex-2023-10-16", // Required version for Vertex AI Claude
+                AnthropicVersion: AnthropicApiVersion,
                 Messages: messagesList,
                 MaxTokens: 1024,
                 Temperature: 0.2,
-                Stream: false // Explicitly disable streaming
+                Stream: false
             );
         }
-        
-        // Debug the JSON request
-        var requestJson = JsonSerializer.Serialize(requestContent, new JsonSerializerOptions { WriteIndented = true });
-        _logger.LogDebug("Request JSON: {Json}", requestJson);
-        
+
         return requestContent;
     }
     
@@ -325,7 +336,7 @@ public class VertexAiProvider : IAiProvider
     {
         // Format the request URL for direct API call to Vertex AI's Claude
         // Note: For Claude, we must use 'publishers/anthropic' (not 'publishers/google')
-        string requestUrl = $"https://{_location}-aiplatform.googleapis.com/v1/projects/{_projectId}/locations/{_location}/publishers/anthropic/models/{modelId}:rawPredict";
+        string requestUrl = $"https://{_location}-aiplatform.googleapis.com/v1/projects/{_projectId}/locations/{_location}/publishers/{AnthropicPublisher}/models/{modelId}{RawPredictEndpointSuffix}";
         _logger.LogDebug("Request URL: {Url}", requestUrl);
         
         // Get an access token for authentication
@@ -334,12 +345,12 @@ public class VertexAiProvider : IAiProvider
         
         // Make a direct HTTP request to the Vertex AI Claude endpoint
         var httpClient = _httpClientFactory.CreateClient();
-        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(BearerAuthenticationScheme, token);
+        httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue(JsonContentType));
         
         // Create the request content
         var requestJson = JsonSerializer.Serialize(requestContent, new JsonSerializerOptions { WriteIndented = true });
-        var content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
+        var content = new StringContent(requestJson, System.Text.Encoding.UTF8, JsonContentType);
         
         // Make the API call
         _logger.LogInformation("Sending direct HTTP request to Claude API...");
