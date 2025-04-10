@@ -25,8 +25,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             _mockConfiguration = new Mock<IConfiguration>();
             _mockLogger = new Mock<ILogger<ClaudeProvider>>();
             
-            // Setup a mock for the Anthropic API key
-            _mockConfiguration.Setup(c => c["Anthropic:ApiKey"]).Returns("mock-api-key");
+            // Setup mocks for Claude configuration
+            _mockConfiguration.Setup(c => c["Claude:ApiKey"]).Returns("dummy-claude-key");
         }
 
         [Fact]

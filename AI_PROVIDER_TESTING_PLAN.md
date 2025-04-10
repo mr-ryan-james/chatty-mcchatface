@@ -22,7 +22,9 @@ The core functionality involves generating text responses using specific AI mode
 
 ### 2.1. Core Components
 
--   **`AiModels.cs`:** Defines constants for all supported AI model identifiers.
+-   **`AiModels.cs`:** Defines constants for all supported AI model identifiers, including special formatting
+    for Vertex AI models (e.g., `Claude37SonnetVertex = "claude-3-7-sonnet@20250219"` uses the @ symbol for
+    Vertex AI's versioning system).
 -   **Provider Factories (e.g., `OpenAiProviderFactory.cs`):** Static classes responsible for
     creating `Func<string, List<ChatMessageDto>, Task<string?>>` delegates configured for a specific
     provider and model ID. They encapsulate the instantiation of the underlying provider
@@ -83,9 +85,11 @@ The core functionality involves generating text responses using specific AI mode
     handling API keys during local integration testing.
 -   Ensure User Secrets are initialized for the `ChattyMcChatface.Tests.Integration` project and
     populated with the necessary API keys.
--   For Vertex AI, configure the `VertexAI:KeyJsonContent` secret using `dotnet user-secrets set` to
-    contain the _entire JSON content_ of your downloaded service account key. Ensure this JSON
-    content is stored securely and **not** checked into source control.
+-   For Vertex AI, configure the `Vertex:ServiceAccountJson` secret using `dotnet user-secrets set` to
+    contain the _entire JSON content_ of your downloaded service account key. Also set `Vertex:Region` 
+    to the appropriate Google Cloud region (e.g., "europe-west1"). Ensure this JSON content is stored 
+    securely and **not** checked into source control. The service account key must have properly 
+    formatted newlines in the private key.
 -   For Azure OpenAI, secrets should be set for each deployment under test, following the nested
     structure, e.g., `dotnet user-secrets set AzureOpenAI:Thrivify:ApiKey YOUR_KEY` and
     `dotnet user-secrets set AzureOpenAI:Thrivify:Endpoint YOUR_ENDPOINT`.
@@ -162,32 +166,163 @@ The core functionality involves generating text responses using specific AI mode
         `new OpenAiProvider(_fixture.Configuration, _fixture.Logger)`).
     -   Call `GetCompletionAsync` with a specific model ID and basic input.
     -   Assert non-null/non-empty response.
-    -   For Vertex AI tests, ensure the `VertexAI:KeyJsonContent` secret contains the valid service
-        account JSON for the test to pass.
+    -   For Vertex AI tests, ensure the `Vertex:ServiceAccountJson` secret contains the valid service
+        account JSON and `Vertex:Region` is set correctly. The VertexAiProvider uses a direct HTTP call to 
+        the Vertex AI Claude API endpoint with the `rawPredict` suffix for Claude models. This implementation
+        handles the service account authentication and proper formatting of requests.
     -   Use `[Fact(Skip = "...")]` to skip in CI.
 
-#### 5.2.1. Example Test Structure (from SoundLikeUs project)
+#### 5.2.1. Implementation Status
+
+The AI providers have been successfully implemented with integration tests to verify functionality:
+
+-   **OpenAI**: Standard implementation using the OpenAI SDK with API key authentication.
+-   **Claude (Direct)**: Implementation using direct HTTP calls to the Claude API with API key authentication.
+-   **Azure OpenAI**: Implementation using the Azure OpenAI SDK with endpoint and API key authentication.
+-   **Gemini**: Implementation using the Google.Ai.Generative.Gemini SDK with API key authentication.
+-   **Vertex AI**: Implementation using direct HTTP calls to the Vertex AI Claude API endpoint with service account authentication. 
+    This provider required special handling for:
+    - Service account JSON with properly formatted newlines in the private key
+    - Using the correct endpoint format with publishers/anthropic for Claude models
+    - Using the `:rawPredict` endpoint suffix rather than the standard `:predict`
+    - Formatting message content with the required `role` and `content` structure
+    - Including the `anthropic_version` field in requests
+    - Proper extraction of text from the response format
+
+Integration tests have been created that:
+1. Test basic question answering
+2. Test conversation continuity
+3. Test reasoning capabilities
+
+Each test verifies that the provider can properly:
+- Authenticate with the API
+- Format requests correctly
+- Receive and parse responses
+- Maintain conversation context
+
+### 5.2.2. Example Test Structure (from SoundLikeUs project)
 
 The integration tests in the `soundlikeus` project
-(`/Users/ryanpfister/Dev/soundlikeus/soundlikeus-api/test/integration/ai-providers`) can serve as a
-structural guide for organizing the .NET integration tests by provider. Key files include:
+(`/Users/ryanpfister/Dev/soundlikeus/soundlikeus-api/test/integration/ai-providers`) served as a
+structural guide for organizing the .NET integration tests by provider. The implemented test files include:
 
--   `azure-provider.integration.test.ts`
--   `claude-provider.integration.test.ts`
--   `gemini-provider.integration.test.ts`
--   `openai-provider.integration.test.ts`
--   `vertex-provider.integration.test.ts`
+-   `AzureAiProviderIntegrationTests.cs`
+-   `ClaudeProviderIntegrationTests.cs`
+-   `GeminiProviderIntegrationTests.cs`
+-   `OpenAiProviderIntegrationTests.cs`
+-   `VertexAiProviderIntegrationTests.cs`
 
-**Note:** While the structure (organizing tests by provider, potentially using helper functions for
-common test logic) can be adapted, the specific functionalities tested in `soundlikeus` (e.g., story
-generation, character creation, image description) are different from the chat completion focus of
-`ChattyMcChatface`. The .NET tests should focus on verifying the `GetCompletionAsync` functionality
-for each provider/model via the refactored structure (model classes, fallback utility) and direct
-provider connectivity.
+Each provider has tests covering the same basic capabilities, allowing for comparison of results
+across different AI models and ensuring the refactored structure operates correctly.
 
-## 6. Execution
+## 6. Challenges and Lessons Learned
+
+### 6.1. Vertex AI Implementation Challenges
+
+The Vertex AI implementation was particularly challenging due to several factors:
+
+1. **Service Account Authentication**: Unlike the other providers that use simple API keys, Vertex AI requires a service account JSON file with a properly formatted private key.
+
+2. **Correct Endpoint Structure**: Vertex AI has a unique endpoint structure that varies based on the publisher. For Claude models, we had to use `publishers/anthropic` rather than `publishers/google`.
+
+3. **Request Format Differences**: The request format for Claude via Vertex AI is different from direct Claude API calls:
+   - Requires `anthropic_version` field set to "vertex-2023-10-16"
+   - Uses the `:rawPredict` endpoint instead of `:predict`
+   - Requires a specifically structured message format
+
+4. **Response Format**: The JSON response format from Claude via Vertex AI differs from other providers, requiring special handling to extract the text content.
+
+5. **Documentation Gaps**: The exact format requirements were not clearly documented, requiring experimentation and comparing with working implementations in other languages.
+
+### 6.2. Solution Approach
+
+The solution approach included:
+
+1. Creating test applications to isolate and debug the authentication issues
+2. Fixing the service account JSON format, ensuring proper newline handling in the private key
+3. Implementing direct HTTP calls rather than using the SDK's Predict method
+4. Using the successful Node.js implementation from another project as a reference
+5. Adding extensive logging to track request and response formats
+6. Creating robust integration tests that verify different aspects of functionality
+
+### 6.3. Execution
 
 -   Ensure API keys are configured in User Secrets for the integration test project.
 -   Run unit tests frequently during development (`dotnet test` filtered to the unit test project).
 -   Run integration tests locally before merging (`dotnet test` filtered to the integration test
     project or using categories/traits).
+-   For Vertex AI specifically, always ensure that the service account JSON has properly formatted
+    newlines in the private key section.
+
+## 7. Quick Reference: Build and Test Commands
+
+For easy reference, here are the common commands for building and testing the project:
+
+### 7.1. Building the Project
+
+```bash
+# Build the entire solution
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet build ChattyMcChatface.sln
+
+# Build a specific project
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet build ChattyMcChatface.Api/ChattyMcChatface.Api.csproj
+```
+
+### 7.2. Running Tests
+
+```bash
+# Run all tests
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet test ChattyMcChatface.sln
+
+# Run only unit tests
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet test ChattyMcChatface.Tests.Unit/ChattyMcChatface.Tests.Unit.csproj
+
+# Run only integration tests
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet test ChattyMcChatface.Tests.Integration/ChattyMcChatface.Tests.Integration.csproj
+
+# Run a specific test by name
+dotnet test --filter "FullyQualifiedName=ChattyMcChatface.Tests.Integration.AI.Providers.VertexAiProviderIntegrationTests.GetCompletionAsync_SimpleTest_ReturnsExpectedResponse"
+```
+
+### 7.3. Managing User Secrets
+
+```bash
+# Initialize user secrets for a project
+cd /path/to/chatty-mcchatface/dotnet_server/ChattyMcChatface.Tests.Integration
+dotnet user-secrets init
+
+# Set a single secret
+dotnet user-secrets set "Claude:ApiKey" "your-api-key-here"
+
+# Set the Vertex AI service account JSON (use single quotes to handle special characters)
+dotnet user-secrets set 'Vertex:ServiceAccountJson' '{"type":"service_account","project_id":"...","private_key":"...",...}'
+
+# Set the Vertex AI region
+dotnet user-secrets set "Vertex:Region" "europe-west1"
+
+# List all secrets
+dotnet user-secrets list
+
+# Remove a secret
+dotnet user-secrets remove "KeyToRemove" 
+
+# Clear all secrets
+dotnet user-secrets clear
+```
+
+### 7.4. Running the API
+
+```bash
+# Run the API project
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet run --project ChattyMcChatface.Api/ChattyMcChatface.Api.csproj
+
+# Run with watch for development (auto-reload on changes)
+cd /path/to/chatty-mcchatface/dotnet_server
+dotnet watch run --project ChattyMcChatface.Api/ChattyMcChatface.Api.csproj
+```

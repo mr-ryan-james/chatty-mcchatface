@@ -20,13 +20,11 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
         {
             // Arrange
             var mockConfiguration = new Mock<IConfiguration>();
-            var mockVertexAiSection = new Mock<IConfigurationSection>();
+            var mockVertexSection = new Mock<IConfigurationSection>();
             // Set up configuration for Vertex AI (Google Cloud)
-            // No need to set up a project ID as it's now extracted solely from the KeyJsonContent
-            // ProjectId will be extracted from KeyJsonContent, so no need to mock it separately
-            mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("mock-location");
+            mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
             // Add mock JSON content for the service account key (required by VertexAiProvider)
-            mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
+            mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
                 ""type"": ""service_account"",
                 ""project_id"": ""mock-project-id"",
                 ""private_key_id"": ""mock-key-id"",
@@ -38,8 +36,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
                 ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
                 ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/mock@example.iam.gserviceaccount.com""
             }");
-            // Setup the configuration section (removed duplicate line)
-            mockConfiguration.Setup(c => c.GetSection("VertexAI")).Returns(mockVertexAiSection.Object);
+            // Setup the configuration section
+            mockConfiguration.Setup(c => c.GetSection("Vertex")).Returns(mockVertexSection.Object);
             
             var mockLogger = new Mock<ILogger<VertexAiProvider>>();
             // Ensure the service provider is non-null

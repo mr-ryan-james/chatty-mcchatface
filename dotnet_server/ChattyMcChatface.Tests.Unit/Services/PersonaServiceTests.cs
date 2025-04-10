@@ -234,11 +234,21 @@ namespace ChattyMcChatface.Tests.Unit.Services
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns("dummy-key");
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns("http://dummy.endpoint");
             mockConfiguration.Setup(c => c["OpenAI:ApiKey"]).Returns("dummy-key");
-            mockConfiguration.Setup(c => c["Anthropic:ApiKey"]).Returns("dummy-key");
+            mockConfiguration.Setup(c => c["Claude:ApiKey"]).Returns("dummy-claude-key");
             mockConfiguration.Setup(c => c["Gemini:ApiKey"]).Returns("dummy-key"); // Corrected key
-            mockConfiguration.Setup(c => c["VertexAI:ProjectId"]).Returns("dummy-project"); // Corrected key
-            mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("dummy-location"); // Corrected key
-            mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns("{\"project_id\": \"dummy-project-id\"}"); // Provide dummy JSON with project_id
+            mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
+            mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
+                ""type"": ""service_account"",
+                ""project_id"": ""mock-project-id"",
+                ""private_key_id"": ""mock-key-id"",
+                ""private_key"": ""-----BEGIN PRIVATE KEY-----\nMOCKKEY\n-----END PRIVATE KEY-----\n"",
+                ""client_email"": ""mock@example.iam.gserviceaccount.com"",
+                ""client_id"": ""123456789"",
+                ""auth_uri"": ""https://accounts.google.com/o/oauth2/auth"",
+                ""token_uri"": ""https://oauth2.googleapis.com/token"",
+                ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
+                ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/mock@example.iam.gserviceaccount.com""
+            }");
             // Add other necessary dummy config keys if more errors appear
             var mockAzureLogger = new Mock<ILogger<AzureAiProvider>>();
             var mockOpenAiLogger = new Mock<ILogger<OpenAiProvider>>();
@@ -403,11 +413,21 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns("dummy-key");
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns("http://dummy.endpoint");
             mockConfiguration.Setup(c => c["OpenAI:ApiKey"]).Returns("dummy-key");
-            mockConfiguration.Setup(c => c["Anthropic:ApiKey"]).Returns("dummy-key");
+            mockConfiguration.Setup(c => c["Claude:ApiKey"]).Returns("dummy-claude-key");
             mockConfiguration.Setup(c => c["Gemini:ApiKey"]).Returns("dummy-key");
-            mockConfiguration.Setup(c => c["VertexAI:ProjectId"]).Returns("dummy-project");
-            mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("dummy-location");
-            mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns("{\"project_id\": \"dummy-project-id\"}"); // Provide dummy JSON with project_id
+            mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
+            mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
+                ""type"": ""service_account"",
+                ""project_id"": ""mock-project-id"",
+                ""private_key_id"": ""mock-key-id"",
+                ""private_key"": ""-----BEGIN PRIVATE KEY-----\nMOCKKEY\n-----END PRIVATE KEY-----\n"",
+                ""client_email"": ""mock@example.iam.gserviceaccount.com"",
+                ""client_id"": ""123456789"",
+                ""auth_uri"": ""https://accounts.google.com/o/oauth2/auth"",
+                ""token_uri"": ""https://oauth2.googleapis.com/token"",
+                ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
+                ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/mock@example.iam.gserviceaccount.com""
+            }");
             
             var mockAzureLogger = new Mock<ILogger<AzureAiProvider>>();
             var mockOpenAiLogger = new Mock<ILogger<OpenAiProvider>>();

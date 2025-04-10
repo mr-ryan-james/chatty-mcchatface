@@ -13,6 +13,7 @@ using ChattyMcChatface.Core.Services.AI.Claude;
 using ChattyMcChatface.Core.Services.AI.Gemini;
 using ChattyMcChatface.Core.Services.AI.Vertex;
 using ChattyMcChatface.Api.Services;
+using ChattyMcChatface.Data.Entities;
 
 
 namespace ChattyMcChatface.Tests.Integration
@@ -22,6 +23,8 @@ namespace ChattyMcChatface.Tests.Integration
         public IServiceProvider Services { get; }
         public IConfiguration Configuration { get; }
         private readonly ServiceProvider _serviceProvider;
+        private static readonly object _dbLock = new object();
+        private static bool _databaseInitialized = false;
 
         public IntegrationTestFixture()
         {
@@ -46,7 +49,7 @@ namespace ChattyMcChatface.Tests.Integration
             // Add SQLite in-memory database for testing
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseSqlite("DataSource=:memory:");
+                options.UseSqlite("DataSource=TestDatabase;Mode=Memory;Cache=Shared");
             });
             
             // Add HTTP client factory
@@ -79,11 +82,36 @@ namespace ChattyMcChatface.Tests.Integration
             _serviceProvider = services.BuildServiceProvider();
             Services = _serviceProvider;
             
-            // Initialize database if needed
-            using var scope = _serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            dbContext.Database.OpenConnection();
-            dbContext.Database.EnsureCreated();
+            // Initialize database only once across all fixture instances
+            lock (_dbLock)
+            {
+                if (!_databaseInitialized)
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    // Keep connection open for shared in-memory DB. Important!
+                    dbContext.Database.OpenConnection();
+                    // Apply migrations
+                    dbContext.Database.Migrate();
+
+                    // Seed basic data
+                    var testUser = new User { Id = 1, FirstName = "Test", LastName = "User", Email = "test@example.com", PasswordHash = "hash" };
+                    var testChatroom = new Chatroom { Id = 1, Title = "Integration Test Chatroom" };
+                    // Add user first if Chatroom has FK constraint (or handle relationships appropriately)
+                    if (!dbContext.Users.Any(u => u.Id == testUser.Id))
+                    {
+                        dbContext.Users.Add(testUser);
+                    }
+                    if (!dbContext.Chatrooms.Any(c => c.Id == testChatroom.Id))
+                    {
+                        dbContext.Chatrooms.Add(testChatroom);
+                    }
+                    dbContext.SaveChanges(); // Save seeded data
+
+                    _databaseInitialized = true;
+                }
+            }
+            Services = _serviceProvider; // Ensure Services is assigned after potential initialization
         }
 
         public void Dispose()

@@ -25,11 +25,8 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             _mockConfiguration = new Mock<IConfiguration>();
             _mockLogger = new Mock<ILogger<VertexAiProvider>>();
             
-            // Setup configuration values required by VertexAiProvider constructor
-            // No ProjectId needed as it's extracted from KeyJsonContent
-            _mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("us-central1");
-            // Setup mock JSON content for the service account key
-            _mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
+            // Setup required configuration mocks
+            _mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
                 ""type"": ""service_account"",
                 ""project_id"": ""mock-project-id"",
                 ""private_key_id"": ""mock-key-id"",
@@ -41,7 +38,9 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
                 ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
                 ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/mock@example.iam.gserviceaccount.com""
             }");
+            _mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
         }
+            
 
         [Fact]
         public void CreateVertexAiCompletionProvider_ReturnsNonNullDelegate()
