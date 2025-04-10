@@ -115,6 +115,30 @@ following command from the project root directory (`/Users/ryanpfister/Dev/chatt
 dotnet user-secrets list --project dotnet_server/ChattyMcChatface.Api
 ```
 
+Example keys to set (replace values with your actual secrets):
+
+```bash
+# For OpenAI
+dotnet user-secrets set "OpenAI:ApiKey" "sk-..." --project dotnet_server/ChattyMcChatface.Api
+
+# For Azure OpenAI (using 'Thrivify' deployment as example)
+dotnet user-secrets set "AzureOpenAI:Thrivify:ApiKey" "..." --project dotnet_server/ChattyMcChatface.Api
+dotnet user-secrets set "AzureOpenAI:Thrivify:Endpoint" "https://..." --project dotnet_server/ChattyMcChatface.Api
+
+# For Anthropic/Claude
+dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..." --project dotnet_server/ChattyMcChatface.Api
+
+# For Google Gemini
+dotnet user-secrets set "Gemini:ApiKey" "..." --project dotnet_server/ChattyMcChatface.Api
+
+# For Google Vertex AI
+dotnet user-secrets set "VertexAI:Location" "us-central1" --project dotnet_server/ChattyMcChatface.Api
+# Note: Use single quotes for KeyJsonContent if your shell requires it
+dotnet user-secrets set 'VertexAI:KeyJsonContent' '{ "type": "service_account", ... }' --project dotnet_server/ChattyMcChatface.Api
+```
+
+Refer to `secrets.example.json` for the full list and structure.
+
 ## Getting Started for Developers
 
 This section provides a high-level overview for developers looking to contribute to either the
@@ -149,8 +173,8 @@ The project is organized into two main parts:
     `Tests.Integration`) and run `dotnet test`. Integration tests require secrets.
 -   **Configuration/Secrets**: API keys for AI providers are managed using .NET User Secrets. Set
     them using
-    `dotnet user-secrets set "Provider:KeyName" "KeyValue" --project dotnet_server/ChattyMcChatface.Api`.
-    See `secrets.example.json` for expected keys.
+    `dotnet user-secrets set "Provider:KeyName" "KeyValue" --project dotnet_server/ChattyMcChatface.Api`
+    (e.g., `Anthropic:ApiKey`, `VertexAI:Location`). See `secrets.example.json` for expected keys.
 -   **AI Integration**: The system uses a provider model (`IAiProvider`) with specific
     implementations (OpenAI, Azure, Gemini, Claude, Vertex). `PersonaService` orchestrates responses
     using `AiFallbackUtil` and provider-specific delegates configured via factories and singleton

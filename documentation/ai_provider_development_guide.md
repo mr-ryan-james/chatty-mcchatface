@@ -80,26 +80,36 @@ local development/testing and deployment.
     `ChattyMcChatface.Tests.Integration` project.
 -   **Initialization:** Use `dotnet user-secrets init` in the integration test project directory.
 -   **Setting Secrets:** Use `dotnet user-secrets set "Provider:KeyName" "KeyValue"` (e.g.,
-    `dotnet user-secrets set "Claude:ApiKey" "your-api-key"`).
+    `dotnet user-secrets set "Anthropic:ApiKey" "your-api-key"`).
 -   **Specific Provider Notes:**
     -   **Azure OpenAI:** Requires nested keys for each deployment (e.g.,
         `AzureOpenAI:Thrivify:ApiKey`, `AzureOpenAI:Thrivify:Endpoint`).
     -   **Vertex AI:**
         -   Requires the _entire JSON content_ of the service account key file set to the
-            `Vertex:ServiceAccountJson` secret. Use single quotes to handle special characters in
-            the shell: `dotnet user-secrets set 'Vertex:ServiceAccountJson' '{...json_content...}'`.
+            `VertexAI:KeyJsonContent` secret. Use single quotes to handle special characters in the
+            shell: `dotnet user-secrets set 'VertexAI:KeyJsonContent' '{...json_content...}'`.
         -   Ensure the `private_key` within the JSON has properly formatted newlines (`\n`). The
             `VertexAiProvider` includes logic to attempt fixing common formatting issues, but
             correct initial formatting is best.
         -   Requires the Google Cloud region set via
-            `dotnet user-secrets set "Vertex:Region" "your-region"`.
+            `dotnet user-secrets set "VertexAI:Location" "your-region"`.
 -   **Reference:** See `secrets.example.json` in the `ChattyMcChatface.Api` project for key names.
 
 ### 4.2. Unit Testing
 
 -   Unit tests **must not** rely on User Secrets or real configuration values.
 -   Use `Mock<IConfiguration>` to provide necessary dummy values during test setup to satisfy
-    provider/factory constructors.
+    provider/factory constructors. Key examples include `Anthropic:ApiKey`,
+    `VertexAI:KeyJsonContent`, `VertexAI:Location`, `AzureOpenAI:Thrivify:ApiKey`,
+    `AzureOpenAI:Thrivify:Endpoint`, etc. Ensure the keys used in the mock setup exactly match those
+    read by the provider constructors, as providers will now throw an `InvalidOperationException` if
+    a required key is missing.
+-   When mocking AI Model classes (e.g., `AzureAiModels`, `OpenAiModels`) that depend on
+    `IServiceProvider` in their constructors, ensure the mock `IServiceProvider` is configured using
+    `.Setup()` to return mock instances of required dependencies, particularly `ILogger<T>` (e.g.,
+    `ILogger<AzureAiProvider>`, `ILogger<OpenAiProvider>`). Instantiate the `Mock<ModelClass>`
+    itself passing only the configured `IServiceProvider` mock object (e.g.,
+    `new Mock<AzureAiModels>(mockServiceProvider.Object)`).
 
 ## 5. Key Implementation Details & Considerations
 
@@ -140,7 +150,9 @@ When adding a new AI provider or modifying an existing one, ensure the following
     -   Add tests for the new Factory (`NewAiProviderFactoryTests.cs`), mocking dependencies.
     -   Add tests for the new Model Class (`NewAiModelsTests.cs`), mocking dependencies.
     -   Update `PersonaServiceTests.cs` to mock the new `NewAiModels` class and add test cases
-        covering its usage. Ensure all necessary configuration mocks are added.
+        covering its usage. Ensure all necessary configuration mocks are added (using the correct
+        keys) and that the mock `IServiceProvider` (if used by the Model class) is properly
+        configured via `.Setup()` to provide required loggers and other dependencies.
 8.  **Implement Integration Tests:**
     -   Add `NewAiProviderIntegrationTests.cs` to verify direct API connectivity.
     -   Update `PersonaServiceIntegrationTests.cs` with test cases using the new provider's models.
