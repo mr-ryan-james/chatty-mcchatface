@@ -24,7 +24,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
             
             // Set up configuration to return a mock API key
             mockConfigSection.Setup(c => c.Value).Returns("dummy-claude-key");
-            mockConfiguration.Setup(c => c["Claude:ApiKey"]).Returns("dummy-claude-key");
+            mockConfiguration.Setup(c => c["Anthropic:ApiKey"]).Returns("dummy-claude-key");
             mockConfiguration.Setup(c => c.GetSection("Claude")).Returns(mockConfigSection.Object);
             
             var mockLogger = new Mock<ILogger<ClaudeProvider>>();

@@ -37,11 +37,14 @@ public class ClaudeProvider : IAiProvider
     {
         _logger = logger;
         
-        _apiKey = configuration["Anthropic:ApiKey"]
-                 ?? throw new InvalidOperationException("Claude API key is not configured. Please add 'Anthropic:ApiKey' to configuration.");
+        _apiKey = configuration["Anthropic:ApiKey"] ?? throw new InvalidOperationException("Anthropic API key ('Anthropic:ApiKey') is missing from configuration.");
         
         _httpClient = new HttpClient();
-        _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
+
+        if (!string.IsNullOrWhiteSpace(_apiKey))
+        {
+            _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
+        }
         _httpClient.DefaultRequestHeaders.Add("anthropic-version", ApiVersion);
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         

@@ -111,6 +111,7 @@ namespace ChattyMcChatface.Tests.Integration
         {
             var client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+            client.DefaultRequestHeaders.Add("X-User-ID", userId);
             return client;
         }
 
@@ -193,34 +194,49 @@ namespace ChattyMcChatface.Tests.Integration
             return chatroom;
         }
 
-        public async Task SeedMessagesAsync(int chatroomId, int count, DateTime startDate, IServiceScopeFactory scopeFactory)
+        public async Task<List<ChatMessage>> SeedMessagesAsync(int chatroomId, int count, DateTime startDate, IServiceScopeFactory scopeFactory, int? userId = null)
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
+        
             var chatroom = await dbContext.Chatrooms.FindAsync(chatroomId);
             if (chatroom == null) throw new Exception($"Chatroom with ID {chatroomId} not found for seeding messages.");
-
-            var user1 = await dbContext.Users.FindAsync(1);
-            var user1001 = await dbContext.Users.FindAsync(1001);
-            if (user1 == null || user1001 == null) throw new Exception("Required users (1 or 1001) not found for seeding messages.");
-
+            // Fetch chatroom users for default alternating logic
+            var chatroomUsers = await dbContext.Chatrooms
+                .Where(c => c.Id == chatroomId)
+                .SelectMany(c => c.Users)
+                .OrderBy(u => u.Id) // Ensure consistent order
+                .Take(2) // Take the first two users found
+                .ToListAsync();
+            if (chatroomUsers.Count < 2)
+                throw new Exception($"Chatroom {chatroomId} must have at least two users for default alternating message seeding.");
+            var userA = chatroomUsers[0];
+            var userB = chatroomUsers[1];
+        
+        
             var messages = new List<ChatMessage>();
             for (int i = 0; i < count; i++)
             {
-                var userId = (i % 2 == 0) ? 1 : 1001;
+                var messageUserId = userId ?? ((i % 2 == 0) ? userA.Id : userB.Id);
+                var messageUser = userId.HasValue
+                    ? await dbContext.Users.FindAsync(messageUserId)
+                    : ((i % 2 == 0) ? userA : userB);
+                if (messageUser == null)
+                    throw new Exception($"User with ID {messageUserId} not found for seeding message {i + 1}.");
+
                 messages.Add(new ChatMessage
                 {
                     ChatroomId = chatroomId,
-                    UserId = userId,
+                    UserId = messageUserId,
                     Text = $"Message {i + 1}",
                     Date = startDate.AddMinutes(i),
                     Chatroom = chatroom,
-                    User = (userId == 1) ? user1 : user1001
+                    User = messageUser
                 });
             }
             await dbContext.ChatMessages.AddRangeAsync(messages);
             await dbContext.SaveChangesAsync();
+            return messages;
         }
 
         public async Task SeedLastReadAsync(int chatroomId, int userId, DateTime lastReadDate, IServiceScopeFactory scopeFactory)

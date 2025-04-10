@@ -201,10 +201,14 @@ namespace ChattyMcChatface.Tests.Unit.Services
             var chatroomsMockDbSet = chatrooms.AsQueryable().BuildMockDbSet();
             var chatMessagesMockDbSet = chatMessages.AsQueryable().BuildMockDbSet();
 
+            var lastReads = new List<LastRead>(); // Start with an empty list
+            var lastReadsMockDbSet = lastReads.AsQueryable().BuildMockDbSet();
+
             var mockDbContext = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
             mockDbContext.Setup(c => c.Users).Returns(usersMockDbSet.Object);
             mockDbContext.Setup(c => c.Chatrooms).Returns(chatroomsMockDbSet.Object);
             mockDbContext.Setup(c => c.ChatMessages).Returns(chatMessagesMockDbSet.Object);
+            mockDbContext.Setup(c => c.LastReads).Returns(lastReadsMockDbSet.Object);
             ChatMessage? addedMessage = null;
             chatMessagesMockDbSet.Setup(d => d.AddAsync(It.IsAny<ChatMessage>(), It.IsAny<CancellationToken>()))
                 .Callback<ChatMessage, CancellationToken>((msg, _) => {
@@ -234,10 +238,10 @@ namespace ChattyMcChatface.Tests.Unit.Services
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns("dummy-key");
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns("http://dummy.endpoint");
             mockConfiguration.Setup(c => c["OpenAI:ApiKey"]).Returns("dummy-key");
-            mockConfiguration.Setup(c => c["Claude:ApiKey"]).Returns("dummy-claude-key");
+            mockConfiguration.Setup(c => c["Anthropic:ApiKey"]).Returns("dummy-claude-key");
             mockConfiguration.Setup(c => c["Gemini:ApiKey"]).Returns("dummy-key"); // Corrected key
-            mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
-            mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
+            mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("mock-region");
+            mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
                 ""type"": ""service_account"",
                 ""project_id"": ""mock-project-id"",
                 ""private_key_id"": ""mock-key-id"",
@@ -254,7 +258,7 @@ namespace ChattyMcChatface.Tests.Unit.Services
             var mockOpenAiLogger = new Mock<ILogger<OpenAiProvider>>();
             var mockClaudeLogger = new Mock<ILogger<ClaudeProvider>>();
             var mockGeminiLogger = new Mock<ILogger<GeminiProvider>>();
-            var mockVertexLogger = new Mock<ILogger<VertexAiProvider>>();
+            var mockVertexAiLogger = new Mock<ILogger<VertexAiProvider>>();
             var mockHttpClientFactory = new Mock<IHttpClientFactory>(); // Keep this for other potential uses or remove if unused elsewhere
 
             // Setup a mock HttpClient to be returned by the factory if needed
@@ -268,21 +272,22 @@ namespace ChattyMcChatface.Tests.Unit.Services
 
             // Mock AI Model Classes
             // For classes still using IServiceProvider:
+
             var mockServiceProviderForOthers = new Mock<IServiceProvider>();
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(IConfiguration))).Returns(mockConfiguration.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<AzureAiProvider>))).Returns(mockAzureLogger.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<OpenAiProvider>))).Returns(mockOpenAiLogger.Object); // Assuming OpenAiModels still uses SP
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<ClaudeProvider>))).Returns(mockClaudeLogger.Object); // Assuming ClaudeModels still uses SP
-            mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>))).Returns(mockVertexLogger.Object); // Assuming VertexAiModels still uses SP
+            mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>))).Returns(mockVertexAiLogger.Object); // Assuming VertexAiModels still uses SP
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(IHttpClientFactory))).Returns(mockHttpClientFactory.Object);
             // Note: IHttpClientFactory setup might still be needed here if other models resolve it via SP
 
-            var mockOpenAiModels = new Mock<OpenAiModels>(mockServiceProviderForOthers.Object); // Adjust if OpenAiModels constructor changes
-            var mockAzureAiModels = new Mock<AzureAiModels>(mockServiceProviderForOthers.Object); // Adjust if AzureAiModels constructor changes
-            var mockClaudeModels = new Mock<ClaudeModels>(mockServiceProviderForOthers.Object); // Adjust if ClaudeModels constructor changes
+            var mockOpenAiModels = new Mock<OpenAiModels>(mockServiceProviderForOthers.Object);
+            var mockAzureAiModels = new Mock<AzureAiModels>(mockServiceProviderForOthers.Object);
+            var mockClaudeModels = new Mock<ClaudeModels>(mockServiceProviderForOthers.Object);
             // Instantiate GeminiModels mock with direct dependencies
             var mockGeminiModels = new Mock<GeminiModels>(mockConfiguration.Object, mockGeminiLogger.Object, mockHttpClientFactory.Object);
-            var mockVertexAiModels = new Mock<VertexAiModels>(mockServiceProviderForOthers.Object); // Adjust if VertexAiModels constructor changes
+            var mockVertexAiModels = new Mock<VertexAiModels>(mockServiceProviderForOthers.Object);
 // Use a simple function for the Azure model delegate instead of a mock
 Func<string, List<ChatMessageDto>, Task<string?>> azureDelegate =
     (prompt, messages) => Task.FromResult<string?>(expectedResponse);
@@ -328,7 +333,7 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             // ... verify other models if necessary
 
             // 3. Verify SaveChangesAsync was called
-            mockDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once());
+            mockDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
 
             // 4. Verify the message was added to the context (check callback variable)
             addedMessage.Should().NotBeNull();
@@ -380,11 +385,15 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             var usersMockDbSet = users.AsQueryable().BuildMockDbSet();
             var chatroomsMockDbSet = chatrooms.AsQueryable().BuildMockDbSet();
             var chatMessagesMockDbSet = chatMessages.AsQueryable().BuildMockDbSet();
+
+            var lastReads = new List<LastRead>(); // Start with an empty list
+            var lastReadsMockDbSet = lastReads.AsQueryable().BuildMockDbSet();
     
             var mockDbContext = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
             mockDbContext.Setup(c => c.Users).Returns(usersMockDbSet.Object);
             mockDbContext.Setup(c => c.Chatrooms).Returns(chatroomsMockDbSet.Object);
             mockDbContext.Setup(c => c.ChatMessages).Returns(chatMessagesMockDbSet.Object);
+            mockDbContext.Setup(c => c.LastReads).Returns(lastReadsMockDbSet.Object);
             ChatMessage? addedMessage = null;
             chatMessagesMockDbSet.Setup(d => d.AddAsync(It.IsAny<ChatMessage>(), It.IsAny<CancellationToken>()))
                 .Callback<ChatMessage, CancellationToken>((msg, _) => {
@@ -414,10 +423,10 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns("dummy-key");
             mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns("http://dummy.endpoint");
             mockConfiguration.Setup(c => c["OpenAI:ApiKey"]).Returns("dummy-key");
-            mockConfiguration.Setup(c => c["Claude:ApiKey"]).Returns("dummy-claude-key");
+            mockConfiguration.Setup(c => c["Anthropic:ApiKey"]).Returns("dummy-claude-key");
             mockConfiguration.Setup(c => c["Gemini:ApiKey"]).Returns("dummy-key");
-            mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
-            mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
+            mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("mock-region");
+            mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
                 ""type"": ""service_account"",
                 ""project_id"": ""mock-project-id"",
                 ""private_key_id"": ""mock-key-id"",
@@ -434,7 +443,7 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             var mockOpenAiLogger = new Mock<ILogger<OpenAiProvider>>();
             var mockClaudeLogger = new Mock<ILogger<ClaudeProvider>>();
             var mockGeminiLogger = new Mock<ILogger<GeminiProvider>>();
-            var mockVertexLogger = new Mock<ILogger<VertexAiProvider>>();
+            var mockVertexAiLogger = new Mock<ILogger<VertexAiProvider>>();
             var mockHttpClientFactory = new Mock<IHttpClientFactory>();
     
             // Setup a mock HttpClient to be returned by the factory
@@ -448,7 +457,7 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<AzureAiProvider>))).Returns(mockAzureLogger.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<OpenAiProvider>))).Returns(mockOpenAiLogger.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<ClaudeProvider>))).Returns(mockClaudeLogger.Object);
-            mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>))).Returns(mockVertexLogger.Object);
+            mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(ILogger<VertexAiProvider>))).Returns(mockVertexAiLogger.Object);
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(IHttpClientFactory))).Returns(mockHttpClientFactory.Object);
     
             var mockOpenAiModels = new Mock<OpenAiModels>(mockServiceProviderForOthers.Object);
@@ -502,7 +511,7 @@ mockAzureAiModels.Setup(m => m.Gpt4oThrivify)
             mockClaudeModels.Verify(m => m.Claude37Sonnet(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>()), Times.Never());
     
             // 3. Verify SaveChangesAsync was called
-            mockDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once());
+            mockDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     
             // 4. Verify the message was added to the context
             addedMessage.Should().NotBeNull();

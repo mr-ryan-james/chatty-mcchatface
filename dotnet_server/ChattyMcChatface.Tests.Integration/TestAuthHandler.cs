@@ -23,9 +23,13 @@ namespace ChattyMcChatface.Tests.Integration
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            var userId = Request.Headers.ContainsKey("X-User-ID") && !string.IsNullOrEmpty(Request.Headers["X-User-ID"])
+                ? Request.Headers["X-User-ID"].ToString()
+                : "1";
+
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, "1"),
+                new Claim(ClaimTypes.NameIdentifier, userId),
                 new Claim(ClaimTypes.Name, "TestUser"),
                 new Claim(ClaimTypes.Email, "test@example.com"),
             };

@@ -29,7 +29,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             _mockHttpClientFactory = new Mock<IHttpClientFactory>();
             
             // Setup required configuration mocks
-            _mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
+            _mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
                 ""type"": ""service_account"",
                 ""project_id"": ""mock-project-id"",
                 ""private_key_id"": ""mock-key-id"",
@@ -41,7 +41,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
                 ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
                 ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/mock@example.iam.gserviceaccount.com""
             }");
-            _mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
+            _mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("mock-region");
         }
             
 

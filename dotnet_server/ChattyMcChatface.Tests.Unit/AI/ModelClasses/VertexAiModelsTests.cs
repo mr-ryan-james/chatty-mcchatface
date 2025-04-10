@@ -23,9 +23,9 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
             var mockConfiguration = new Mock<IConfiguration>();
             var mockVertexSection = new Mock<IConfigurationSection>();
             // Set up configuration for Vertex AI (Google Cloud)
-            mockConfiguration.Setup(c => c["Vertex:Region"]).Returns("mock-region");
+            mockConfiguration.Setup(c => c["VertexAI:Location"]).Returns("mock-region");
             // Add mock JSON content for the service account key (required by VertexAiProvider)
-            mockConfiguration.Setup(c => c["Vertex:ServiceAccountJson"]).Returns(@"{
+            mockConfiguration.Setup(c => c["VertexAI:KeyJsonContent"]).Returns(@"{
                 ""type"": ""service_account"",
                 ""project_id"": ""mock-project-id"",
                 ""private_key_id"": ""mock-key-id"",

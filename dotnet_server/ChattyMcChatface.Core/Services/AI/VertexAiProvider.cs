@@ -46,20 +46,14 @@ public class VertexAiProvider : IAiProvider
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         
-        _location = configuration["VertexAI:Location"]
-            ?? throw new InvalidOperationException("Vertex AI Location is not configured. Please add 'VertexAI:Location' to configuration.");
-        string? rawJson = configuration["VertexAI:KeyJsonContent"]; // Allow null
-        if (string.IsNullOrWhiteSpace(rawJson))
-        {
-            throw new InvalidOperationException("Vertex AI Service Account JSON configuration is missing or empty.");
-        }
+        _location = configuration["VertexAI:Location"] ?? throw new InvalidOperationException("Vertex AI Location ('VertexAI:Location') is missing from configuration.");
+        _keyJsonContent = configuration["VertexAI:KeyJsonContent"] ?? throw new InvalidOperationException("Vertex AI Key JSON Content ('VertexAI:KeyJsonContent') is missing from configuration.");
         
         // Log the raw value length for debugging
-        _logger.LogDebug("Raw Vertex AI Service Account JSON length: {Length} chars", rawJson.Length);
-        _logger.LogDebug("Raw JSON starts with: {Start}", rawJson.Substring(0, Math.Min(50, rawJson.Length)));
+        _logger.LogDebug("Raw Vertex AI Service Account JSON length: {Length} chars", _keyJsonContent.Length);
+        _logger.LogDebug("Raw JSON starts with: {Start}", _keyJsonContent.Substring(0, Math.Min(50, _keyJsonContent.Length)));
         
         // Use the JSON directly without Base64 decoding
-        _keyJsonContent = rawJson;
         _logger.LogDebug("Successfully loaded Vertex AI service account JSON.");
         
         // Extract project_id from the KeyJsonContent if it's provided
@@ -83,10 +77,6 @@ public class VertexAiProvider : IAiProvider
         }
         
         // Ensure we have a valid project ID from the service account key JSON
-        if (string.IsNullOrWhiteSpace(_projectId))
-        {
-            throw new InvalidOperationException("Could not determine Vertex AI Project ID. Please ensure it's included in the KeyJsonContent under the 'project_id' field.");
-        }
         
         // The 'keyJsonContent' should be the JSON content of the service account key file,
         // typically obtained from Google Cloud IAM. It follows this structure:
@@ -103,10 +93,6 @@ public class VertexAiProvider : IAiProvider
         //   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email"
         // }
         
-        if (string.IsNullOrWhiteSpace(_keyJsonContent))
-        {
-            throw new InvalidOperationException("Vertex AI Key JSON Content configuration value is empty.");
-        }
         
         // Configure retry policy for transient errors
         _retryPolicy = Policy
@@ -152,6 +138,11 @@ public class VertexAiProvider : IAiProvider
     /// </summary>
     private GoogleCredential CreateCredential()
     {
+        if (string.IsNullOrWhiteSpace(_keyJsonContent))
+        {
+            _logger.LogWarning("No Vertex AI service account JSON provided; skipping credential creation.");
+            return null;
+        }
         _logger.LogDebug("Validating and preparing service account JSON with length: {Length}", _keyJsonContent.Length);
         
         // Validate JSON before passing to GoogleCredential
