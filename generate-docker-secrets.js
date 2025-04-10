@@ -12,14 +12,19 @@ function parseSecretsOutput(output) {
                 // Last key, assign value
                 let finalValue = valueString
                 // Check for JSON object/array structure
-                try {
-                    finalValue = JSON.parse(valueString.trim())
-                    console.log(`Successfully parsed JSON for key "${keyPath}"`)
-                } catch (e) {
-                    console.warn(
-                        `Value for key "${keyPath}" looks like JSON but failed to parse: ${e.message}. Storing as string.`,
-                    )
-                    finalValue = valueString // Store raw string if parsing fails
+                if (keyPath === "VertexAI:KeyJsonContent") {
+                    console.log(`Storing raw string for special key "${keyPath}"`)
+                    finalValue = valueString // Store the raw string directly
+                } else {
+                    try {
+                        finalValue = JSON.parse(valueString.trim())
+                        console.log(`Successfully parsed JSON for key "${keyPath}"`)
+                    } catch (e) {
+                        console.warn(
+                            `Value for key "${keyPath}" looks like JSON but failed to parse: ${e.message}. Storing as string.`,
+                        )
+                        finalValue = valueString // Store raw string if parsing fails
+                    }
                 }
                 currentLevel[k] = finalValue
             } else {
