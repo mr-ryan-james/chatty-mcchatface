@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Net.Http;
 using System;
+using Xunit.Abstractions;
 
 namespace ChattyMcChatface.Tests.Integration.AI.Providers
 {
@@ -18,13 +19,15 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
         private readonly IConfiguration _config;
         private readonly ILogger<VertexAiProvider> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ITestOutputHelper _output;
 
-        public VertexAiProviderIntegrationTests(IntegrationTestFixture fixture)
+        public VertexAiProviderIntegrationTests(IntegrationTestFixture fixture, ITestOutputHelper output)
         {
             _fixture = fixture;
             _config = _fixture.Configuration;
             _logger = _fixture.Services.GetRequiredService<ILogger<VertexAiProvider>>();
             _httpClientFactory = _fixture.Services.GetRequiredService<IHttpClientFactory>();
+            _output = output;
         }
 
         [Fact]
@@ -95,8 +98,8 @@ namespace ChattyMcChatface.Tests.Integration.AI.Providers
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Test error: {ex.GetType().Name}: {ex.Message}");
-                Console.Error.WriteLine(ex.StackTrace);
+                _output.WriteLine($"Test error: {ex.GetType().Name}: {ex.Message}");
+                _output.WriteLine(ex.StackTrace ?? "No stack trace available.");
                 throw; // Re-throw for xUnit
             }
         }
