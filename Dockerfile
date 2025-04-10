@@ -43,11 +43,11 @@ COPY --from=dotnet_build /app/publish .
 
 # Copy built Angular frontend from build stage into wwwroot
 COPY --from=angular_build /app/angular-client/dist/angular-client/browser ./wwwroot
-
+COPY dotnet_server/ChattyMcChatface.Data/chatty.db ./chatty.db
 # Set environment variable for ASP.NET Core port
 ENV ASPNETCORE_URLS=http://+:8080
 
 # WARNING: TEMPORARY DEBUGGING STEP - EXPOSES SECRETS IN LOGS
 # This entrypoint modification prints the content of the mounted secrets file.
 # REMOVE THIS MODIFICATION IMMEDIATELY AFTER VERIFYING THE VOLUME MOUNT.
-ENTRYPOINT ["sh", "-c", "echo '--- START appsettings.Docker.json ---' && cat /app/appsettings.Docker.json && echo '--- END appsettings.Docker.json ---' && echo 'Starting application...' && dotnet ChattyMcChatface.Api.dll"]
+ENTRYPOINT ["dotnet", "ChattyMcChatface.Api.dll"]

@@ -5,6 +5,7 @@ using ChattyMcChatface.Data; // Assuming this is where AppDbContext is
 using Microsoft.EntityFrameworkCore; // For UseSqlite, UseNpgsql etc.
 using Microsoft.AspNetCore.Authentication.JwtBearer; // For JWT authentication
 using Microsoft.IdentityModel.Tokens; // For TokenValidationParameters
+using System.Net.Http; // Add this line
 using System.Text; // For Encoding
 using Microsoft.OpenApi.Models;
 
@@ -65,8 +66,42 @@ namespace ChattyMcChatface.Api
             builder.Services.AddScoped<IPersonaService, PersonaService>();
             builder.Services.AddSingleton<IPersonaConfigService, PersonaConfigService>(); // Singleton as it reads from a file
             builder.Services.AddScoped<INotificationService, SignalRNotificationService>(); // Assuming SignalRNotificationService exists
+            builder.Services.AddHttpClient(); // Add this line
 
-            // Register AI Model Providers/Holders (adjust lifetimes as needed)
+                        // Register AI Model Providers/Holders (adjust lifetimes as needed)
+            
+                        // Register AI Providers (Scoped lifetime is often suitable)
+                        builder.Services.AddScoped<OpenAiProvider>();
+                        builder.Services.AddScoped<AzureAiProvider>(sp =>
+                        {
+                            var config = sp.GetRequiredService<IConfiguration>();
+                            var logger = sp.GetRequiredService<ILogger<AzureAiProvider>>();
+                            
+                            // Assuming configuration keys like "AzureOpenAI:ApiKey" and "AzureOpenAI:Endpoint"
+                            // Adjust these keys if they are different (e.g., nested under specific deployment names like "Thrivify")
+                            // For simplicity, let's assume top-level keys for now. If this fails, we might need to adjust based on actual config structure.
+                            string? apiKey = config["AzureOpenAI:ApiKey"];
+                            string? endpoint = config["AzureOpenAI:Endpoint"];
+                        
+                            if (string.IsNullOrEmpty(apiKey))
+                            {
+                                throw new InvalidOperationException("Azure OpenAI API key ('AzureOpenAI:ApiKey') is not configured.");
+                            }
+                            if (string.IsNullOrEmpty(endpoint))
+                            {
+                                throw new InvalidOperationException("Azure OpenAI endpoint ('AzureOpenAI:Endpoint') is not configured.");
+                            }
+                        
+                            return new AzureAiProvider(apiKey, endpoint, logger);
+                        });
+                        builder.Services.AddScoped<ClaudeProvider>();
+                        builder.Services.AddScoped<GeminiProvider>();
+                        builder.Services.AddScoped<VertexAiProvider>();
+            
+                        // Optional: Register HttpClient for providers that need it (if not already handled internally)
+                        // builder.Services.AddHttpClient<OpenAiProvider>(); // Example
+                        // builder.Services.AddHttpClient<AzureAiProvider>(); // Example
+                        // ... add others if needed ...
             // Register individual AI providers if needed, e.g.:
             // builder.Services.AddHttpClient<OpenAiProvider>(); // If using HttpClientFactory
             // builder.Services.AddScoped<IAiProvider, OpenAiProvider>(); // Example if using a common interface

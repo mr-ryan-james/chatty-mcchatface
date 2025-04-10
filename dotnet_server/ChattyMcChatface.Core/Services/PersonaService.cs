@@ -24,11 +24,11 @@ namespace ChattyMcChatface.Core.Services
         private readonly INotificationService _notificationService;
         
         // Model-specific service dependencies
-        private readonly OpenAiModels _openAiModels;
-        private readonly AzureAiModels _azureAiModels;
-        private readonly ClaudeModels _claudeModels;
-        private readonly GeminiModels _geminiModels;
-        private readonly VertexAiModels _vertexAiModels;
+        private readonly OpenAiProvider _openAiProvider;
+        private readonly AzureAiProvider _azureAiProvider;
+        private readonly ClaudeProvider _claudeProvider;
+        private readonly GeminiProvider _geminiProvider;
+        private readonly VertexAiProvider _vertexAiProvider;
 
         // Constants
         private const int MaxHistoryMessages = 20;
@@ -38,22 +38,22 @@ namespace ChattyMcChatface.Core.Services
             IPersonaConfigService personaConfigService,
             ILogger<PersonaService> logger,
             INotificationService notificationService,
-            OpenAiModels openAiModels,
-            AzureAiModels azureAiModels,
-            ClaudeModels claudeModels,
-            GeminiModels geminiModels,
-            VertexAiModels vertexAiModels
+            OpenAiProvider openAiProvider,
+            AzureAiProvider azureAiProvider,
+            ClaudeProvider claudeProvider,
+            GeminiProvider geminiProvider,
+            VertexAiProvider vertexAiProvider
             )
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _personaConfigService = personaConfigService ?? throw new ArgumentNullException(nameof(personaConfigService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-            _openAiModels = openAiModels ?? throw new ArgumentNullException(nameof(openAiModels));
-            _azureAiModels = azureAiModels ?? throw new ArgumentNullException(nameof(azureAiModels));
-            _claudeModels = claudeModels ?? throw new ArgumentNullException(nameof(claudeModels));
-            _geminiModels = geminiModels ?? throw new ArgumentNullException(nameof(geminiModels));
-            _vertexAiModels = vertexAiModels ?? throw new ArgumentNullException(nameof(vertexAiModels));
+            _openAiProvider = openAiProvider ?? throw new ArgumentNullException(nameof(openAiProvider));
+            _azureAiProvider = azureAiProvider ?? throw new ArgumentNullException(nameof(azureAiProvider));
+            _claudeProvider = claudeProvider ?? throw new ArgumentNullException(nameof(claudeProvider));
+            _geminiProvider = geminiProvider ?? throw new ArgumentNullException(nameof(geminiProvider));
+            _vertexAiProvider = vertexAiProvider ?? throw new ArgumentNullException(nameof(vertexAiProvider));
         }
 
         public async Task GenerateResponseAsync(int chatroomId, ChatMessageDto triggeringMessage)
@@ -128,31 +128,31 @@ namespace ChattyMcChatface.Core.Services
                             {
                                 // OpenAI Cases
                                 case AiModels.OpenAiGpt4oLatest:
-                                    return await _openAiModels.Gpt4oLatest(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _openAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.OpenAiGpt4o2024:
-                                    return await _openAiModels.Gpt4o2024(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _openAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.OpenAiGpt45Preview:
-                                    return await _openAiModels.Gpt45Preview(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _openAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
 
                                 // Azure Cases
                                 case AiModels.AzureGpt4oThrivify:
-                                    return await _azureAiModels.Gpt4oThrivify(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _azureAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.AzureGpt45PreviewRyan:
-                                    return await _azureAiModels.Gpt45PreviewRyan(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _azureAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
 
                                 // Claude Cases
                                 case AiModels.Claude37Sonnet:
-                                    return await _claudeModels.Claude37Sonnet(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _claudeProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
 
                                 // Gemini Cases
                                 case AiModels.Gemini20Flash:
-                                    return await _geminiModels.Gemini20Flash(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _geminiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.Gemini25Pro:
-                                    return await _geminiModels.Gemini25Pro(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _geminiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
 
                                 // Vertex Cases
                                 case AiModels.Claude37SonnetVertex:
-                                    return await _vertexAiModels.Claude37SonnetVertex(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await _vertexAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
 
                                 default:
                                     _logger.LogWarning("Handler in AiFallbackUtil encountered unknown modelId: {ModelId}", modelId);
