@@ -46,7 +46,6 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
             openAiModels.Gpt4oLatest.Should().NotBeNull();
             openAiModels.Gpt4o2024.Should().NotBeNull();
             openAiModels.Gpt45Preview.Should().NotBeNull();
-            openAiModels.Gpt35Turbo.Should().NotBeNull();
         }
     }
 }

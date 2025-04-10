@@ -17,7 +17,6 @@ public class ClaudeModels
     // Pre-configured model-specific functions (delegates)
     // Make properties virtual so they can be mocked by Moq
     public virtual Func<string, List<ChatMessageDto>, Task<string?>> Claude37Sonnet { get; }
-    public virtual Func<string, List<ChatMessageDto>, Task<string?>> ClaudeInstant { get; }
 
     /// <summary>
     /// Initializes the ClaudeModels class by creating configured delegates using the factory.
@@ -31,10 +30,8 @@ public class ClaudeModels
         var logger = serviceProvider.GetRequiredService<ILogger<ClaudeProvider>>(); 
 
         // Create and store the delegates using the factory
-        Claude37Sonnet = ClaudeProviderFactory.CreateClaudeCompletionProvider(
+        Claude37Sonnet = ClaudeProviderFactory.CreateClaudeDelegate(
             configuration, logger, AiModels.Claude37Sonnet, 0.7);
 
-        ClaudeInstant = ClaudeProviderFactory.CreateClaudeCompletionProvider(
-            configuration, logger, AiModels.ClaudeInstant, 0.8); // Example different temp
     }
 }

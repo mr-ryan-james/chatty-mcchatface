@@ -9,17 +9,16 @@
         id="chatContainer"
         style="overflow-y: auto; max-height: 500px"
       >
+        <!-- Persona info near chat title -->
+        <div *ngIf="personaConfig" class="persona-info">
+          <small>Chatting with: {{ personaConfig.displayName }}</small>
+        </div>
+        >
         <article
           *ngFor="let chat of chats"
-          [ngClass]="{
-            'persona-message': chat.userId === personaId,
-            'user-message': chat.userId !== personaId
-          }"
+          [ngClass]="{ 'persona-message': chat.userId === personaUserId }"
         >
-          <div
-            class="testimonial"
-            [ngClass]="{ 'persona-testimonial': chat.userId === personaId }"
-          >
+          <div class="testimonial">
             <blockquote>
               <p>{{ chat.text }}</p>
             </blockquote>
@@ -28,13 +27,19 @@
           <div class="author-wrapper">
             <div class="arrow"></div>
             <div class="cite">
-              <!-- Use userName if available, otherwise fallback to user object -->
-              <ng-container *ngIf="chat.userName; else userFullName">
-                {{ chat.userName }}
-              </ng-container>
-              <ng-template #userFullName>
-                {{ chat.user?.firstName }} {{ chat.user?.lastName }}
-              </ng-template>
+              <span class="sender-name">
+                <ng-container
+                  *ngIf="chat.userId === personaUserId; else regularUser"
+                >
+                  {{ personaConfig?.displayName }}:
+                </ng-container>
+                <ng-template #regularUser>
+                  {{
+                    chat.userName ||
+                      chat.user?.firstName + " " + chat.user?.lastName
+                  }}:
+                </ng-template>
+              </span>
               <span>
                 {{ chat.date | date : "short" }}
               </span>

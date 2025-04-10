@@ -133,8 +133,6 @@ namespace ChattyMcChatface.Core.Services
                                     return await _openAiModels.Gpt4o2024(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.OpenAiGpt45Preview:
                                     return await _openAiModels.Gpt45Preview(config.SystemPrompt, historyDtoList) ?? string.Empty;
-                                case AiModels.OpenAiGpt35Turbo:
-                                    return await _openAiModels.Gpt35Turbo(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Azure Cases
                                 case AiModels.AzureGpt4oThrivify:
@@ -145,8 +143,6 @@ namespace ChattyMcChatface.Core.Services
                                 // Claude Cases
                                 case AiModels.Claude37Sonnet:
                                     return await _claudeModels.Claude37Sonnet(config.SystemPrompt, historyDtoList) ?? string.Empty;
-                                case AiModels.ClaudeInstant:
-                                    return await _claudeModels.ClaudeInstant(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Gemini Cases
                                 case AiModels.Gemini20Flash:

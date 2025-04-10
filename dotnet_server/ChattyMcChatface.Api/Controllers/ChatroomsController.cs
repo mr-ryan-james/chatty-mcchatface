@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
+using ChattyMcChatface.Core.Services;
 using ChattyMcChatface.Data;
 using ChattyMcChatface.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -19,10 +20,19 @@ public class ChatroomsController : BaseApiController
     private readonly AppDbContext _context;
     private readonly IHubContext<ChatHub> _hubContext;
 
-    public ChatroomsController(AppDbContext context, IHubContext<ChatHub> hubContext)
+    private readonly IPersonaConfigService _personaConfigService;
+    private readonly IPersonaService _personaService;
+
+    public ChatroomsController(
+        AppDbContext context,
+        IHubContext<ChatHub> hubContext,
+        IPersonaConfigService personaConfigService,
+        IPersonaService personaService)
     {
         _context = context;
         _hubContext = hubContext;
+        _personaConfigService = personaConfigService;
+        _personaService = personaService;
     }
 
     [HttpGet]
@@ -72,12 +82,37 @@ public class ChatroomsController : BaseApiController
         var users = await _context.Users
             .Where(u => createChatroomDto.UserIds.Contains(u.Id) || u.Id == currentUserId)
             .ToListAsync();
+
+        // Validate PersonaUserId if provided
+        if (!string.IsNullOrEmpty(createChatroomDto.PersonaUserId))
+        {
+            if (!int.TryParse(createChatroomDto.PersonaUserId, out int personaUserId))
+            {
+                return BadRequest("Invalid persona user id");
+            }
+
+            var personaUser = await _context.Users.FindAsync(personaUserId);
+            if (personaUser == null || !personaUser.IsPersona)
+            {
+                return BadRequest("Invalid persona user id");
+            }
+
+            // Add persona user to chatroom users if not already included
+            if (!users.Any(u => u.Id == personaUserId))
+            {
+                users.Add(personaUser);
+            }
+
+            // Assign int? PersonaUserId
+            createChatroomDto.PersonaUserId = personaUserId.ToString();
+        }
         
         // Create new chatroom
         var chatroom = new Chatroom
         {
             Title = createChatroomDto.Title,
-            Users = users
+            Users = users,
+            PersonaUserId = !string.IsNullOrEmpty(createChatroomDto.PersonaUserId) ? int.Parse(createChatroomDto.PersonaUserId) : null
         };
         
         _context.Chatrooms.Add(chatroom);
@@ -152,55 +187,56 @@ public class ChatroomsController : BaseApiController
                     ChatroomId = m.ChatroomId
                 }).ToList()
         };
+
+        if (chatroom.PersonaUserId.HasValue)
+        {
+            var personaConfig = _personaConfigService.GetConfig(chatroom.PersonaUserId.Value);
+            chatroomDetailDto.PersonaConfig = personaConfig;
+        }
         
         return Ok(chatroomDetailDto);
     }
 
     [HttpPost("{id}/chats")]
     [Authorize]
-    public async Task<ActionResult<ChatMessageDto>> AddChatMessage(int id, CreateMessageDto createMessageDto)
+    public async Task<ActionResult<ChatMessageDto>> AddChatMessage(ChatMessageDto chatMessageDto)
     {
         int currentUserId = GetCurrentUserId();
-        
-        // Get chatroom and check if exists
+
         var chatroom = await _context.Chatrooms
             .Include(c => c.Users)
-            .FirstOrDefaultAsync(c => c.Id == id);
-            
+            .FirstOrDefaultAsync(c => c.Id == chatMessageDto.ChatroomId);
+
         if (chatroom == null)
         {
             return NotFound();
         }
-        
-        // Check if user is part of the chatroom
+
         if (!chatroom.Users.Any(u => u.Id == currentUserId))
         {
             return Forbid();
         }
-        
-        // Get current user for navigation property
+
         var user = await _context.Users.FindAsync(currentUserId);
-        
+
         if (user == null)
         {
             return Unauthorized();
         }
-        
-        // Create chat message
+
         var chatMessage = new ChatMessage
         {
-            Text = createMessageDto.Text,
+            Text = chatMessageDto.Text,
             UserId = currentUserId,
             User = user,
-            ChatroomId = id,
+            ChatroomId = chatroom.Id,
             Chatroom = chatroom
         };
-        
+
         _context.ChatMessages.Add(chatMessage);
         await _context.SaveChangesAsync();
-        
-        // Map to DTO for response
-        var chatMessageDto = new ChatMessageDto
+
+        var savedChatMessageDto = new ChatMessageDto
         {
             Id = chatMessage.Id,
             Text = chatMessage.Text,
@@ -210,11 +246,16 @@ public class ChatroomsController : BaseApiController
             UserLastName = user.LastName,
             ChatroomId = chatMessage.ChatroomId
         };
-        
-        // Broadcast the message to all clients connected to the specific chatroom group via SignalR
-        await _hubContext.Clients.Group(id.ToString()).SendAsync("ReceiveMessage", id, chatMessageDto);
-        
-        return CreatedAtAction(nameof(GetChatroom), new { id = chatroom.Id }, chatMessageDto);
+
+        await _hubContext.Clients.Group(chatroom.Id.ToString()).SendAsync("ReceiveMessage", chatroom.Id, savedChatMessageDto);
+
+        // If persona is assigned, generate persona response
+        if (chatroom.PersonaUserId.HasValue)
+        {
+            await _personaService.GenerateResponseAsync(chatroom.Id, savedChatMessageDto);
+        }
+
+        return CreatedAtAction(nameof(GetChatroom), new { id = chatroom.Id }, savedChatMessageDto);
     }
 
     [HttpPut("{id}")]

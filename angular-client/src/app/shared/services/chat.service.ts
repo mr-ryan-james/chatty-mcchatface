@@ -6,6 +6,13 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { User } from './user.service';
 
+export interface PersonaConfig {
+  personaUserId: number;
+  displayName: string;
+  systemPrompt: string;
+  preferredModelId: string;
+}
+
 // Define interfaces matching .NET DTOs
 export interface ChatMessageDto {
   id: string;
@@ -24,15 +31,19 @@ export interface ChatroomDto {
   userIds: string[];
   users?: User[];
   lastActivity?: Date;
+  personaUserId?: string | null;
 }
 
 export interface ChatroomDetailDto extends ChatroomDto {
+  personaUserId?: string | null;
+  personaConfig?: PersonaConfig | null;
   chats: ChatMessageDto[];
 }
 
 export interface CreateChatroomDto {
   name: string;
   userIds: string[];
+  personaUserId?: string | null;
 }
 
 export interface UpdateChatroomDto {
@@ -50,6 +61,9 @@ export interface CreateMessageDto {
   providedIn: 'root',
 })
 export class ChatService {
+  getPersonas(): Observable<PersonaConfig[]> {
+    return this.http.get<PersonaConfig[]>(`${environment.apiUrl}/personas`);
+  }
   // Mock data for development (fallback if API is not available)
   private mockChatrooms: ChatroomDto[] = [
     {
@@ -185,32 +199,6 @@ export class ChatService {
       .pipe(catchError(this.handleError));
   }
 
-  // Get chatroom persona details
-  getChatroomPersona(chatroomId: string): Observable<User> {
-    console.log(`Fetching persona for chatroom with ID: ${chatroomId}`);
-    return this.http
-      .get<User>(
-        `${environment.apiUrl}/chatrooms/${chatroomId}/persona`,
-        this.getAuthHeaders()
-      )
-      .pipe(catchError(this.handleError));
-  }
-
-  // Get chatroom messages including those from the persona
-  getChatroomMessagesWithPersona(
-    chatroomId: string
-  ): Observable<ChatMessageDto[]> {
-    console.log(
-      `Fetching messages with persona for chatroom with ID: ${chatroomId}`
-    );
-    return this.http
-      .get<ChatMessageDto[]>(
-        `${environment.apiUrl}/chatrooms/${chatroomId}/messagesWithPersona`,
-        this.getAuthHeaders()
-      )
-      .pipe(catchError(this.handleError));
-  }
-
   // Update a chatroom
   updateChatroom(
     id: string,
@@ -267,9 +255,9 @@ export class ChatService {
 
   // Load messages including persona messages
   private loadMessagesWithPersona(chatroomId: string): void {
-    this.getChatroomMessagesWithPersona(chatroomId).subscribe((messages) => {
-      if (messages) {
-        this.messagesByRoom[chatroomId].next(messages);
+    this.getChatroom(chatroomId).subscribe((room) => {
+      if (room && room.chats) {
+        this.messagesByRoom[chatroomId].next(room.chats);
       }
     });
   }

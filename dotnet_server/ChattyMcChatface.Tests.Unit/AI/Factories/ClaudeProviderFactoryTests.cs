@@ -33,7 +33,7 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
         public void CreateClaudeCompletionProvider_ReturnsNonNullDelegate()
         {
             // Act
-            var completionDelegate = ClaudeProviderFactory.CreateClaudeCompletionProvider(
+            var completionDelegate = ClaudeProviderFactory.CreateClaudeDelegate(
                 _mockConfiguration.Object,
                 _mockLogger.Object,
                 _testModelId);
@@ -63,24 +63,6 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             testProvider.GetCompletionAsyncCallCount.Should().Be(1);
         }
 
-        [Fact]
-        public async Task InvokedDelegate_WithDifferentModelId_CallsGetCompletionAsyncWithThatModelId()
-        {
-            // Arrange
-            var customModelId = AiModels.ClaudeInstant;
-            var testProvider = new TestableClaudeProvider(_mockConfiguration.Object, _mockLogger.Object);
-            
-            // Setup a delegate that uses our testable provider
-            var completionDelegate = async (string systemPrompt, List<ChatMessageDto> history) =>
-                await testProvider.GetCompletionAsync(systemPrompt, history, customModelId);
-
-            // Act
-            await completionDelegate(_testSystemPrompt, _testHistory);
-
-            // Assert
-            testProvider.LastUsedModelId.Should().Be(customModelId);
-            testProvider.GetCompletionAsyncCallCount.Should().Be(1);
-        }
 
         // Test helper class to track calls to GetCompletionAsync
         private class TestableClaudeProvider : ClaudeProvider

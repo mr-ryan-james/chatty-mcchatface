@@ -35,6 +35,15 @@
   border-radius: 4px;
 }
 
+.persona-message {
+  background-color: #f0f8ff; /* Light blue background */
+  border-left: 3px solid #add8e6; /* Light blue border */
+  padding-left: 8px;
+  /* Add display: block or adjust as needed if the container is inline */
+  display: block;
+  margin-bottom: 5px; /* Optional: Add some spacing */
+}
+
 .persona-name {
   font-weight: bold;
   color: #00a86b;
@@ -76,4 +85,10 @@
 
 .mt-2 {
   margin-top: 0.5rem;
+}
+
+.persona-info {
+  font-style: italic;
+  color: #555;
+  margin-bottom: 10px;
 }

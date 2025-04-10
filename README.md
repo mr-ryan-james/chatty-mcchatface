@@ -115,6 +115,82 @@ following command from the project root directory (`/Users/ryanpfister/Dev/chatt
 dotnet user-secrets list --project dotnet_server/ChattyMcChatface.Api
 ```
 
+## Getting Started for Developers
+
+This section provides a high-level overview for developers looking to contribute to either the
+backend or frontend of ChattyMcChatface.
+
+### Project Structure
+
+The project is organized into two main parts:
+
+-   **`dotnet_server/`**: Contains the .NET 8 backend API.
+    -   `ChattyMcChatface.Api/`: ASP.NET Core Web API project (controllers, SignalR hub,
+        `Program.cs`).
+    -   `ChattyMcChatface.Core/`: Core business logic, services (including AI providers), DTOs.
+    -   `ChattyMcChatface.Data/`: Entity Framework Core setup, DbContext, entities, migrations
+        (using SQLite).
+    -   `ChattyMcChatface.Tests.Unit/`: Unit tests.
+    -   `ChattyMcChatface.Tests.Integration/`: Integration tests (may require secrets).
+-   **`angular-client/`**: Contains the Angular frontend application.
+    -   `src/app/`: Main application code (modules, components, services).
+    -   `src/app/shared/services/`: Core services for API interaction (e.g., `chat.service.ts`,
+        `auth.service.ts`, `signalr.service.ts`).
+    -   `src/environments/`: Environment configuration (API URLs).
+
+### Backend Development (.NET)
+
+-   **Technology**: .NET 8, ASP.NET Core Web API, Entity Framework Core, SignalR.
+-   **Database**: SQLite (`dotnet_server/ChattyMcChatface.Data/chatty.db`). Migrations are managed
+    via EF Core (`dotnet ef migrations add ...`, `dotnet ef database update ...` within the
+    `dotnet_server/ChattyMcChatface.Api` directory).
+-   **Running**: Navigate to `dotnet_server/ChattyMcChatface.Api` and run `dotnet run`.
+-   **Testing**: Navigate to the respective test project directory (`Tests.Unit` or
+    `Tests.Integration`) and run `dotnet test`. Integration tests require secrets.
+-   **Configuration/Secrets**: API keys for AI providers are managed using .NET User Secrets. Set
+    them using
+    `dotnet user-secrets set "Provider:KeyName" "KeyValue" --project dotnet_server/ChattyMcChatface.Api`.
+    See `secrets.example.json` for expected keys.
+-   **AI Integration**: The system uses a provider model (`IAiProvider`) with specific
+    implementations (OpenAI, Azure, Gemini, Claude, Vertex). `PersonaService` orchestrates responses
+    using `AiFallbackUtil` and provider-specific delegates configured via factories and singleton
+    model classes. See `documentation/ai_provider_development_guide.md` and
+    `documentation/persona_model_mapping.md` for details.
+-   **Real-time**: SignalR is used for real-time communication
+    (`dotnet_server/ChattyMcChatface.Api/Hubs/ChatHub.cs`).
+
+### Frontend Development (Angular)
+
+-   **Technology**: Angular, TypeScript, RxJS.
+-   **Running**: Navigate to `angular-client/` and run `npm install` (if needed), then `ng serve`.
+    The app will be available at `http://localhost:4200`.
+-   **API Interaction**: Uses Angular's `HttpClient` within services found in
+    `src/app/shared/services/`. Base API URL is configured in `src/environments/`.
+-   **Real-time**: Connects to the backend SignalR hub via `@microsoft/signalr` library, managed by
+    `src/app/shared/services/signalr.service.ts`.
+-   **Components**: Feature components are organized within `src/app/` (e.g., `chat/`, `user/`,
+    `auth/`).
+
+### Combined Development
+
+The easiest way to run both backend and frontend for development is using the script in the root
+`package.json`:
+
+```bash
+# From the root project directory
+npm run dev
+```
+
+This uses `concurrently` to start both the .NET API and the Angular development server.
+
+### Further Documentation
+
+More detailed guides can be found in the `documentation/` directory, including:
+
+-   `ai_provider_development_guide.md`
+-   `persona_model_mapping.md`
+-   `ai-persona-plan-overview.md` (and backend/frontend specifics)
+
 ---
 
 #### Technologies used in this application

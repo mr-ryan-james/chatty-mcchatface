@@ -19,7 +19,6 @@ public class OpenAiModels
     public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt4oLatest { get; }
     public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt4o2024 { get; }
     public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt45Preview { get; }
-    public virtual Func<string, List<ChatMessageDto>, Task<string?>> Gpt35Turbo { get; }
 
     /// <summary>
     /// Initializes the OpenAiModels class by creating configured delegates using the factory.
@@ -42,7 +41,5 @@ public class OpenAiModels
         Gpt45Preview = OpenAiProviderFactory.CreateOpenAiCompletionProvider(
             configuration, logger, AiModels.OpenAiGpt45Preview, 0.5); // Example different temp
 
-        Gpt35Turbo = OpenAiProviderFactory.CreateOpenAiCompletionProvider(
-            configuration, logger, AiModels.OpenAiGpt35Turbo, 0.8); // Example different temp
     }
 }

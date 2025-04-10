@@ -18,8 +18,6 @@ public static class AiFallbackUtil
     public static readonly IReadOnlyList<string> GlobalModelPriority = new List<string>
     {
         AiModels.Gemini20Flash,       // Start with faster models
-        AiModels.OpenAiGpt35Turbo,
-        AiModels.ClaudeInstant,
         AiModels.OpenAiGpt4oLatest,   // Move to more capable models
         AiModels.Gemini25Pro,
         AiModels.Claude37Sonnet,

@@ -9,7 +9,6 @@ public static class AiModels
     public const string OpenAiGpt4oLatest = "chatgpt-4o-latest";
     public const string OpenAiGpt4o2024 = "gpt-4o-2024-11-20";
     public const string OpenAiGpt45Preview = "gpt-4.5-preview-2025-02-27";
-    public const string OpenAiGpt35Turbo = "gpt-3.5-turbo"; // Added from original personas.json
 
     // Azure OpenAI (Using custom identifiers for routing logic)
     public const string AzureGpt4oThrivify = "gpt-4o";
@@ -17,7 +16,6 @@ public static class AiModels
 
     // Claude (Anthropic)
     public const string Claude37Sonnet = "claude-3-7-sonnet-20250219";
-    public const string ClaudeInstant = "claude-instant"; // Added from original personas.json
 
     // Gemini (Google)
     public const string Gemini20Flash = "gemini-2.0-flash";

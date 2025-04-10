@@ -66,24 +66,6 @@ namespace ChattyMcChatface.Tests.Unit.AI.Factories
             testProvider.GetCompletionAsyncCallCount.Should().Be(1);
         }
 
-        [Fact]
-        public async Task InvokedDelegate_WithDifferentModelId_CallsGetCompletionAsyncWithThatModelId()
-        {
-            // Arrange
-            var customModelId = AiModels.OpenAiGpt35Turbo;
-            var testProvider = new TestableOpenAiProvider(_mockConfiguration.Object, _mockLogger.Object);
-            
-            // Setup a delegate that uses our testable provider
-            var completionDelegate = async (string systemPrompt, List<ChatMessageDto> history) =>
-                await testProvider.GetCompletionAsync(systemPrompt, history, customModelId);
-
-            // Act
-            await completionDelegate(_testSystemPrompt, _testHistory);
-
-            // Assert
-            testProvider.LastUsedModelId.Should().Be(customModelId);
-            testProvider.GetCompletionAsyncCallCount.Should().Be(1);
-        }
 
         // Test helper class to track calls to GetCompletionAsync
         private class TestableOpenAiProvider : OpenAiProvider

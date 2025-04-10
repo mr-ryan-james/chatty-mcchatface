@@ -20,8 +20,8 @@ public static class ClaudeProviderFactory
     /// <param name="modelId">The specific Claude model ID to use.</param>
     /// <param name="temperature">The temperature setting for the model (optional).</param>
     /// <returns>An async function delegate for getting completions.</returns>
-    public static Func<string, List<ChatMessageDto>, Task<string?>> CreateClaudeCompletionProvider(
-        IConfiguration configuration,
+public static Func<string, List<ChatMessageDto>, Task<string?>> CreateClaudeDelegate(
+    IConfiguration configuration,
         ILogger<ClaudeProvider> logger, // Logger specifically for ClaudeProvider
         string modelId,
         double temperature = 0.7) // Default temperature if not specified

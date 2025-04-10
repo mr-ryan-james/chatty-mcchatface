@@ -53,7 +53,6 @@ namespace ChattyMcChatface.Tests.Unit.AI.ModelClasses
 
             // Assert
             claudeModels.Claude37Sonnet.Should().NotBeNull();
-            claudeModels.ClaudeInstant.Should().NotBeNull();
         }
     }
 }
