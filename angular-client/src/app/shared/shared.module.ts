@@ -1,10 +1,10 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UserNamesPipe } from './pipes/user-names.pipe';
+// UserNamesPipe is standalone and imported directly where needed
 
 @NgModule({
-  declarations: [UserNamesPipe],
+  declarations: [], // Standalone pipes are not declared in NgModules
   imports: [CommonModule],
-  exports: [UserNamesPipe],
+  exports: [], // Standalone pipes are not exported from NgModules
 })
 export class SharedModule {}

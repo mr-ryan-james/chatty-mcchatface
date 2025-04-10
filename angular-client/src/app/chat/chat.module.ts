@@ -11,16 +11,7 @@ import { ChatRoomComponent } from './chat-room/chat-room.component';
 import { SharedModule } from '../shared/shared.module';
 
 @NgModule({
-  declarations: [ChatComponent],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ChatRoutingModule,
-    SharedModule,
-    ChatMainComponent,
-    ChatListComponent,
-    ChatCreateComponent,
-    ChatRoomComponent,
-  ],
+  declarations: [ChatComponent], // Only declare non-standalone components belonging to this module
+  imports: [CommonModule, FormsModule, ChatRoutingModule, SharedModule],
 })
 export class ChatModule {}

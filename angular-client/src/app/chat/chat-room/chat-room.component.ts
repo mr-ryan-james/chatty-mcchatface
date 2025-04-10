@@ -17,7 +17,7 @@ import {
   CreateMessageDto,
 } from '../../shared/services/chat.service';
 import { PersonaConfig } from '../../shared/services/chat.service';
-import { User } from '../../shared/services/user.service';
+import { UserDto } from '../../shared/services/chat.service';
 import { SignalrService } from '../../shared/services/signalr.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { Subscription } from 'rxjs';
@@ -36,7 +36,7 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
   roomId: string = '';
   chatroom: ChatroomDetailDto | null = null;
   chats: ChatMessageDto[] = [];
-  usersInRoom: User[] = [];
+  usersInRoom: UserDto[] = [];
   text: string = '';
   shouldScrollToBottom: boolean = false;
   loading: boolean = false;
@@ -67,7 +67,7 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
 
         // Subscribe to the ChatService's message observable for real-time updates
         const messagesSub = this.chatService
-          .getChatroomMessages$(this.roomId, true)
+          .getChatroomMessages$(+this.roomId, true)
           .subscribe((messages: ChatMessageDto[]) => {
             this.chats = messages;
             this.shouldScrollToBottom = true;
@@ -107,7 +107,7 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.loading = true;
     this.error = '';
 
-    const roomSub = this.chatService.getChatroom(this.roomId).subscribe({
+    const roomSub = this.chatService.getChatroom(+this.roomId).subscribe({
       next: (chatroom) => {
         console.log('Loaded chatroom:', chatroom);
         this.chatroom = chatroom;
@@ -152,7 +152,7 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       // Only add if it's for our current room and not already in the list
       if (
-        message.chatroomId === this.roomId &&
+        message.chatroomId === +this.roomId &&
         !this.chats.some((m) => m.id === message.id)
       ) {
         this.chats.push(message);
@@ -204,17 +204,22 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     const currentUser = this.authService.getUserInfo();
+    if (!currentUser || !currentUser.id) {
+      console.error('Cannot send message, user not logged in or ID missing.');
+      return;
+    }
     const messageDto: ChatMessageDto = {
-      chatroomId: this.roomId,
-      userId: currentUser?.id || '', // Use optional chaining and provide a default value
-      userName: currentUser?.username || '', // Use optional chaining and provide a default value
+      chatroomId: +this.roomId,
+      userId: +currentUser.id,
       text: this.text,
-      date: new Date(), // Set timestamp on the client-side
-      id: '', // This will be assigned by the server
+      date: new Date(),
+      id: 0,
+      userFirstName: currentUser.firstName,
+      userLastName: currentUser.lastName,
     };
 
-    this.chatService.sendMessage(this.roomId, messageDto).subscribe(() => {
-      this.text = ''; // Clear the input field after successful send
+    this.chatService.sendMessage(+this.roomId, messageDto).subscribe(() => {
+      this.text = '';
     });
   }
 

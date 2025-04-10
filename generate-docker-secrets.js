@@ -1,62 +1,87 @@
-const { execSync } = require("child_process")
-const fs = require("fs")
-const path = require("path")
-
-const projectPath = "dotnet_server/ChattyMcChatface.Api"
-// Output file will be in the same directory as the script (project root)
-const outputFilePath = path.join(__dirname, "appsettings.Docker.json")
-
-try {
-    // 1. Execute dotnet user-secrets list
-    const command = `dotnet user-secrets list --project ${projectPath}`
-    console.log(`Executing: ${command}`)
-    // Ensure the command is executed from the project root where the script lives
-    const output = execSync(command, { encoding: "utf8", cwd: __dirname })
-    console.log("Raw secrets output received.") // Don't log raw secrets themselves
-
-    // 2. Parse the output (Key = Value format)
+function parseSecretsOutput(output) {
     const secrets = {}
     const lines = output.trim().split("\n")
+    let currentKey = null
+    let currentValueLines = []
 
-    lines.forEach((line) => {
-        const separatorIndex = line.indexOf(" = ")
-        if (separatorIndex > 0) {
-            const key = line.substring(0, separatorIndex).trim()
-            const value = line.substring(separatorIndex + 3).trim()
-
-            // 3. Reconstruct hierarchical JSON
-            const keys = key.split(":")
-            let currentLevel = secrets
-            keys.forEach((k, index) => {
-                if (index === keys.length - 1) {
-                    // Last key, assign value
-                    // Attempt to parse value as JSON if it looks like it (e.g., for VertexAI:KeyJsonContent)
-                    try {
-                        // A simple check: does it start with { and end with }?
-                        if (value.startsWith("{") && value.endsWith("}")) {
-                            currentLevel[k] = JSON.parse(value)
-                        } else {
-                            currentLevel[k] = value // Assign as string otherwise
-                        }
-                    } catch (e) {
-                        // If JSON parsing fails, assign as string
-                        currentLevel[k] = value
-                    }
-                } else {
-                    // Create nested object if it doesn't exist
-                    if (!currentLevel[k] || typeof currentLevel[k] !== "object") {
-                        currentLevel[k] = {}
-                    }
-                    currentLevel = currentLevel[k]
+    function processAndStoreValue(targetObj, keyPath, valueString) {
+        const keys = keyPath.split(":")
+        let currentLevel = targetObj
+        keys.forEach((k, index) => {
+            if (index === keys.length - 1) {
+                // Last key, assign value
+                let finalValue = valueString
+                // Check for JSON object/array structure
+                try {
+                    finalValue = JSON.parse(valueString.trim())
+                    console.log(`Successfully parsed JSON for key "${keyPath}"`)
+                } catch (e) {
+                    console.warn(
+                        `Value for key "${keyPath}" looks like JSON but failed to parse: ${e.message}. Storing as string.`,
+                    )
+                    finalValue = valueString // Store raw string if parsing fails
                 }
-            })
-        } else if (line.trim() && !line.includes("No secrets configured")) {
-            // Ignore empty lines and the 'no secrets' message
-            console.warn(`Skipping malformed line: ${line}`)
-        }
-    })
+                currentLevel[k] = finalValue
+            } else {
+                // Create nested object if it doesn't exist
+                if (!currentLevel[k] || typeof currentLevel[k] !== "object") {
+                    currentLevel[k] = {}
+                }
+                currentLevel = currentLevel[k]
+            }
+        })
+    }
 
-    // 4. Write to appsettings.Docker.json
+    for (const line of lines) {
+        // Use regex to find lines starting a key-value pair (Key = Value)
+        // Allows for spaces around '=' and captures key and first line of value
+        const match = line.match(/^([^\s=][^=]*?)\s*=\s*(.*)/)
+
+        if (match) {
+            // Found a new key. Process the previous key/value if any.
+            if (currentKey) {
+                processAndStoreValue(secrets, currentKey, currentValueLines.join("\n"))
+            }
+
+            // Start the new key/value
+            currentKey = match[1].trim()
+            currentValueLines = [match[2]] // Start new value array
+            // console.log(`Started key: ${currentKey}, first value line: ${match[2]}`); // Debugging
+        } else if (currentKey && line.trim() !== "") {
+            // If we have a currentKey and the line is not empty,
+            // and it didn't match the 'new key' regex, treat it as a continuation.
+            // This includes lines with leading whitespace AND the closing brace '}' which might not have it.
+            currentValueLines.push(line)
+        } else if (line.trim() && !line.includes("No secrets configured for this project")) {
+            // Log unexpected lines that aren't continuations or the "No secrets" message
+            console.warn(`Skipping unexpected/malformed line: ${line}`)
+        }
+    }
+
+    // Process the last key/value pair after the loop
+    if (currentKey) {
+        processAndStoreValue(secrets, currentKey, currentValueLines.join("\n"))
+    }
+
+    return secrets
+}
+
+try {
+    const { execSync } = require("child_process")
+    const fs = require("fs")
+    const path = require("path")
+
+    const projectPath = "dotnet_server/ChattyMcChatface.Api"
+    const outputFilePath = path.join(__dirname, "appsettings.Docker.json")
+
+    const command = `dotnet user-secrets list --project ${projectPath}`
+    console.log(`Executing: ${command}`)
+    const output = execSync(command, { encoding: "utf8", cwd: __dirname })
+    console.log("Raw secrets output received.")
+
+    // Use the new parsing function
+    const secrets = parseSecretsOutput(output)
+
     const jsonContent = JSON.stringify(secrets, null, 2) // Pretty print
     console.log(`\nWriting generated configuration structure to ${outputFilePath}`)
     fs.writeFileSync(outputFilePath, jsonContent)
@@ -67,6 +92,7 @@ try {
     if (error.stderr) {
         console.error(`stderr: ${error.stderr}`)
     }
-    // Avoid logging stdout on error as it might contain secrets if parsing failed mid-way
     process.exit(1)
 }
+
+module.exports = { parseSecretsOutput }

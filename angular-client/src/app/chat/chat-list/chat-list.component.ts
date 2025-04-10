@@ -1,22 +1,32 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../../shared/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import {
   ChatService,
   ChatroomDto,
   PersonaConfig,
+  CreateChatroomDto,
 } from '../../shared/services/chat.service';
 import { SignalrService } from '../../shared/services/signalr.service';
 import { Subscription } from 'rxjs';
 import { SharedModule } from '../../shared/shared.module';
+import { UserNamesPipe } from '../../shared/pipes/user-names.pipe'; // Import the pipe
 
 @Component({
   selector: 'app-chat-list',
   templateUrl: './chat-list.component.html',
   styleUrls: ['./chat-list.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, SharedModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    SharedModule,
+    FormsModule,
+    UserNamesPipe,
+  ],
 })
 export class ChatListComponent implements OnInit, OnDestroy {
   chatrooms: ChatroomDto[] = [];
@@ -31,7 +41,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private chatService: ChatService,
-    private signalrService: SignalrService
+    private signalrService: SignalrService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -128,10 +139,10 @@ export class ChatListComponent implements OnInit, OnDestroy {
     // First join the room via SignalR
     if (this.signalrService.isConnectedToHub()) {
       this.signalrService
-        .joinRoom(chatroom.id)
+        .joinRoom(chatroom.id.toString())
         .then(() => {
           // Then navigate to the room
-          this.router.navigate(['/chat/room', chatroom.id]);
+          this.router.navigate(['/chat/room', chatroom.id.toString()]);
         })
         .catch((err) => {
           console.error('Failed to join room:', err);
@@ -139,14 +150,22 @@ export class ChatListComponent implements OnInit, OnDestroy {
         });
     } else {
       // If not connected to SignalR, just navigate (connection will be handled in the room component)
-      this.router.navigate(['/chat/room', chatroom.id]);
+      this.router.navigate(['/chat/room', chatroom.id.toString()]);
     }
   }
 
   createChatroom(): void {
-    const newChatroom: any = {
+    const currentUserId = +(this.authService.getUserInfo()?.id || 0);
+    if (!currentUserId) {
+      console.error(
+        'Cannot create chatroom, user not logged in or ID missing.'
+      );
+      return;
+    }
+    const newChatroom: CreateChatroomDto = {
       title: this.newChatroomTitle,
-      personaUserId: this.selectedPersona,
+      personaUserId: this.selectedPersona ?? undefined,
+      userIds: [currentUserId],
     };
     this.chatService.createChatroom(newChatroom).subscribe({
       next: (createdChatroom) => {
@@ -163,7 +182,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
   }
 
   selectChatroom(chatroom: ChatroomDto): void {
-    this.selectedPersona = chatroom.personaUserId ?? null;
     this.enterChatroom(chatroom);
   }
 }

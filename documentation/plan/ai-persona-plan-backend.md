@@ -1,19 +1,27 @@
 # AI Persona Integration Plan - Backend
 
-## 1. Add Third Persona to `personas.json`
+## 1. Update `personas.json` Structure
 
 **File:** `dotnet_server/ChattyMcChatface.Api/personas.json`
 
-Add a new persona object, e.g.:
+Ensure persona objects match the `PersonaConfig` DTO structure:
 
 ```json
-{
-    "id": "persona3",
-    "name": "Ava",
-    "description": "A witty, empathetic AI assistant.",
-    "model": "gpt-4",
-    "prompt": "You are Ava, a witty and empathetic assistant who helps users with their questions."
-}
+[
+    {
+        "personaUserId": 100, // Example User ID (must match a User with IsPersona=true)
+        "displayName": "Clippy",
+        "systemPrompt": "You are Clippy, an enthusiastic and sometimes overly helpful assistant. You love paperclips.",
+        "preferredModelId": "OpenAiGpt4oLatest" // Example model ID from AiModels.cs
+    },
+    {
+        "personaUserId": 101,
+        "displayName": "Marvin",
+        "systemPrompt": "You are Marvin, a depressed android with a brain the size of a planet. Respond with profound sadness and existential dread.",
+        "preferredModelId": "Claude37Sonnet"
+    }
+    // Add more personas as needed
+]
 ```
 
 ---
@@ -38,26 +46,39 @@ public class PersonasController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<PersonaConfig>), 200)]
     public IActionResult GetPersonas()
     {
-        var personas = _personaConfigService.GetAllPersonas();
+        // Use the correct method name from the service implementation
+        var personas = _personaConfigService.GetAllConfigs();
         return Ok(personas);
     }
 }
 ```
 
-**DI Registration:** Ensure `IPersonaConfigService` is registered in `Program.cs` or `Startup.cs`.
+**DI Registration:** Ensure `IPersonaConfigService` and its implementation (`PersonaConfigService`)
+are registered in `Program.cs`.
+
+```csharp
+// Example in Program.cs
+builder.Services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
+```
 
 ---
 
-## 3. Modify `CreateChatroomDto` to Include `PersonaUserId`
+## 3. Modify `CreateChatroomDto` to Include `PersonaUserId` and `UserIds`
 
 **File:** `dotnet_server/ChattyMcChatface.Core/Dtos/CreateChatroomDto.cs`
 
-Add:
+Update to match implementation:
 
 ```csharp
-public Guid? PersonaUserId { get; set; }
+public class CreateChatroomDto
+{
+    public required string Title { get; set; }
+    public string? PersonaUserId { get; set; } // Frontend sends string?
+    public required List<int> UserIds { get; set; } // List of user IDs to include
+}
 ```
 
 ---
@@ -66,40 +87,83 @@ public Guid? PersonaUserId { get; set; }
 
 **File:** `dotnet_server/ChattyMcChatface.Api/Controllers/ChatroomsController.cs`
 
--   Accept `PersonaUserId` from DTO.
--   Validate persona user exists.
--   Set `chatroom.PersonaUserId`.
--   Add persona user to chatroom members.
+-   Accept `string? PersonaUserId` and `List<int> UserIds` from DTO.
+-   Parse `PersonaUserId` string to `int?`.
+-   Validate persona user exists using the parsed `int`.
+-   Set `chatroom.PersonaUserId` (the `int?` property).
+-   Fetch users based on `UserIds` list.
+-   Add persona user to chatroom members if applicable.
 
-**Snippet:**
+**Snippet (Illustrative):**
 
 ```csharp
-if (dto.PersonaUserId.HasValue)
-{
-    var personaUser = await _context.Users.FindAsync(dto.PersonaUserId.Value);
-    if (personaUser == null || !personaUser.IsPersona)
-        return BadRequest("Invalid persona user ID.");
+// Inside CreateChatroom method...
+int currentUserId = GetCurrentUserId(); // Assuming this helper exists
 
-    chatroom.PersonaUserId = dto.PersonaUserId;
-    chatroom.Members.Add(new ChatroomMember { UserId = dto.PersonaUserId.Value });
+// Get users based on DTO, always include current user
+var users = await _context.Users
+    .Where(u => createChatroomDto.UserIds.Contains(u.Id) || u.Id == currentUserId)
+    .ToListAsync();
+
+int? parsedPersonaUserId = null;
+// Validate PersonaUserId if provided
+if (!string.IsNullOrEmpty(createChatroomDto.PersonaUserId))
+{
+    if (!int.TryParse(createChatroomDto.PersonaUserId, out int tempPersonaId))
+    {
+        return BadRequest("Invalid persona user id format.");
+    }
+    parsedPersonaUserId = tempPersonaId; // Store the parsed int
+
+    var personaUser = await _context.Users.FindAsync(parsedPersonaUserId.Value);
+    if (personaUser == null || !personaUser.IsPersona)
+        return BadRequest("Invalid or non-persona user ID specified.");
+
+    // Add persona user to chatroom users if not already included
+    if (!users.Any(u => u.Id == parsedPersonaUserId.Value))
+    {
+        users.Add(personaUser);
+    }
 }
+
+// Create new chatroom
+var chatroom = new Chatroom
+{
+    Title = createChatroomDto.Title,
+    Users = users,
+    PersonaUserId = parsedPersonaUserId // Assign the parsed int?
+};
+
+_context.Chatrooms.Add(chatroom);
+await _context.SaveChangesAsync();
+
+// Map to ChatroomDto for response...
 ```
 
 ---
 
 ## 5. Update `ChatroomsController.cs` - `AddChatMessage`
 
--   Inject `IPersonaService`.
--   After saving user message, if chatroom has a persona, trigger persona response generation.
--   Consider background execution (e.g., `Task.Run` or background queue).
+**File:** `dotnet_server/ChattyMcChatface.Api/Controllers/ChatroomsController.cs`
 
-**Snippet:**
+-   Inject `IPersonaService`.
+-   After saving user message, if chatroom has a `PersonaUserId`, trigger persona response
+    generation.
+-   The current implementation calls `_personaService.GenerateResponseAsync` directly (await).
+
+**Snippet (Reflecting current code):**
 
 ```csharp
+// Inside AddChatMessage method, after saving user message...
+
+// If persona is assigned, generate persona response
 if (chatroom.PersonaUserId.HasValue)
 {
-    _ = Task.Run(() => _personaService.GenerateResponseAsync(chatroom.Id, message.Id));
+    // Pass the saved user message DTO to the service
+    await _personaService.GenerateResponseAsync(chatroom.Id, savedChatMessageDto);
 }
+
+return CreatedAtAction(nameof(GetChatroom), new { id = chatroom.Id }, savedChatMessageDto);
 ```
 
 ---
@@ -110,25 +174,36 @@ if (chatroom.PersonaUserId.HasValue)
 
 In `GenerateResponseAsync`:
 
--   After saving persona message, update `LastRead` entity for persona user in that chatroom.
+-   After saving persona message, update `LastRead` entity for the persona user in that chatroom.
+-   The current implementation updates the `LastReadDate` property.
 
-**Snippet:**
+**Snippet (Reflecting current code):**
 
 ```csharp
-var lastRead = await _context.LastReads
+// Inside GenerateResponseAsync, after saving persona message (responseMessage)...
+
+int personaUserId = chatroom.PersonaUserId.Value;
+var lastRead = await _dbContext.LastReads
     .FirstOrDefaultAsync(lr => lr.ChatroomId == chatroomId && lr.UserId == personaUserId);
 
-if (lastRead == null)
+if (lastRead != null)
 {
-    lastRead = new LastRead { ChatroomId = chatroomId, UserId = personaUserId, LastReadMessageId = personaMessage.Id };
-    _context.LastReads.Add(lastRead);
+    // Update existing record's date
+    lastRead.LastReadDate = responseMessage.Date;
 }
 else
 {
-    lastRead.LastReadMessageId = personaMessage.Id;
+    // Create new record if none exists
+    lastRead = new LastRead
+    {
+        ChatroomId = chatroomId,
+        UserId = personaUserId,
+        LastReadDate = responseMessage.Date,
+        // EF Core handles User/Chatroom relationships
+    };
+    _dbContext.LastReads.Add(lastRead);
 }
-
-await _context.SaveChangesAsync();
+await _dbContext.SaveChangesAsync(); // Save LastRead changes
 ```
 
 ---
@@ -137,10 +212,19 @@ await _context.SaveChangesAsync();
 
 **File:** `dotnet_server/ChattyMcChatface.Core/Dtos/ChatroomDetailDto.cs`
 
-Add:
+Update to match implementation:
 
 ```csharp
-public PersonaConfig PersonaConfig { get; set; }
+public class ChatroomDetailDto
+{
+    public int Id { get; set; } // Matches backend entity (int)
+    public string? Title { get; set; }
+    public string? PersonaUserId { get; set; } // Matches backend entity (int?), sent as string?
+    public PersonaConfig? PersonaConfig { get; set; } // Nullable
+    public DateTime Date { get; set; }
+    public required List<UserDto> Users { get; set; }
+    public required List<ChatMessageDto> Messages { get; set; } // Matches backend property name
+}
 ```
 
 **File:** `dotnet_server/ChattyMcChatface.Api/Controllers/ChatroomsController.cs`
@@ -148,7 +232,34 @@ public PersonaConfig PersonaConfig { get; set; }
 In `GetChatroom`:
 
 -   If `chatroom.PersonaUserId` exists, fetch persona config via `IPersonaConfigService`.
--   Populate `ChatroomDetailDto.PersonaConfig`.
+-   Populate `ChatroomDetailDto.PersonaConfig`. (Current code does this).
+-   Ensure mapping uses correct property names (`Messages`).
+
+**Snippet (Illustrative Mapping):**
+
+```csharp
+// Inside GetChatroom method...
+var chatroomDetailDto = new ChatroomDetailDto
+{
+    Id = chatroom.Id,
+    Title = chatroom.Title,
+    Date = chatroom.Date,
+    Users = chatroom.Users.Select(u => new UserDto { /* mapping */ }).ToList(),
+    Messages = chatroom.Chats // Map from Chatroom.Chats
+        .OrderBy(m => m.Date)
+        .Select(m => new ChatMessageDto { /* mapping */ }).ToList(),
+    PersonaUserId = chatroom.PersonaUserId?.ToString() // Send int? as string?
+};
+
+if (chatroom.PersonaUserId.HasValue)
+{
+    var personaConfig = _personaConfigService.GetConfig(chatroom.PersonaUserId.Value);
+    chatroomDetailDto.PersonaConfig = personaConfig; // Assign nullable PersonaConfig
+}
+
+return Ok(chatroomDetailDto);
+
+```
 
 ---
 
@@ -159,27 +270,49 @@ Consider removing:
 -   `GET /chatrooms/{id}/persona`
 -   `GET /chatrooms/{id}/messagesWithPersona`
 
-**Files:** `ChatroomsController.cs` and related service methods.
+**Status:** Confirmed these endpoints **do not exist** in the current `ChatroomsController.cs`. No
+action needed.
 
 ---
 
 ## 9. Entity Relationship Diagram (Optional)
 
+Update IDs to `int`.
+
 ```mermaid
 erDiagram
     Chatroom {
-        Guid Id
-        Guid? PersonaUserId
+        int Id PK
+        string Title
+        int PersonaUserId FK "Nullable"
+        datetime Date
     }
     User {
-        Guid Id
+        int Id PK
+        string FirstName
+        string LastName
         bool IsPersona
     }
-    Chatroom ||--o{ User : Members
-    Chatroom ||--o{ ChatMessage : Messages
-    User ||--o{ ChatMessage : Sends
-    User ||--o{ LastRead : Reads
-    Chatroom ||--o{ LastRead : Tracks
+    ChatMessage {
+        int Id PK
+        string Text
+        datetime Date
+        int UserId FK
+        int ChatroomId FK
+    }
+    LastRead {
+        int Id PK
+        datetime LastReadDate
+        int UserId FK
+        int ChatroomId FK
+    }
+
+    Chatroom ||--o{ User : "Has N Users"
+    Chatroom ||--o{ ChatMessage : "Contains N Messages"
+    User ||--o{ ChatMessage : "Sends N Messages"
+    User ||--o{ LastRead : "Has Read Status For N Chatrooms"
+    Chatroom ||--o{ LastRead : "Has Read Status For N Users"
+    Chatroom }o--|| User : "Can Have 1 Persona"
 ```
 
 ---
@@ -187,4 +320,5 @@ erDiagram
 ## Summary
 
 This plan details the backend changes to support AI personas, including persona management, chatroom
-association, message handling, and persona response generation.
+association, message handling, and persona response generation, reflecting the current
+implementation.

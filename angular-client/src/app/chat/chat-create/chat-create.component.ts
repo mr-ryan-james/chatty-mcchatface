@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UserService, UserDto } from '../../shared/services/user.service';
+import { UserService } from '../../shared/services/user.service';
+import { UserDto } from '../../shared/services/chat.service';
 import {
   ChatService,
   CreateChatroomDto,
@@ -62,7 +63,11 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
     const sub = this.userService.getOtherUsers().subscribe({
       next: (users) => {
         console.log('Fetched users:', users);
-        this.users = users;
+        this.users = users.map((u) => ({
+          ...u,
+          id: +u.id,
+          createdAt: new Date(),
+        }));
         this.loading = false;
       },
       error: (err) => {
@@ -106,9 +111,9 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
     const filter = this.userFilter.toLowerCase();
     return this.users.filter(
       (user) =>
-        user.firstName.toLowerCase().includes(filter) ||
-        user.lastName.toLowerCase().includes(filter) ||
-        user.email.toLowerCase().includes(filter)
+        user.firstName?.toLowerCase().includes(filter) ||
+        user.lastName?.toLowerCase().includes(filter) ||
+        user.email?.toLowerCase().includes(filter)
     );
   }
 
@@ -140,8 +145,11 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
 
     // Create the new chatroom DTO
     const createChatroomDto: CreateChatroomDto = {
-      name: chatName,
-      userIds: [currentUser.id, ...this.selectedUsers.map((u) => u.id)],
+      title: chatName,
+      userIds: [
+        +(currentUser?.id || 0),
+        ...this.selectedUsers.map((u) => u.id),
+      ],
     };
 
     const sub = this.chatService.createChatroom(createChatroomDto).subscribe({
@@ -152,20 +160,20 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
         // Join the room via SignalR
         if (this.signalrService.isConnectedToHub()) {
           this.signalrService
-            .joinRoom(chatroom.id)
+            .joinRoom(chatroom.id.toString())
             .then(() => {
-              this.router.navigate(['/chat/room', chatroom.id]);
+              this.router.navigate(['/chat/room', chatroom.id.toString()]);
             })
             .catch((err) => {
               console.error('Failed to join room:', err);
               // Still navigate, but show an error
               this.error =
                 'Room created but failed to connect. Please try again.';
-              this.router.navigate(['/chat/room', chatroom.id]);
+              this.router.navigate(['/chat/room', chatroom.id.toString()]);
             });
         } else {
           // Just navigate if SignalR not connected
-          this.router.navigate(['/chat/room', chatroom.id]);
+          this.router.navigate(['/chat/room', chatroom.id.toString()]);
         }
       },
       error: (err) => {

@@ -163,6 +163,25 @@ graph TD
 
 6.  **Access the App:** Open your browser to `http://localhost:4200`. Register a new user or log in.
 
+## Development Notes
+
+### Standalone Components in Angular
+
+This project utilizes Angular's standalone component architecture for features like
+`ChatListComponent` and `ChatRoomComponent`. This means these components are not declared in
+`app.module.ts` or other feature modules. Instead, they manage their own dependencies through the
+`imports` array in their `@Component` decorator. Remember to import necessary Angular modules (like
+`CommonModule`, `FormsModule`) and other standalone components/pipes directly into the standalone
+component's metadata.
+
+### Type Consistency
+
+Maintaining type consistency between the backend (ASP.NET Core) and frontend (Angular) is crucial
+for avoiding runtime errors. Pay close attention to data types, especially when dealing with IDs
+(e.g., ensuring consistent use of `number` or `string` types for IDs across related models and
+DTOs). This project uses `number` for user and chatroom IDs in the backend and frontend
+communication.
+
 ## Configuration
 
 ### AI Provider API Keys

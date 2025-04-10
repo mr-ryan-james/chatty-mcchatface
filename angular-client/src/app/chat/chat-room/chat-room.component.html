@@ -16,7 +16,9 @@
         >
         <article
           *ngFor="let chat of chats"
-          [ngClass]="{ 'persona-message': chat.userId === personaUserId }"
+          [ngClass]="{
+            'persona-message': chat.userId === +(personaUserId || 0)
+          }"
         >
           <div class="testimonial">
             <blockquote>
@@ -29,15 +31,15 @@
             <div class="cite">
               <span class="sender-name">
                 <ng-container
-                  *ngIf="chat.userId === personaUserId; else regularUser"
+                  *ngIf="
+                    chat.userId === +(personaUserId || 0);
+                    else regularUser
+                  "
                 >
                   {{ personaConfig?.displayName }}:
                 </ng-container>
                 <ng-template #regularUser>
-                  {{
-                    chat.userName ||
-                      chat.user?.firstName + " " + chat.user?.lastName
-                  }}:
+                  {{ chat.userFirstName }} {{ chat.userLastName }}:
                 </ng-template>
               </span>
               <span>

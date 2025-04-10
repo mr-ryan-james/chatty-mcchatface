@@ -8,6 +8,10 @@ using Microsoft.IdentityModel.Tokens; // For TokenValidationParameters
 using System.Text; // For Encoding
 using Microsoft.OpenApi.Models;
 
+using ChattyMcChatface.Core.Services;
+using ChattyMcChatface.Api.Hubs;
+using ChattyMcChatface.Api.Services;
+using ChattyMcChatface.Core.Services.AI;
 namespace ChattyMcChatface.Api
 {
     public partial class Program
@@ -53,6 +57,20 @@ namespace ChattyMcChatface.Api
             });
 
 
+            // Add SignalR
+            builder.Services.AddSignalR();
+
+            // Register application services (adjust lifetimes as needed - Scoped is common for services using DbContext)
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IPersonaService, PersonaService>();
+            builder.Services.AddSingleton<IPersonaConfigService, PersonaConfigService>(); // Singleton as it reads from a file
+            builder.Services.AddScoped<INotificationService, SignalRNotificationService>(); // Assuming SignalRNotificationService exists
+
+            // Register AI Model Providers/Holders (adjust lifetimes as needed)
+            // Register individual AI providers if needed, e.g.:
+            // builder.Services.AddHttpClient<OpenAiProvider>(); // If using HttpClientFactory
+            // builder.Services.AddScoped<IAiProvider, OpenAiProvider>(); // Example if using a common interface
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -71,6 +89,9 @@ namespace ChattyMcChatface.Api
 
             app.UseHttpsRedirection(); // Enforce HTTPS
 
+            app.UseDefaultFiles(); // Serve index.html for root path requests
+            app.UseStaticFiles(); // Serve files from wwwroot
+
             app.UseCors("AllowAll"); // Apply CORS policy
 
             app.UseAuthentication(); // Enable authentication middleware
@@ -78,6 +99,7 @@ namespace ChattyMcChatface.Api
 
             app.MapControllers();
 
+            app.MapHub<ChatHub>("/chathub"); // Map the ChatHub
             app.Run();
         }
     }

@@ -15,46 +15,59 @@ export interface PersonaConfig {
 
 // Define interfaces matching .NET DTOs
 export interface ChatMessageDto {
-  id: string;
+  id: number;
   text: string;
   date: Date;
-  userId: string;
-  userName?: string;
-  user?: User;
-  chatroomId: string;
+  userId: number;
+  chatroomId: number;
+  userFirstName?: string;
+  userLastName?: string;
+  role?: MessageRole;
 }
 
 export interface ChatroomDto {
-  id: string;
-  name: string;
-  created: Date;
-  userIds: string[];
-  users?: User[];
-  lastActivity?: Date;
-  personaUserId?: string | null;
+  id: number;
+  title: string;
+  date: Date;
+  userIds: number[];
+  users?: UserDto[];
+  chatCount: number;
 }
 
 export interface ChatroomDetailDto extends ChatroomDto {
-  personaUserId?: string | null;
+  personaUserId?: string;
   personaConfig?: PersonaConfig | null;
-  chats: ChatMessageDto[];
+  messages: ChatMessageDto[];
 }
 
 export interface CreateChatroomDto {
-  name: string;
-  userIds: string[];
-  personaUserId?: string | null;
+  title: string;
+  userIds: number[];
+  personaUserId?: string;
 }
 
 export interface UpdateChatroomDto {
-  name: string;
-  userIds: string[];
+  title: string;
+  addUserIds?: number[];
+  removeUserIds?: number[];
 }
 
 export interface CreateMessageDto {
   text: string;
-  userId: string;
-  userName?: string;
+  userId: number;
+  chatroomId: number;
+}
+export interface UserDto {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  createdAt: Date;
+}
+
+export enum MessageRole {
+  User = 'user',
+  Assistant = 'assistant',
 }
 
 @Injectable({
@@ -67,61 +80,91 @@ export class ChatService {
   // Mock data for development (fallback if API is not available)
   private mockChatrooms: ChatroomDto[] = [
     {
-      id: '1',
-      name: 'General Chat',
-      created: new Date(),
-      userIds: ['1', '2'],
+      id: 1,
+      title: 'General Chat',
+      date: new Date(),
+      userIds: [1, 2],
       users: [
-        { id: '1', firstName: 'John', lastName: 'Doe' },
-        { id: '2', firstName: 'Jane', lastName: 'Smith' },
+        {
+          id: 1,
+          firstName: 'John',
+          lastName: 'Doe',
+          createdAt: new Date(),
+          email: 'john@example.com',
+        },
+        {
+          id: 2,
+          firstName: 'Jane',
+          lastName: 'Smith',
+          createdAt: new Date(),
+          email: 'jane@example.com',
+        },
       ],
-      lastActivity: new Date(),
+      chatCount: 2,
     },
     {
-      id: '2',
-      name: 'Project Discussion',
-      created: new Date(),
-      userIds: ['1', '3'],
+      id: 2,
+      title: 'Project Discussion',
+      date: new Date(),
+      userIds: [1, 3],
       users: [
-        { id: '1', firstName: 'John', lastName: 'Doe' },
-        { id: '3', firstName: 'Alice', lastName: 'Johnson' },
+        {
+          id: 1,
+          firstName: 'John',
+          lastName: 'Doe',
+          createdAt: new Date(),
+          email: 'john@example.com',
+        },
+        {
+          id: 3,
+          firstName: 'Alice',
+          lastName: 'Johnson',
+          createdAt: new Date(),
+          email: 'alice@example.com',
+        },
       ],
-      lastActivity: new Date(),
+      chatCount: 1,
     },
   ];
 
   private mockChatroomDetails: { [key: string]: ChatroomDetailDto } = {
     '1': {
       ...this.mockChatrooms[0],
-      chats: [
+      messages: [
         {
-          id: '1',
+          id: 1,
           text: 'Hello there!',
           date: new Date(),
-          userId: '1',
-          user: { id: '1', firstName: 'John', lastName: 'Doe' },
-          chatroomId: '1',
+          userId: 1,
+          chatroomId: 1,
+          userFirstName: 'John',
+          userLastName: 'Doe',
+          role: MessageRole.User,
         },
         {
-          id: '2',
+          id: 2,
           text: 'Hi John!',
           date: new Date(),
-          userId: '2',
-          user: { id: '2', firstName: 'Jane', lastName: 'Smith' },
-          chatroomId: '1',
+          userId: 2,
+          chatroomId: 1,
+          userFirstName: 'Jane',
+          userLastName: 'Smith',
+          role: MessageRole.User,
         },
       ],
     },
     '2': {
       ...this.mockChatrooms[1],
-      chats: [
+      messages: [
         {
-          id: '3',
+          id: 3,
           text: 'How is the project going?',
           date: new Date(),
-          userId: '3',
-          user: { id: '3', firstName: 'Alice', lastName: 'Johnson' },
-          chatroomId: '2',
+          userId: 3,
+          chatroomId: 2,
+          userFirstName: 'Alice',
+          userLastName: 'Johnson',
+          role: MessageRole.User,
         },
       ],
     },
@@ -129,7 +172,7 @@ export class ChatService {
 
   // Message storage - holds messages by chatroom ID
   private messagesByRoom: {
-    [roomId: string]: BehaviorSubject<ChatMessageDto[]>;
+    [roomId: number]: BehaviorSubject<ChatMessageDto[]>;
   } = {};
 
   constructor(private http: HttpClient, private authService: AuthService) {}
@@ -151,7 +194,7 @@ export class ChatService {
   }
 
   // Get a specific chatroom by ID
-  getChatroom(id: string): Observable<ChatroomDetailDto> {
+  getChatroom(id: number): Observable<ChatroomDetailDto> {
     console.log(`Fetching chatroom with ID: ${id}`);
     return this.http
       .get<ChatroomDetailDto>(
@@ -161,7 +204,7 @@ export class ChatService {
       .pipe(
         catchError((error) => {
           console.warn('API error, falling back to mock data', error);
-          const chatroom = this.mockChatroomDetails[id];
+          const chatroom = this.mockChatroomDetails[id.toString()];
           if (chatroom) {
             return of(chatroom);
           }
@@ -186,7 +229,7 @@ export class ChatService {
 
   // Send a message to a chatroom
   sendMessage(
-    roomId: string,
+    roomId: number,
     messageDto: ChatMessageDto
   ): Observable<ChatMessageDto> {
     console.log(`Sending message to chatroom ${roomId}:`, messageDto);
@@ -201,7 +244,7 @@ export class ChatService {
 
   // Update a chatroom
   updateChatroom(
-    id: string,
+    id: number,
     updateDto: UpdateChatroomDto
   ): Observable<ChatroomDto> {
     console.log(`Updating chatroom ${id}:`, updateDto);
@@ -215,7 +258,7 @@ export class ChatService {
   }
 
   // Delete a chatroom
-  deleteChatroom(id: string): Observable<any> {
+  deleteChatroom(id: number): Observable<any> {
     console.log(`Deleting chatroom ${id}`);
     return this.http
       .delete(`${environment.apiUrl}/chatrooms/${id}`, this.getAuthHeaders())
@@ -224,7 +267,7 @@ export class ChatService {
 
   // Get messages observable for a specific chatroom
   getChatroomMessages$(
-    chatroomId: string,
+    chatroomId: number,
     includePersona: boolean = false
   ): Observable<ChatMessageDto[]> {
     if (!this.messagesByRoom[chatroomId]) {
@@ -245,19 +288,19 @@ export class ChatService {
   }
 
   // Load standard messages (without persona)
-  private loadStandardMessages(chatroomId: string): void {
+  private loadStandardMessages(chatroomId: number): void {
     this.getChatroom(chatroomId).subscribe((room) => {
-      if (room && room.chats) {
-        this.messagesByRoom[chatroomId].next(room.chats);
+      if (room && room.messages) {
+        this.messagesByRoom[chatroomId].next(room.messages);
       }
     });
   }
 
   // Load messages including persona messages
-  private loadMessagesWithPersona(chatroomId: string): void {
+  private loadMessagesWithPersona(chatroomId: number): void {
     this.getChatroom(chatroomId).subscribe((room) => {
-      if (room && room.chats) {
-        this.messagesByRoom[chatroomId].next(room.chats);
+      if (room && room.messages) {
+        this.messagesByRoom[chatroomId].next(room.messages);
       }
     });
   }
@@ -274,25 +317,26 @@ export class ChatService {
   private handleNewMessage(message: ChatMessageDto): void {
     console.log('Handling new message:', message);
 
-    if (!message || !message.chatroomId) {
+    if (
+      !message ||
+      message.chatroomId === undefined ||
+      message.chatroomId === null
+    ) {
       console.error('Received invalid message:', message);
       return;
     }
 
     const chatroomId = message.chatroomId;
 
-    // Initialize the BehaviorSubject if it doesn't exist for this room
     if (!this.messagesByRoom[chatroomId]) {
       this.messagesByRoom[chatroomId] = new BehaviorSubject<ChatMessageDto[]>(
         []
       );
     }
 
-    // Get current messages and add the new one
     const currentMessages = this.messagesByRoom[chatroomId].getValue();
     const updatedMessages = [...currentMessages, message];
 
-    // Update the BehaviorSubject with the new messages array
     this.messagesByRoom[chatroomId].next(updatedMessages);
   }
 

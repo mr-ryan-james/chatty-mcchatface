@@ -26,6 +26,9 @@ RUN dotnet restore ./dotnet_server/ChattyMcChatface.sln
 # Copy the rest of the source code
 COPY dotnet_server/. ./dotnet_server/
 
+# Explicitly build the solution first
+RUN dotnet build ./dotnet_server/ChattyMcChatface.sln
+
 # Publish the .NET application
 WORKDIR /app/dotnet_server/ChattyMcChatface.Api
 RUN dotnet publish -c Release -o /app/publish
