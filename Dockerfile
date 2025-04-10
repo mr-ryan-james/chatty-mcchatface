@@ -47,7 +47,4 @@ COPY dotnet_server/ChattyMcChatface.Data/chatty.db ./chatty.db
 # Set environment variable for ASP.NET Core port
 ENV ASPNETCORE_URLS=http://+:8080
 
-# WARNING: TEMPORARY DEBUGGING STEP - EXPOSES SECRETS IN LOGS
-# This entrypoint modification prints the content of the mounted secrets file.
-# REMOVE THIS MODIFICATION IMMEDIATELY AFTER VERIFYING THE VOLUME MOUNT.
 ENTRYPOINT ["dotnet", "ChattyMcChatface.Api.dll"]

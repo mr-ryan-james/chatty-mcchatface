@@ -72,28 +72,6 @@ namespace ChattyMcChatface.Api
             
                         // Register AI Providers (Scoped lifetime is often suitable)
                         builder.Services.AddScoped<OpenAiProvider>();
-                        builder.Services.AddScoped<AzureAiProvider>(sp =>
-                        {
-                            var config = sp.GetRequiredService<IConfiguration>();
-                            var logger = sp.GetRequiredService<ILogger<AzureAiProvider>>();
-                            
-                            // Assuming configuration keys like "AzureOpenAI:ApiKey" and "AzureOpenAI:Endpoint"
-                            // Adjust these keys if they are different (e.g., nested under specific deployment names like "Thrivify")
-                            // For simplicity, let's assume top-level keys for now. If this fails, we might need to adjust based on actual config structure.
-                            string? apiKey = config["AzureOpenAI:ApiKey"];
-                            string? endpoint = config["AzureOpenAI:Endpoint"];
-                        
-                            if (string.IsNullOrEmpty(apiKey))
-                            {
-                                throw new InvalidOperationException("Azure OpenAI API key ('AzureOpenAI:ApiKey') is not configured.");
-                            }
-                            if (string.IsNullOrEmpty(endpoint))
-                            {
-                                throw new InvalidOperationException("Azure OpenAI endpoint ('AzureOpenAI:Endpoint') is not configured.");
-                            }
-                        
-                            return new AzureAiProvider(apiKey, endpoint, logger);
-                        });
                         builder.Services.AddScoped<ClaudeProvider>();
                         builder.Services.AddScoped<GeminiProvider>();
                         builder.Services.AddScoped<VertexAiProvider>();

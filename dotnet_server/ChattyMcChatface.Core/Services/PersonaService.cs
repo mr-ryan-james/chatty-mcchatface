@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,10 +26,11 @@ namespace ChattyMcChatface.Core.Services
         
         // Model-specific service dependencies
         private readonly OpenAiProvider _openAiProvider;
-        private readonly AzureAiProvider _azureAiProvider;
         private readonly ClaudeProvider _claudeProvider;
         private readonly GeminiProvider _geminiProvider;
         private readonly VertexAiProvider _vertexAiProvider;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<AzureAiProvider> _azureLogger;
 
         // Constants
         private const int MaxHistoryMessages = 20;
@@ -39,7 +41,8 @@ namespace ChattyMcChatface.Core.Services
             ILogger<PersonaService> logger,
             INotificationService notificationService,
             OpenAiProvider openAiProvider,
-            AzureAiProvider azureAiProvider,
+            IConfiguration configuration,
+            ILogger<AzureAiProvider> azureLogger,
             ClaudeProvider claudeProvider,
             GeminiProvider geminiProvider,
             VertexAiProvider vertexAiProvider
@@ -50,7 +53,8 @@ namespace ChattyMcChatface.Core.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _openAiProvider = openAiProvider ?? throw new ArgumentNullException(nameof(openAiProvider));
-            _azureAiProvider = azureAiProvider ?? throw new ArgumentNullException(nameof(azureAiProvider));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _azureLogger = azureLogger ?? throw new ArgumentNullException(nameof(azureLogger));
             _claudeProvider = claudeProvider ?? throw new ArgumentNullException(nameof(claudeProvider));
             _geminiProvider = geminiProvider ?? throw new ArgumentNullException(nameof(geminiProvider));
             _vertexAiProvider = vertexAiProvider ?? throw new ArgumentNullException(nameof(vertexAiProvider));
@@ -136,9 +140,11 @@ namespace ChattyMcChatface.Core.Services
 
                                 // Azure Cases
                                 case AiModels.AzureGpt4oThrivify:
-                                    return await _azureAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    var thrivifyDelegate = AzureAiProviderFactory.CreateAzureThrivifyCompletionProvider(_configuration, _azureLogger, modelId);
+                                    return await thrivifyDelegate(config.SystemPrompt, historyDtoList) ?? string.Empty;
                                 case AiModels.AzureGpt45PreviewRyan:
-                                    return await _azureAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    var ryanDelegate = AzureAiProviderFactory.CreateAzureRyanCompletionProvider(_configuration, _azureLogger, modelId);
+                                    return await ryanDelegate(config.SystemPrompt, historyDtoList) ?? string.Empty;
 
                                 // Claude Cases
                                 case AiModels.Claude37Sonnet:

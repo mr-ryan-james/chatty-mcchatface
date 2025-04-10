@@ -39,4 +39,5 @@ angular-client/node_modules/
 
 # Other
 *.zip
+appsettings.json
 appsettings.Docker.json

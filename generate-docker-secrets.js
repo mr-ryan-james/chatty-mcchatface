@@ -66,13 +66,53 @@ function parseSecretsOutput(output) {
     return secrets
 }
 
+function isObject(item) {
+    return item && typeof item === "object" && !Array.isArray(item)
+}
+
+function deepMerge(target, source) {
+    let output = Object.assign({}, target)
+    if (isObject(target) && isObject(source)) {
+        Object.keys(source).forEach((key) => {
+            if (isObject(source[key])) {
+                if (!(key in target)) Object.assign(output, { [key]: source[key] })
+                else output[key] = deepMerge(target[key], source[key])
+            } else {
+                Object.assign(output, { [key]: source[key] })
+            }
+        })
+    }
+    return output
+}
+
 try {
     const { execSync } = require("child_process")
     const fs = require("fs")
     const path = require("path")
 
     const projectPath = "dotnet_server/ChattyMcChatface.Api"
-    const outputFilePath = path.join(__dirname, "appsettings.Docker.json")
+    const outputFilePath = path.join(
+        __dirname,
+        "dotnet_server",
+        "ChattyMcChatface.Api",
+        "appsettings.json",
+    )
+
+    let existingConfig = {}
+    try {
+        if (fs.existsSync(outputFilePath)) {
+            const existingContent = fs.readFileSync(outputFilePath, "utf8")
+            existingConfig = JSON.parse(existingContent)
+            console.log(`Read existing configuration from ${outputFilePath}`)
+        } else {
+            console.log(`${outputFilePath} does not exist. Will create a new file.`)
+        }
+    } catch (readError) {
+        console.error(
+            `Error reading or parsing existing ${outputFilePath}: ${readError.message}. Starting with empty config.`,
+        )
+        existingConfig = {} // Start fresh if file is invalid
+    }
 
     const command = `dotnet user-secrets list --project ${projectPath}`
     console.log(`Executing: ${command}`)
@@ -82,8 +122,11 @@ try {
     // Use the new parsing function
     const secrets = parseSecretsOutput(output)
 
-    const jsonContent = JSON.stringify(secrets, null, 2) // Pretty print
-    console.log(`\nWriting generated configuration structure to ${outputFilePath}`)
+    console.log("Merging secrets into existing configuration...")
+    const mergedConfig = deepMerge(existingConfig, secrets)
+
+    const jsonContent = JSON.stringify(mergedConfig, null, 2) // Use mergedConfig
+    console.log(`\nWriting merged configuration structure to ${outputFilePath}`)
     fs.writeFileSync(outputFilePath, jsonContent)
 
     console.log(`\nSuccessfully generated ${outputFilePath}`)

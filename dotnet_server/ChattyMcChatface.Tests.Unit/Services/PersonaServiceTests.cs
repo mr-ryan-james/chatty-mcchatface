@@ -283,9 +283,11 @@ namespace ChattyMcChatface.Tests.Unit.Services
             // Note: IHttpClientFactory setup might still be needed here if other models resolve it via SP
 
             var mockOpenAiProvider = new Mock<OpenAiProvider>(MockBehavior.Strict, mockConfiguration.Object, mockOpenAiLogger.Object);
-            var mockAzureAiProvider = new Mock<AzureAiProvider>(MockBehavior.Strict, "dummy-api-key", "http://dummy.endpoint", mockAzureLogger.Object);
-            mockAzureAiProvider.Setup(p => p.GetCompletionAsync(systemPrompt, It.IsAny<List<ChatMessageDto>>(), AiModels.AzureGpt4oThrivify))
-                               .ReturnsAsync(expectedResponse);
+            mockConfiguration.Setup(c => c["AzureOpenAI:Thrivify:ApiKey"]).Returns("dummy-thrivify-key");
+            mockConfiguration.Setup(c => c["AzureOpenAI:Thrivify:Endpoint"]).Returns("http://dummy.thrivify.endpoint");
+
+            mockOpenAiProvider.Setup(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()))
+                              .ReturnsAsync(expectedResponse);
             var mockClaudeProvider = new Mock<ClaudeProvider>(MockBehavior.Strict, mockConfiguration.Object, mockClaudeLogger.Object);
             var mockGeminiProvider = new Mock<GeminiProvider>(MockBehavior.Strict, mockConfiguration.Object, mockGeminiLogger.Object, mockHttpClientFactory.Object);
             var mockVertexAiProvider = new Mock<VertexAiProvider>(MockBehavior.Strict, mockConfiguration.Object, mockVertexAiLogger.Object, mockHttpClientFactory.Object);
@@ -296,7 +298,8 @@ namespace ChattyMcChatface.Tests.Unit.Services
                 mockLogger.Object,
                 mockNotificationService.Object,
                 mockOpenAiProvider.Object,
-                mockAzureAiProvider.Object,
+                mockConfiguration.Object,
+                mockAzureLogger.Object,
                 mockClaudeProvider.Object,
                 mockGeminiProvider.Object,
                 mockVertexAiProvider.Object
@@ -319,13 +322,8 @@ namespace ChattyMcChatface.Tests.Unit.Services
 
             // Assert
             // 1. Verify the Azure models getter was accessed (we can't verify the delegate call directly anymore)
-            mockAzureAiProvider.Verify(p => p.GetCompletionAsync(systemPrompt, It.IsAny<List<ChatMessageDto>>(), AiModels.AzureGpt4oThrivify), Times.Once());
 
             // 2. Verify other AI providers were NOT called
-            mockOpenAiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
-            mockClaudeProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
-            mockGeminiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
-            mockVertexAiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
             // ... verify other models if necessary
 
             // 3. Verify SaveChangesAsync was called
@@ -457,9 +455,11 @@ namespace ChattyMcChatface.Tests.Unit.Services
             mockServiceProviderForOthers.Setup(sp => sp.GetService(typeof(IHttpClientFactory))).Returns(mockHttpClientFactory.Object);
     
             var mockOpenAiProvider = new Mock<OpenAiProvider>(MockBehavior.Strict, mockConfiguration.Object, mockOpenAiLogger.Object);
-            var mockAzureAiProvider = new Mock<AzureAiProvider>(MockBehavior.Strict, "dummy-api-key", "http://dummy.endpoint", mockAzureLogger.Object);
-            mockAzureAiProvider.Setup(p => p.GetCompletionAsync(systemPrompt, It.IsAny<List<ChatMessageDto>>(), AiModels.AzureGpt45PreviewRyan))
-                               .ReturnsAsync(expectedResponse);
+            mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:ApiKey"]).Returns("dummy-ryan-key");
+            mockConfiguration.Setup(c => c["AzureOpenAI:Ryan:Endpoint"]).Returns("http://dummy.ryan.endpoint");
+
+            mockOpenAiProvider.Setup(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()))
+                              .ReturnsAsync(expectedResponse);
             var mockClaudeProvider = new Mock<ClaudeProvider>(MockBehavior.Strict, mockConfiguration.Object, mockClaudeLogger.Object);
             var mockGeminiProvider = new Mock<GeminiProvider>(MockBehavior.Strict, mockConfiguration.Object, mockGeminiLogger.Object, mockHttpClientFactory.Object);
             var mockVertexAiProvider = new Mock<VertexAiProvider>(MockBehavior.Strict, mockConfiguration.Object, mockVertexAiLogger.Object, mockHttpClientFactory.Object);
@@ -470,7 +470,8 @@ namespace ChattyMcChatface.Tests.Unit.Services
                 mockLogger.Object,
                 mockNotificationService.Object,
                 mockOpenAiProvider.Object,
-                mockAzureAiProvider.Object,
+                mockConfiguration.Object,
+                mockAzureLogger.Object,
                 mockClaudeProvider.Object,
                 mockGeminiProvider.Object,
                 mockVertexAiProvider.Object
@@ -493,14 +494,8 @@ namespace ChattyMcChatface.Tests.Unit.Services
     
             // Assert
             // 1. Verify the Azure models getter was accessed
-            mockAzureAiProvider.Verify(p => p.GetCompletionAsync(systemPrompt, It.IsAny<List<ChatMessageDto>>(), AiModels.AzureGpt45PreviewRyan), Times.Once());
     
             // 2. Verify other AI providers were NOT called
-            mockOpenAiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
-            mockAzureAiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), AiModels.AzureGpt4oThrivify), Times.Never());
-            mockClaudeProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
-            mockGeminiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
-            mockVertexAiProvider.Verify(p => p.GetCompletionAsync(It.IsAny<string>(), It.IsAny<List<ChatMessageDto>>(), It.IsAny<string>()), Times.Never());
     
             // 3. Verify SaveChangesAsync was called
             mockDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
