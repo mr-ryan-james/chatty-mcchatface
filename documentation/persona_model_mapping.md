@@ -1,36 +1,42 @@
 # Persona Preferred Model ID Mapping
 
-This document explains the flow of how a `preferredModelId` specified in the `personas.json`
-configuration file is mapped through the backend codebase to eventually invoke the correct AI
-provider for generating a response.
+This document explains the flow of how a persona's `PreferredModelId` (now stored in the database as
+part of the `User` entity) is mapped through the backend codebase to eventually invoke the correct
+AI provider for generating a response.
 
-## 1. Configuration (`personas.json`)
+## 1. Persona Configuration (Database: `User` Entity)
 
--   **File:** `dotnet_server/ChattyMcChatface.Api/personas.json`
--   **Role:** Defines the available AI personas. Each persona object includes a `preferredModelId`
-    string. This string acts as the initial identifier for the desired AI model.
+-   **Table:** `Users` (see `dotnet_server/ChattyMcChatface.Data/Entities/User.cs`)
+-   **Role:** Defines all users, including AI personas. A persona is a user with the `IsPersona`
+    flag set to `true`. Each persona record includes:
 
-    **Important:** The value of `preferredModelId` **must** exactly match one of the
+    -   `IsPersona` (`bool`): Indicates if the user is an AI persona.
+    -   `SystemPrompt` (`string?`): The system prompt for the persona.
+    -   `PreferredModelId` (`string?`): The preferred AI model for this persona.
+
+    **Important:** The value of `PreferredModelId` **must** exactly match one of the
     `public const string` values defined in
     `dotnet_server/ChattyMcChatface.Core/Services/AI/AiModels.cs`.
 
--   **Example:**
-    ```json
+-   **Example (`User` entity for a persona):**
+    ```csharp
+    public class User
     {
-        "personaUserId": 1001,
-        "displayName": "Helpful Assistant",
-        "systemPrompt": "...",
-        "preferredModelId": "gpt-4o-latest"
+        public int Id { get; set; }
+        public string DisplayName { get; set; }
+        public bool IsPersona { get; set; }
+        public string? SystemPrompt { get; set; }
+        public string? PreferredModelId { get; set; }
+        // ... other fields ...
     }
     ```
 
-## 2. Loading Configuration (`PersonaConfigService`)
+## 2. Loading Persona Configuration (Database Query)
 
--   **File:** `dotnet_server/ChattyMcChatface.Core/Services/PersonaConfigService.cs`
--   **Action:** At application startup, this service reads `personas.json`. It deserializes the JSON
-    array into a list of `PersonaConfig` objects
-    (`dotnet_server/ChattyMcChatface.Core/Dtos/PersonaConfig.cs`). These objects, including the
-    `preferredModelId` string, are stored in an in-memory dictionary, keyed by `personaUserId`.
+-   **Action:** When persona configuration is needed, the application queries the `Users` table for
+    users where `IsPersona = true`. The relevant fields (`SystemPrompt`, `PreferredModelId`, etc.)
+    are read directly from the database.
+-   **Note:** The `PersonaConfigService` and `personas.json` are no longer used.
 
 ## 3. Triggering Response (`ChatroomsController`)
 
@@ -45,8 +51,8 @@ provider for generating a response.
 -   **File:** `dotnet_server/ChattyMcChatface.Core/Services/PersonaService.cs`
 -   **Method:** `GenerateResponseAsync`
 -   **Actions:**
-    1.  Retrieves the full `PersonaConfig` object for the chatroom using
-        `_personaConfigService.GetConfig(chatroom.PersonaUserId.Value)`.
+    1.  Retrieves the persona's configuration by querying the `User` entity for the chatroom's
+        `PersonaUserId`.
     2.  Calls the static utility method `AiFallbackUtil.GetWithFallbackAsync`.
     3.  Passes key arguments to `GetWithFallbackAsync`:
         -   `AiFallbackUtil.GlobalModelPriority`: A predefined `List<string>` of model IDs to try if
@@ -140,11 +146,10 @@ provider for generating a response.
 
 ```mermaid
 graph TD
-    A["personas.json (preferredModelId)"] --> B("PersonaConfigService (Loads config)");
-    B --> C{"PersonaConfig Object (In Memory)"};
+    A["User Table (IsPersona, SystemPrompt, PreferredModelId)"] --> B("Database Query (Load Persona Config)");
     D("ChatroomsController (AddChatMessage)") --> E("PersonaService (GenerateResponseAsync)");
-    E --> C;
-    C --> E;
+    E --> B;
+    B --> E;
     E --> F("AiFallbackUtil (GetWithFallbackAsync)");
     F -- "Calls Handler with modelId" --> G{"Handler in PersonaService"};
     G -- "switch(modelId)" --> H("Model Class (e.g., OpenAiModels)");

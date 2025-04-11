@@ -77,7 +77,7 @@ graph TD
     -   `src/environments/`: Environment-specific configurations (API URLs).
 -   **`dotnet_server/`**: Contains the .NET 9 backend API.
     -   `ChattyMcChatface.Api/`: The main ASP.NET Core project (controllers, `Program.cs`, SignalR
-        Hub, `personas.json`).
+        Hub).
     -   `ChattyMcChatface.Core/`: Business logic, services (including `PersonaService` and AI
         providers), DTOs.
     -   `ChattyMcChatface.Data/`: Entity Framework Core context, entities, and migrations.
@@ -201,6 +201,58 @@ This is why tests involving personas might pass even if the main `chatty.db` fil
 corresponding persona user records. The main application relies on the `chatty.db` file copied
 during the Docker build or potentially database seeding logic run at startup (if implemented).
 
+### AI Personas (Database)
+
+AI personas are now defined directly within the `Users` table in the database. Users intended to be
+personas must have the `IsPersona` flag set to `true`. Their configuration is stored in the
+following columns:
+
+-   `Id`: The unique identifier for the persona user.
+-   `FirstName`: Used as the `DisplayName` shown in the UI.
+-   `SystemPrompt`: Instructions defining the AI's personality and behavior (nullable).
+-   `PreferredModelId`: The identifier (from `AiModels.cs`) for the primary AI model (nullable).
+-   `IsPersona`: Must be `true`.
+
+**Note:** The frontend UI (`chat-create.component`) now fetches these persona users from the
+`/api/personas` endpoint and allows selecting one when creating a new chatroom.
+
+## AI Persona System Flow
+
+When a user sends a message in a chatroom associated with a persona:
+
+1.  The message is saved, and the `PersonaService` is triggered.
+2.  The service retrieves the persona's configuration (`SystemPrompt`, `PreferredModelId`) directly
+    from the `Users` table in the database.
+3.  Recent chat history is fetched from the database to provide context.
+4.  The `AiFallbackUtil` attempts to generate a response using the `PreferredModelId`.
+5.  A handler function within `PersonaService` maps the `modelId` to the correct AI provider
+    delegate (e.g., `_openAiModels.Gpt4oLatest(...)`).
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant ChatController
+    participant Database
+    participant PersonaService
+    participant AiFallbackUtil
+    participant AiModelDelegate
+
+    User->>Frontend: Send message in chatroom
+    Frontend->>ChatController: POST /chats (messageDto)
+    ChatController->>ChatController: Save User Message
+    ChatController->>PersonaService: GenerateResponseAsync(roomId, message)
+    PersonaService->>Database: Get Persona User (by ID)
+    PersonaService->>Database: Get Chat History
+    PersonaService->>AiFallbackUtil: GetWithFallbackAsync(priority, preferredModelId, handler)
+    AiFallbackUtil->>PersonaService: Invoke handler(preferredModelId)
+    PersonaService->>AiModelDelegate: Call specific delegate (e.g., _openAiModels.Gpt4oLatest(...))
+    AiModelDelegate-->>PersonaService: Return AI response
+    PersonaService->>ChatController: Return AI response
+    ChatController->>Frontend: Return AI response
+    Frontend->>User: Display AI response
+```
+
 ```mermaid
 graph TD
     subgraph Integration Test Flow
@@ -229,6 +281,132 @@ graph TD
     style RT_Result fill:#f99,stroke:#333,stroke-width:2px
     style IT_Result fill:#9cf,stroke:#333,stroke-width:2px
 ```
+
+## Key Application Flows
+
+### 1. Chatroom Creation (with Persona)
+
+**Description:** User selects participants (including one AI persona) in the frontend, triggering an
+API call to create the chatroom. The backend validates the persona ID against the `Users` table and
+creates the chatroom and associations.
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend (ChatCreateComponent)
+    participant API as Backend API (ChatroomsController)
+    participant DB as Database (Users, Chatrooms, ChatroomUser Tables)
+
+    FE->>API: POST /api/chatrooms (CreateChatroomDto: userIds=[1], personaUserId=1003)
+    API->>DB: Find User (Current User ID: 1)
+    DB-->>API: User(1) Found
+    API->>DB: Find Users (Included IDs: 1)
+    DB-->>API: User(1) Found
+    API->>DB: Find User (Persona ID: 1003)
+    DB-->>API: User(1003) Found (IsPersona=true)
+    API->>DB: Insert Chatroom (Title, PersonaUserId=1003)
+    DB-->>API: New Chatroom ID (e.g., 5)
+    API->>DB: Insert ChatroomUser (ChatroomId=5, UserId=1)
+    API->>DB: Insert ChatroomUser (ChatroomId=5, UserId=1003)
+    DB-->>API: Confirm Inserts
+    API-->>FE: 201 Created (ChatroomDto)
+```
+
+**File Paths:**
+
+-   Frontend: `angular-client/src/app/chat/chat-create/chat-create.component.ts`
+-   Backend: `dotnet_server/ChattyMcChatface.Api/Controllers/ChatroomsController.cs` (CreateChatroom
+    method)
+-   DTO: `dotnet_server/ChattyMcChatface.Core/Dtos/CreateChatroomDto.cs`
+-   Entities: `dotnet_server/ChattyMcChatface.Data/Entities/` (User.cs, Chatroom.cs)
+
+---
+
+### 2. User Sends Message
+
+**Description:** User types message in the chat room UI and sends. Frontend calls API, backend saves
+message, broadcasts via SignalR to other clients in the room, and triggers persona response if
+applicable.
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend (ChatRoomComponent)
+    participant API as Backend API (ChatroomsController)
+    participant DB as Database (ChatMessages Table)
+    participant Hub as SignalR Hub (ChatHub)
+    participant PS as PersonaService
+    participant Others as Other Clients
+
+    FE->>API: POST /api/chatrooms/{id}/chats (ChatMessageDto)
+    API->>DB: Find Chatroom & Validate User Access
+    DB-->>API: Chatroom Found
+    API->>DB: Insert ChatMessage (Text, UserId, ChatroomId)
+    DB-->>API: Saved ChatMessage (with ID)
+    API->>Hub: SendAsync("ReceiveMessage", roomId, messageDto)
+    Hub-->>FE: Push Message
+    Hub-->>Others: Push Message
+    alt Chatroom has Persona
+        API->>PS: GenerateResponseAsync(roomId, messageDto)
+    end
+    API-->>FE: 201 Created (Saved ChatMessageDto)
+```
+
+**File Paths:**
+
+-   Frontend: `angular-client/src/app/chat/chat-room/chat-room.component.ts` (sendChat method)
+-   Backend Controller: `dotnet_server/ChattyMcChatface.Api/Controllers/ChatroomsController.cs`
+    (AddChatMessage method)
+-   Backend Hub: `dotnet_server/ChattyMcChatface.Api/Hubs/ChatHub.cs`
+-   Backend Service: `dotnet_server/ChattyMcChatface.Core/Services/PersonaService.cs`
+-   DTO: `dotnet_server/ChattyMcChatface.Core/Dtos/ChatMessageDto.cs`
+-   Entity: `dotnet_server/ChattyMcChatface.Data/Entities/ChatMessage.cs`
+
+---
+
+### 3. AI Persona Responds
+
+**Description:** Triggered by `PersonaService.GenerateResponseAsync`. Fetches persona config and
+history from DB, uses `AiFallbackUtil` to call the appropriate AI provider, saves the AI response to
+DB, updates persona's `LastRead`, and broadcasts the AI message via SignalR.
+
+```mermaid
+sequenceDiagram
+    participant PS as PersonaService
+    participant DB as Database (Users, ChatMessages, LastReads Tables)
+    participant Util as AiFallbackUtil
+    participant AI as AI Provider (e.g., GeminiProvider)
+    participant Ext as External AI API
+    participant Hub as SignalR Hub (ChatHub)
+    participant Clients as All Clients in Room
+
+    PS->>DB: Get Persona User (by ID)
+    DB-->>PS: Persona User Entity (Prompt, ModelId)
+    PS->>DB: Get Recent Chat History
+    DB-->>PS: List<ChatMessage>
+    PS->>Util: GetWithFallbackAsync(preferredModelId, handler)
+    Util->>PS: Invoke handler(preferredModelId)
+    PS->>AI: GenerateResponseAsync(prompt, history)
+    AI->>Ext: API Call
+    Ext-->>AI: AI Response Text
+    AI-->>PS: Return Response Text
+    PS-->>Util: Return Response Text
+    Util-->>PS: Final Response Text
+    PS->>DB: Insert ChatMessage (AI Response)
+    DB-->>PS: Saved AI Message
+    PS->>DB: Get/Update LastRead for Persona
+    DB-->>PS: Confirm Update/Insert
+    PS->>Hub: SendAsync("ReceiveMessage", roomId, aiMessageDto)
+    Hub-->>Clients: Push AI Message
+```
+
+**File Paths:**
+
+-   Backend Service: `dotnet_server/ChattyMcChatface.Core/Services/PersonaService.cs`
+    (GenerateResponseAsync method)
+-   Backend Utility: `dotnet_server/ChattyMcChatface.Core/Services/AI/AiFallbackUtil.cs`
+-   Backend AI Providers: `dotnet_server/ChattyMcChatface.Core/Services/AI/` (e.g.,
+    GeminiProvider.cs)
+-   Backend Hub: `dotnet_server/ChattyMcChatface.Api/Hubs/ChatHub.cs`
+-   Entities: `dotnet_server/ChattyMcChatface.Data/Entities/` (User.cs, ChatMessage.cs, LastRead.cs)
 
 ## Configuration
 
