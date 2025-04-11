@@ -43,7 +43,11 @@ namespace ChattyMcChatface.Tests.Integration
             _personaUserId = 1001;
 
             var testUser = await _fixture.SeedUserAsync("Test", "User", "testuser@example.com", false, scopeFactory, _testUserId);
-            var personaUser = await _fixture.SeedUserAsync("Persona", "Bot", "personauser@example.com", true, scopeFactory, _personaUserId);
+            var personaUser = await _fixture.SeedUserAsync(
+                "Helpful Assistant", "Bot", "personauser@example.com", true, scopeFactory, _personaUserId,
+                systemPrompt: "You are a helpful, friendly AI assistant. Always respond in a supportive and informative manner. Provide accurate information and assistance to the user while maintaining a positive and professional tone.",
+                preferredModelId: "gemini-2.5-pro-preview-03-25"
+            );
 
             var chatroom = await _fixture.SeedChatroomAsync(new List<User> { testUser, personaUser }, _personaUserId, title: "Test Chatroom", scopeFactory);
             _chatroomId = chatroom.Id;
@@ -149,7 +153,11 @@ namespace ChattyMcChatface.Tests.Integration
 
             // Seed users
             var testUser = await _fixture.SeedUserAsync("Test", "User", "testuser5@example.com", false, scopeFactory, id: 4);
-            var personaUser = await _fixture.SeedUserAsync("Persona", "Bot", "personauser5@example.com", true, scopeFactory, 1001);
+            var personaUser = await _fixture.SeedUserAsync(
+                "Helpful Assistant", "Bot", "personauser5@example.com", true, scopeFactory, 1001,
+                systemPrompt: "You are a helpful, friendly AI assistant. Always respond in a supportive and informative manner. Provide accurate information and assistance to the user while maintaining a positive and professional tone.",
+                preferredModelId: "gemini-2.5-pro-preview-03-25"
+            );
 
             var client = _fixture.CreateClientWithAuth(userId: testUser.Id.ToString());
 
@@ -250,7 +258,11 @@ namespace ChattyMcChatface.Tests.Integration
             const int maxHistoryMessages = 20;
 
             var testUser = await _fixture.SeedUserAsync("Test", "User", "testuser4@example.com", false, scopeFactory, id: 3);
-            var personaUser = await _fixture.SeedUserAsync("Persona", "Bot", "personauser4@example.com", true, scopeFactory, 1001);
+            var personaUser = await _fixture.SeedUserAsync(
+                "Helpful Assistant", "Bot", "personauser4@example.com", true, scopeFactory, 1001,
+                systemPrompt: "You are a helpful, friendly AI assistant. Always respond in a supportive and informative manner. Provide accurate information and assistance to the user while maintaining a positive and professional tone.",
+                preferredModelId: "gemini-2.5-pro-preview-03-25"
+            );
 
             var client = _fixture.CreateClientWithAuth(userId: testUser.Id.ToString());
 
@@ -356,7 +368,11 @@ namespace ChattyMcChatface.Tests.Integration
             var personaUserId = 1001;
 
             var testUser = await _fixture.SeedUserAsync("Test", "User", "testuser2@example.com", false, scopeFactory, testUserId);
-            var personaUser = await _fixture.SeedUserAsync("Persona", "Bot", "personauser2@example.com", true, scopeFactory, personaUserId);
+            var personaUser = await _fixture.SeedUserAsync(
+                "Helpful Assistant", "Bot", "personauser2@example.com", true, scopeFactory, personaUserId,
+                systemPrompt: "You are a helpful, friendly AI assistant. Always respond in a supportive and informative manner. Provide accurate information and assistance to the user while maintaining a positive and professional tone.",
+                preferredModelId: "gemini-2.5-pro-preview-03-25"
+            );
 
             var chatroom = await _fixture.SeedChatroomAsync(new List<User> { testUser, personaUser }, personaUserId, title: "Scenario2 Chatroom", scopeFactory);
             var chatroomId = chatroom.Id;
@@ -411,7 +427,11 @@ namespace ChattyMcChatface.Tests.Integration
 
             var testUser = await _fixture.SeedUserAsync("Test", "User", "emptyhistory_testuser@example.com", false, scopeFactory, id: 2);
             var client = _fixture.CreateClientWithAuth(userId: testUser.Id.ToString());
-            var personaUser = await _fixture.SeedUserAsync("Persona", "Bot", "emptyhistory_persona@example.com", true, scopeFactory, id: 1001);
+            var personaUser = await _fixture.SeedUserAsync(
+                "Helpful Assistant", "Bot", "emptyhistory_persona@example.com", true, scopeFactory, id: 1001,
+                systemPrompt: "You are a helpful, friendly AI assistant. Always respond in a supportive and informative manner. Provide accurate information and assistance to the user while maintaining a positive and professional tone.",
+                preferredModelId: "gemini-2.5-pro-preview-03-25"
+            );
 
             var chatroom = await _fixture.SeedChatroomAsync(
                 new List<User> { testUser, personaUser },

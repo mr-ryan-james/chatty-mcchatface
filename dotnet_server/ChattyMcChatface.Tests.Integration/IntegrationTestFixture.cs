@@ -59,7 +59,7 @@ namespace ChattyMcChatface.Tests.Integration
                 services.AddHttpClient();
                 services.AddSignalR();
 
-                services.AddSingleton<IPersonaConfigService, PersonaConfigService>();
+                // IPersonaConfigService is removed, no longer needed here.
                 services.AddScoped<IPersonaService, PersonaService>();
 
                 services.AddSingleton<OpenAiModels>();
@@ -126,7 +126,13 @@ namespace ChattyMcChatface.Tests.Integration
             await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Users");
         }
 
-        public async Task<User> SeedUserAsync(string firstName, string lastName, string email, bool isPersona, IServiceScopeFactory scopeFactory, int? id = null)
+        public async Task<User> SeedUserAsync(
+            string firstName, string lastName, string email, bool isPersona,
+            IServiceScopeFactory scopeFactory,
+            int? id = null,
+            string? systemPrompt = null, // Added
+            string? preferredModelId = null // Added
+        )
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -137,7 +143,10 @@ namespace ChattyMcChatface.Tests.Integration
                 LastName = lastName,
                 Email = email,
                 IsPersona = isPersona,
-                PasswordHash = "hash"
+                PasswordHash = "hash",
+                // Assign persona config if provided
+                SystemPrompt = systemPrompt,
+                PreferredModelId = preferredModelId
             };
 
             if (id.HasValue)
@@ -156,6 +165,9 @@ namespace ChattyMcChatface.Tests.Integration
                     existingUser.LastName = lastName;
                     existingUser.Email = email;
                     existingUser.IsPersona = isPersona;
+                    // Update persona config as well
+                    existingUser.SystemPrompt = systemPrompt;
+                    existingUser.PreferredModelId = preferredModelId;
                     await dbContext.SaveChangesAsync();
                     return existingUser;
                 }

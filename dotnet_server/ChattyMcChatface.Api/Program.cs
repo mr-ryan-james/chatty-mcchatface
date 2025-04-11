@@ -46,6 +46,21 @@ namespace ChattyMcChatface.Api
                         ValidAudience = builder.Configuration["Jwt:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
                     };
+
+                    // Add this section to handle JWT for SignalR
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chathub"))
+                            {
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
 
             // Add other services (CORS, etc.)
@@ -64,7 +79,6 @@ namespace ChattyMcChatface.Api
             // Register application services (adjust lifetimes as needed - Scoped is common for services using DbContext)
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IPersonaService, PersonaService>();
-            builder.Services.AddSingleton<IPersonaConfigService, PersonaConfigService>(); // Singleton as it reads from a file
             builder.Services.AddScoped<INotificationService, SignalRNotificationService>(); // Assuming SignalRNotificationService exists
             builder.Services.AddHttpClient(); // Add this line
 

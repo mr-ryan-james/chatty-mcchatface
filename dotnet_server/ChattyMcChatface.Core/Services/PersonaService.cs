@@ -19,8 +19,7 @@ namespace ChattyMcChatface.Core.Services
 {
     public class PersonaService : IPersonaService
     {
-        private readonly AppDbContext _dbContext;
-        private readonly IPersonaConfigService _personaConfigService;
+        private readonly AppDbContext _context;
         private readonly ILogger<PersonaService> _logger;
         private readonly INotificationService _notificationService;
         
@@ -36,8 +35,7 @@ namespace ChattyMcChatface.Core.Services
         private const int MaxHistoryMessages = 20;
 
         public PersonaService(
-            AppDbContext dbContext,
-            IPersonaConfigService personaConfigService,
+            AppDbContext context,
             ILogger<PersonaService> logger,
             INotificationService notificationService,
             OpenAiProvider openAiProvider,
@@ -48,8 +46,7 @@ namespace ChattyMcChatface.Core.Services
             VertexAiProvider vertexAiProvider
             )
         {
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            _personaConfigService = personaConfigService ?? throw new ArgumentNullException(nameof(personaConfigService));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _openAiProvider = openAiProvider ?? throw new ArgumentNullException(nameof(openAiProvider));
@@ -65,7 +62,7 @@ namespace ChattyMcChatface.Core.Services
             try
             {
                 // Retrieve the chatroom with persona info
-                var chatroom = await _dbContext.Chatrooms
+                var chatroom = await _context.Chatrooms
                     .FirstOrDefaultAsync(c => c.Id == chatroomId);
 
                 if (chatroom == null)
@@ -81,16 +78,27 @@ namespace ChattyMcChatface.Core.Services
                     return;
                 }
 
-                // Get the persona configuration
-                var config = _personaConfigService.GetConfig(chatroom.PersonaUserId.Value);
-                if (config == null)
+                // Fetch persona user entity
+                var personaUser = await _context.Users.FindAsync(chatroom.PersonaUserId.Value);
+                if (personaUser == null || !personaUser.IsPersona)
                 {
-                    _logger.LogError("Persona configuration for user ID {PersonaUserId} not found", chatroom.PersonaUserId.Value);
+                    _logger.LogError("Persona user with ID {PersonaUserId} not found or is not a persona", chatroom.PersonaUserId.Value);
                     return;
                 }
 
+                if (string.IsNullOrEmpty(personaUser.SystemPrompt))
+                {
+                    _logger.LogWarning("Persona user ID {PersonaUserId} has no SystemPrompt configured.", personaUser.Id);
+                    // Optionally: return;
+                }
+
+                if (string.IsNullOrEmpty(personaUser.PreferredModelId))
+                {
+                    _logger.LogWarning("Persona user ID {PersonaUserId} has no PreferredModelId configured. Fallback will be used.");
+                }
+
                 // Fetch recent chat history
-                var recentMessages = await _dbContext.ChatMessages
+                var recentMessages = await _context.ChatMessages
                     .Where(m => m.ChatroomId == chatroomId)
                     .OrderByDescending(m => m.Date)
                     .Take(MaxHistoryMessages)
@@ -110,7 +118,7 @@ namespace ChattyMcChatface.Core.Services
                         UserLastName = m.User.LastName,
                         ChatroomId = m.ChatroomId,
                         // Set the role based on whether the message is from the persona or a regular user
-                        Role = m.UserId == chatroom.PersonaUserId
+                        Role = m.UserId == personaUser.Id
                             ? MessageRole.Assistant
                             : MessageRole.User
                     })
@@ -123,42 +131,40 @@ namespace ChattyMcChatface.Core.Services
                     // Explicitly specify <string> to satisfy constraints and resolve nullability warnings
                     responseText = await AiFallbackUtil.GetWithFallbackAsync<string>(
                         AiFallbackUtil.GlobalModelPriority, // Use the global priority list
-                        config.PreferredModelId,
-                        async (modelId) => // Define the handler function (now matches Func<string, Task<string>>)
+                        personaUser.PreferredModelId,
+                        async (modelId) =>
                         {
-                            // Add a switch statement here to call the correct model-specific function
-                            // based on the modelId passed by the fallback utility.
                             switch (modelId)
                             {
                                 // OpenAI Cases
                                 case AiModels.OpenAiGpt4oLatest:
-                                    return await _openAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _openAiProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.OpenAiGpt4o2024:
-                                    return await _openAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _openAiProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.OpenAiGpt45Preview:
-                                    return await _openAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _openAiProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
 
                                 // Azure Cases
                                 case AiModels.AzureGpt4oThrivify:
                                     var thrivifyDelegate = AzureAiProviderFactory.CreateAzureThrivifyCompletionProvider(_configuration, _azureLogger, modelId);
-                                    return await thrivifyDelegate(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await thrivifyDelegate(personaUser.SystemPrompt ?? "", historyDtoList) ?? string.Empty;
                                 case AiModels.AzureGpt45PreviewRyan:
                                     var ryanDelegate = AzureAiProviderFactory.CreateAzureRyanCompletionProvider(_configuration, _azureLogger, modelId);
-                                    return await ryanDelegate(config.SystemPrompt, historyDtoList) ?? string.Empty;
+                                    return await ryanDelegate(personaUser.SystemPrompt ?? "", historyDtoList) ?? string.Empty;
 
                                 // Claude Cases
                                 case AiModels.Claude37Sonnet:
-                                    return await _claudeProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _claudeProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
 
                                 // Gemini Cases
                                 case AiModels.Gemini20Flash:
-                                    return await _geminiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _geminiProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
                                 case AiModels.Gemini25Pro:
-                                    return await _geminiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _geminiProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
 
                                 // Vertex Cases
                                 case AiModels.Claude37SonnetVertex:
-                                    return await _vertexAiProvider.GetCompletionAsync(config.SystemPrompt, historyDtoList, modelId) ?? string.Empty;
+                                    return await _vertexAiProvider.GetCompletionAsync(personaUser.SystemPrompt ?? "", historyDtoList, modelId) ?? string.Empty;
 
                                 default:
                                     _logger.LogWarning("Handler in AiFallbackUtil encountered unknown modelId: {ModelId}", modelId);
@@ -179,20 +185,19 @@ namespace ChattyMcChatface.Core.Services
                 {
                     Text = responseText ?? string.Empty, // Ensure non-null assignment
                     Date = DateTime.UtcNow,
-                    UserId = chatroom.PersonaUserId.Value,
+                    UserId = personaUser.Id,
                     ChatroomId = chatroomId,
                     User = null!, // Will be populated by EF Core
                     Chatroom = null! // Will be populated by EF Core
                 };
 
                 // Save the response to the database
-                await _dbContext.ChatMessages.AddAsync(responseMessage);
-                await _dbContext.SaveChangesAsync();
+                await _context.ChatMessages.AddAsync(responseMessage);
+                await _context.SaveChangesAsync();
                 
-                // ---> START ADDED CODE <---
                 // Update LastRead status for the persona user
-                int personaUserId = chatroom.PersonaUserId.Value;
-                var lastRead = await _dbContext.LastReads
+                int personaUserId = personaUser.Id;
+                var lastRead = await _context.LastReads
                     .FirstOrDefaultAsync(lr => lr.ChatroomId == chatroomId && lr.UserId == personaUserId);
 
                 if (lastRead != null)
@@ -211,16 +216,13 @@ namespace ChattyMcChatface.Core.Services
                         User = null!,
                         Chatroom = null!
                     };
-                    _dbContext.LastReads.Add(lastRead);
+                    _context.LastReads.Add(lastRead);
                 }
-                await _dbContext.SaveChangesAsync(); // Save LastRead changes
-                // ---> END ADDED CODE <---
+                await _context.SaveChangesAsync(); // Save LastRead changes
                 
                 // Create a DTO from the saved persona message entity
                 // Get persona user details to populate the DTO correctly
-                var personaUser = await _dbContext.Users
-                    .FirstOrDefaultAsync(u => u.Id == chatroom.PersonaUserId.Value);
-
+                // (personaUser is already loaded above)
                 if (personaUser != null)
                 {
                     // Create message DTO with persona user details

@@ -9,25 +9,30 @@
         <input
           type="text"
           class="form-control"
-          placeholder="Filter users..."
+          placeholder="Filter participants..."
           [(ngModel)]="userFilter"
         />
       </div>
       <h5 class="widget-title"><span>Create new chat</span></h5>
-      <ul *ngIf="users" class="list-unstyled icon-list">
-        <li *ngFor="let user of getFilteredUsers()">
+      <ul *ngIf="participants" class="list-unstyled icon-list">
+        <li *ngFor="let participant of getFilteredParticipants()">
           <a
-            (click)="toggleUserSelection(user)"
-            [class.selected]="isSelected(user)"
+            (click)="toggleParticipantSelection(participant)"
+            [class.selected]="isParticipantSelected(participant)"
           >
             <span
               class="fas fa-lg"
               [ngClass]="
-                isSelected(user) ? 'fa-minus-circle' : 'fa-plus-circle'
+                isParticipantSelected(participant)
+                  ? 'fa-minus-circle'
+                  : 'fa-plus-circle'
               "
             ></span>
-            {{ user.firstName }}
-            {{ user.lastName }}
+            <i
+              *ngIf="participant.isPersona"
+              class="fas fa-robot text-info me-2"
+            ></i>
+            {{ participant.displayName }}
           </a>
         </li>
       </ul>
@@ -35,8 +40,8 @@
         <button
           (click)="createChat()"
           type="submit"
-          class="btn btn-footer"
-          [disabled]="selectedUsers.length === 0 || creating"
+          class="btn btn-primary"
+          [disabled]="selectedParticipants.length === 0 || creating"
         >
           Get Chatty
         </button>

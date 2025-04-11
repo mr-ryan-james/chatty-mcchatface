@@ -6,11 +6,12 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { User } from './user.service';
 
-export interface PersonaConfig {
-  personaUserId: number;
+// Matches the PersonaInfo record from PersonasController
+export interface PersonaInfo {
+  id: number; // Was personaUserId
   displayName: string;
-  systemPrompt: string;
-  preferredModelId: string;
+  systemPrompt?: string | null;
+  preferredModelId?: string | null;
 }
 
 // Define interfaces matching .NET DTOs
@@ -36,14 +37,14 @@ export interface ChatroomDto {
 
 export interface ChatroomDetailDto extends ChatroomDto {
   personaUserId?: string;
-  personaConfig?: PersonaConfig | null;
+  personaConfig?: PersonaInfo | null;
   messages: ChatMessageDto[];
 }
 
 export interface CreateChatroomDto {
   title: string;
   userIds: number[];
-  personaUserId?: string;
+  personaUserId?: number | null;
 }
 
 export interface UpdateChatroomDto {
@@ -74,8 +75,8 @@ export enum MessageRole {
   providedIn: 'root',
 })
 export class ChatService {
-  getPersonas(): Observable<PersonaConfig[]> {
-    return this.http.get<PersonaConfig[]>(`${environment.apiUrl}/personas`);
+  getPersonas(): Observable<PersonaInfo[]> {
+    return this.http.get<PersonaInfo[]>(`${environment.apiUrl}/personas`);
   }
   // Mock data for development (fallback if API is not available)
   private mockChatrooms: ChatroomDto[] = [

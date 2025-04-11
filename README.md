@@ -182,6 +182,54 @@ for avoiding runtime errors. Pay close attention to data types, especially when 
 DTOs). This project uses `number` for user and chatroom IDs in the backend and frontend
 communication.
 
+## Testing
+
+### Integration Tests Database
+
+The integration tests (`dotnet_server/ChattyMcChatface.Tests.Integration/`) use a different database
+setup than the main application runtime:
+
+-   **In-Memory Database:** Tests utilize an in-memory SQLite database, configured in
+    `IntegrationTestFixture.cs`. This ensures tests run in isolation without affecting the main
+    `chatty.db` file.
+-   **Test-Specific Seeding:** Before test scenarios run, the `IntegrationTestFixture.cs` uses
+    helper methods like `SeedUserAsync` and `SeedChatroomAsync` to manually create necessary data
+    (including persona users with `IsPersona=true`) in the in-memory database for that specific
+    test.
+
+This is why tests involving personas might pass even if the main `chatty.db` file lacks the
+corresponding persona user records. The main application relies on the `chatty.db` file copied
+during the Docker build or potentially database seeding logic run at startup (if implemented).
+
+```mermaid
+graph TD
+    subgraph Integration Test Flow
+        IT_Start --> IT_Setup[Test Fixture Setup (IntegrationTestFixture.cs)];
+        IT_Setup -- Creates/Migrates --> IT_DB[(In-Memory DB)];
+        IT_Setup --> IT_Test[Test Scenario Starts];
+        IT_Test -- Calls --> IT_Seed[fixture.SeedUserAsync(..., isPersona=true)];
+        IT_Seed -- Inserts/Updates --> IT_DB;
+        IT_Test -- Simulates API Call --> IT_Controller[Controller Action];
+        IT_Controller -- Validates ID --> IT_DB;
+        IT_DB -- User Found & IsPersona=true --> IT_Result(Validation OK ✅);
+    end
+
+    subgraph Runtime Flow (Docker)
+        RT_Start --> RT_Build[Docker Build];
+        RT_Build -- Copies --> RT_DB_File(chatty.db file);
+        RT_Build --> RT_Image[Docker Image];
+        RT_Image --> RT_Container[Docker Container Starts];
+        RT_Container -- Uses --> RT_DB_File;
+        RT_Frontend[Frontend Selects Persona] --> RT_API_Call[API Call /api/chatrooms];
+        RT_API_Call -- Hits --> RT_Controller[Controller Action];
+        RT_Controller -- Validates ID --> RT_DB_File;
+        RT_DB_File -- User Missing or IsPersona=false --> RT_Result(Error: "Invalid persona user id" ❌);
+    end
+
+    style RT_Result fill:#f99,stroke:#333,stroke-width:2px
+    style IT_Result fill:#9cf,stroke:#333,stroke-width:2px
+```
+
 ## Configuration
 
 ### Configuration Management

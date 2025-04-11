@@ -1,7 +1,12 @@
-using ChattyMcChatface.Core.Dtos;
-using ChattyMcChatface.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using ChattyMcChatface.Data;
+
+// Define a simple record for the response
+public record PersonaInfo(int Id, string DisplayName, string? SystemPrompt, string? PreferredModelId);
 
 namespace ChattyMcChatface.Api.Controllers
 {
@@ -9,11 +14,11 @@ namespace ChattyMcChatface.Api.Controllers
     [Route("api/[controller]")]
     public class PersonasController : ControllerBase
     {
-        private readonly IPersonaConfigService _personaConfigService;
+        private readonly AppDbContext _context;
 
-        public PersonasController(IPersonaConfigService personaConfigService)
+        public PersonasController(AppDbContext context)
         {
-            _personaConfigService = personaConfigService;
+            _context = context;
         }
 
         /// <summary>
@@ -21,10 +26,18 @@ namespace ChattyMcChatface.Api.Controllers
         /// </summary>
         /// <returns>A list of persona configurations.</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<PersonaConfig>), 200)]
-        public IActionResult GetPersonas()
+        public async Task<ActionResult<List<PersonaInfo>>> GetPersonas()
         {
-            var personas = _personaConfigService.GetAllConfigs(); // Use GetAllConfigs as identified earlier
+            var personas = await _context.Users
+                .Where(u => u.IsPersona)
+                .Select(u => new PersonaInfo(
+                    u.Id,
+                    u.FirstName ?? $"Persona {u.Id}", // Removed u.Username fallback
+                    u.SystemPrompt,
+                    u.PreferredModelId
+                ))
+                .ToListAsync();
+
             return Ok(personas);
         }
     }

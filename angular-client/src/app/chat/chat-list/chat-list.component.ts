@@ -4,12 +4,7 @@ import { AuthService } from '../../shared/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import {
-  ChatService,
-  ChatroomDto,
-  PersonaConfig,
-  CreateChatroomDto,
-} from '../../shared/services/chat.service';
+import { ChatService, ChatroomDto } from '../../shared/services/chat.service';
 import { SignalrService } from '../../shared/services/signalr.service';
 import { Subscription } from 'rxjs';
 import { SharedModule } from '../../shared/shared.module';
@@ -34,10 +29,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
   error = '';
   private subscriptions: Subscription[] = [];
 
-  newChatroomTitle: string = '';
-  personas: PersonaConfig[] = [];
-  selectedPersona: string | null = null;
-
   constructor(
     private router: Router,
     private chatService: ChatService,
@@ -48,15 +39,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Fetch chatrooms
     this.fetchChatrooms();
-
-    this.chatService.getPersonas().subscribe({
-      next: (personas) => {
-        this.personas = personas;
-      },
-      error: (err) => {
-        console.error('Error fetching personas:', err);
-      },
-    });
 
     // Set up SignalR connection
     this.signalrService
@@ -152,33 +134,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
       // If not connected to SignalR, just navigate (connection will be handled in the room component)
       this.router.navigate(['/chat/room', chatroom.id.toString()]);
     }
-  }
-
-  createChatroom(): void {
-    const currentUserId = +(this.authService.getUserInfo()?.id || 0);
-    if (!currentUserId) {
-      console.error(
-        'Cannot create chatroom, user not logged in or ID missing.'
-      );
-      return;
-    }
-    const newChatroom: CreateChatroomDto = {
-      title: this.newChatroomTitle,
-      personaUserId: this.selectedPersona ?? undefined,
-      userIds: [currentUserId],
-    };
-    this.chatService.createChatroom(newChatroom).subscribe({
-      next: (createdChatroom) => {
-        console.log('Chatroom created:', createdChatroom);
-        this.chatrooms = [createdChatroom, ...this.chatrooms];
-        this.newChatroomTitle = '';
-        this.selectedPersona = null;
-      },
-      error: (err) => {
-        console.error('Error creating chatroom:', err);
-        this.error = 'Failed to create chatroom. Please try again.';
-      },
-    });
   }
 
   selectChatroom(chatroom: ChatroomDto): void {

@@ -16,7 +16,7 @@ import {
   ChatMessageDto,
   CreateMessageDto,
 } from '../../shared/services/chat.service';
-import { PersonaConfig } from '../../shared/services/chat.service';
+import { PersonaInfo } from '../../shared/services/chat.service';
 import { UserDto } from '../../shared/services/chat.service';
 import { SignalrService } from '../../shared/services/signalr.service';
 import { AuthService } from '../../shared/services/auth.service';
@@ -256,7 +256,7 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.chatroom?.personaUserId ?? null;
   }
 
-  get personaConfig(): PersonaConfig | null {
+  get personaConfig(): PersonaInfo | null {
     return this.chatroom?.personaConfig ?? null;
   }
 }

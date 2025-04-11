@@ -3,15 +3,24 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../shared/services/user.service';
-import { UserDto } from '../../shared/services/chat.service';
+import { UserDto } from '../../shared/services/user.service';
+import { PersonaInfo } from '../../shared/services/chat.service';
 import {
   ChatService,
   CreateChatroomDto,
 } from '../../shared/services/chat.service';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { AuthService } from '../../shared/services/auth.service';
 import { SignalrService } from '../../shared/services/signalr.service';
 import { SharedModule } from '../../shared/shared.module';
+
+// SelectableParticipant type
+export interface SelectableParticipant {
+  participantId: string | number;
+  displayName: string;
+  isPersona: boolean;
+  originalData: UserDto | PersonaInfo;
+}
 
 @Component({
   selector: 'app-chat-create',
@@ -21,8 +30,9 @@ import { SharedModule } from '../../shared/shared.module';
   imports: [CommonModule, FormsModule, SharedModule],
 })
 export class ChatCreateComponent implements OnInit, OnDestroy {
-  users: UserDto[] = [];
-  selectedUsers: UserDto[] = [];
+  participants: SelectableParticipant[] = [];
+  selectedParticipants: SelectableParticipant[] = [];
+  personas: PersonaInfo[] = [];
   loading = false;
   creating = false;
   error = '';
@@ -39,7 +49,7 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.fetchUsers();
+    this.loadData();
 
     // Ensure SignalR is connected
     if (!this.signalrService.isConnectedToHub()) {
@@ -56,23 +66,35 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  fetchUsers(): void {
+  // Load both users and personas, then combine into participants
+  loadData(): void {
     this.loading = true;
     this.error = '';
 
-    const sub = this.userService.getOtherUsers().subscribe({
-      next: (users) => {
-        console.log('Fetched users:', users);
-        this.users = users.map((u) => ({
-          ...u,
-          id: +u.id,
-          createdAt: new Date(),
+    const sub = forkJoin({
+      users: this.userService.getOtherUsers(),
+      personas: this.chatService.getPersonas(),
+    }).subscribe({
+      next: ({ users, personas }) => {
+        this.personas = personas;
+        const mappedUsers: SelectableParticipant[] = users.map((u) => ({
+          participantId: u.id,
+          displayName: `${u.firstName} ${u.lastName}`,
+          isPersona: false,
+          originalData: u,
         }));
+        const mappedPersonas: SelectableParticipant[] = personas.map((p) => ({
+          participantId: p.id,
+          displayName: p.displayName,
+          isPersona: true,
+          originalData: p,
+        }));
+        this.participants = [...mappedUsers, ...mappedPersonas];
         this.loading = false;
       },
       error: (err) => {
-        console.error('Error fetching users:', err);
-        this.error = 'Failed to load users. Please try again.';
+        console.error('Error fetching participants:', err);
+        this.error = 'Failed to load participants. Please try again.';
         this.loading = false;
       },
     });
@@ -80,55 +102,65 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.push(sub);
   }
 
-  addUser(user: UserDto): void {
-    // Prevent adding duplicates
-    if (!this.selectedUsers.some((u) => u.id === user.id)) {
-      this.selectedUsers.push(user);
+  addParticipant(participant: SelectableParticipant): void {
+    if (
+      !this.selectedParticipants.some(
+        (p) => p.participantId === participant.participantId
+      )
+    ) {
+      this.selectedParticipants.push(participant);
     }
   }
 
-  removeUser(user: UserDto): void {
-    // Remove from selected users
-    this.selectedUsers = this.selectedUsers.filter((u) => u.id !== user.id);
+  removeParticipant(participant: SelectableParticipant): void {
+    this.selectedParticipants = this.selectedParticipants.filter(
+      (p) => p.participantId !== participant.participantId
+    );
   }
 
-  isSelected(user: UserDto): boolean {
-    return this.selectedUsers.some((u) => u.id === user.id);
+  isParticipantSelected(participant: SelectableParticipant): boolean {
+    return this.selectedParticipants.some(
+      (p) => p.participantId === participant.participantId
+    );
   }
 
-  toggleUserSelection(user: UserDto): void {
-    if (this.isSelected(user)) {
-      this.removeUser(user);
+  toggleParticipantSelection(participant: SelectableParticipant): void {
+    if (this.isParticipantSelected(participant)) {
+      this.removeParticipant(participant);
     } else {
-      this.addUser(user);
+      // Only one persona can be selected at a time
+      const hasPersona = this.selectedParticipants.some((p) => p.isPersona);
+      if (participant.isPersona && hasPersona) {
+        // Optionally show user feedback
+        console.warn('Only one persona can be selected.');
+        return;
+      }
+      this.addParticipant(participant);
     }
   }
 
-  getFilteredUsers(): UserDto[] {
+  getFilteredParticipants(): SelectableParticipant[] {
     if (!this.userFilter) {
-      return this.users;
+      return this.participants;
     }
     const filter = this.userFilter.toLowerCase();
-    return this.users.filter(
-      (user) =>
-        user.firstName?.toLowerCase().includes(filter) ||
-        user.lastName?.toLowerCase().includes(filter) ||
-        user.email?.toLowerCase().includes(filter)
+    return this.participants.filter((p) =>
+      p.displayName.toLowerCase().includes(filter)
     );
   }
 
   createChat(): void {
-    if (this.selectedUsers.length === 0 || this.creating) {
+    if (this.selectedParticipants.length === 0 || this.creating) {
       // Added || this.creating
-      if (this.selectedUsers.length === 0) {
-        this.error = 'Please select at least one user to chat with';
+      if (this.selectedParticipants.length === 0) {
+        this.error = 'Please select at least one participant to chat with';
       }
       return;
     }
 
     this.creating = true;
     this.error = '';
-    console.log('Creating chat with users:', this.selectedUsers);
+    console.log('Creating chat with participants:', this.selectedParticipants);
 
     // Include the current user in the chat
     const currentUser = this.authService.getUserInfo();
@@ -141,15 +173,29 @@ export class ChatCreateComponent implements OnInit, OnDestroy {
     // Create a name for the chat (if not provided)
     const chatName =
       this.chatroomName ||
-      this.selectedUsers.map((u) => `${u.firstName} ${u.lastName}`).join(', ');
+      this.selectedParticipants.map((p) => p.displayName).join(', ');
 
-    // Create the new chatroom DTO
+    // Separate selected users and persona
+    const realUserSelections = this.selectedParticipants.filter(
+      (p) => !p.isPersona
+    );
+    const personaSelection = this.selectedParticipants.find((p) => p.isPersona);
+
+    // Prepare user IDs (convert string IDs to numbers)
+    const userIds = [
+      +(currentUser?.id || 0), // Add current user ID as number
+      ...realUserSelections.map((p) => +p.participantId), // Add selected real user IDs as numbers
+    ];
+
+    // Prepare persona ID (already a number or undefined)
+    const personaUserId = personaSelection
+      ? (personaSelection.participantId as number)
+      : null;
+
     const createChatroomDto: CreateChatroomDto = {
       title: chatName,
-      userIds: [
-        +(currentUser?.id || 0),
-        ...this.selectedUsers.map((u) => u.id),
-      ],
+      userIds: userIds,
+      personaUserId: personaUserId,
     };
 
     const sub = this.chatService.createChatroom(createChatroomDto).subscribe({
