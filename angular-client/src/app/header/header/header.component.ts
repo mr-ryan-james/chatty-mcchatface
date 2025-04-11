@@ -4,6 +4,8 @@ import { Subscription, interval } from 'rxjs';
 import { take, map, tap } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
+import { ButtonsModule } from 'ngx-bootstrap/buttons';
 import { AuthService } from '../../shared/services/auth.service';
 import { User } from '../../shared/services/user.service';
 import { SignalrService } from '../../shared/services/signalr.service';
@@ -11,9 +13,9 @@ import { SignalrService } from '../../shared/services/signalr.service';
 @Component({
   selector: 'app-header',
   templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css'],
+  styleUrls: ['./header.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, BsDropdownModule, ButtonsModule],
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;

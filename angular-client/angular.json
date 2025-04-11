@@ -44,10 +44,7 @@
             "styles": [
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "node_modules/font-awesome/css/font-awesome.min.css",
-              "src/assets/css/theme-assets.min.css",
-              "src/assets/css/logo-font.css",
-              "src/assets/css/b-different-bw.min.css",
-              "src/styles.css"
+              "src/styles.scss"
             ],
             "scripts": []
           },
@@ -56,7 +53,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "800kB",
                   "maximumError": "1MB"
                 },
                 {
@@ -111,10 +108,7 @@
             "styles": [
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "node_modules/font-awesome/css/font-awesome.min.css",
-              "src/assets/css/theme-assets.min.css",
-              "src/assets/css/logo-font.css",
-              "src/assets/css/b-different-bw.min.css",
-              "src/styles.css"
+              "src/styles.scss"
             ],
             "scripts": []
           }
