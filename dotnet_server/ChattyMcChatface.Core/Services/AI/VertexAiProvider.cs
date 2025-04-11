@@ -21,7 +21,7 @@ namespace ChattyMcChatface.Core.Services.AI;
 public class VertexAiProvider : IAiProvider
 {
     private readonly ILogger<VertexAiProvider> _logger;
-    private readonly string _projectId;
+    private readonly string _projectId = string.Empty;
     private readonly string _location;
     private readonly string _keyJsonContent;
     private readonly AsyncRetryPolicy _retryPolicy;
@@ -118,9 +118,14 @@ public class VertexAiProvider : IAiProvider
         try
         {
             _logger.LogInformation("Getting completion from Vertex AI model {ModelId}", modelId);
+            var credential = CreateCredential();
+            if (credential == null)
+            {
+                _logger.LogError("Failed to create Google Credential, cannot proceed with Vertex AI request.");
+                return null; // Return null early if credential creation failed
+            }
             return await _retryPolicy.ExecuteAsync<string?>(async () =>
             {
-                var credential = CreateCredential();
                 var requestPayload = BuildRequestPayload(systemPrompt, history);
                 var httpResponse = await MakeApiCallAsync(credential, requestPayload, modelId);
                 return await ParseApiResponseAsync(httpResponse);
@@ -136,7 +141,7 @@ public class VertexAiProvider : IAiProvider
     /// <summary>
     /// Creates and returns a GoogleCredential with properly formatted private key
     /// </summary>
-    private GoogleCredential CreateCredential()
+    private GoogleCredential? CreateCredential()
     {
         if (string.IsNullOrWhiteSpace(_keyJsonContent))
         {
