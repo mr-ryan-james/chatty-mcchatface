@@ -113,6 +113,7 @@ namespace ChattyMcChatface.Api
             app.MapControllers();
 
             app.MapHub<ChatHub>("/chathub"); // Map the ChatHub
+            app.MapFallbackToFile("index.html"); // Add this line for SPA routing
             app.Run();
         }
     }

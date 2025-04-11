@@ -28,3 +28,28 @@
 .logo-b-different-logo:before {
   content: "\e600";
 }
+
+:host {
+  .dropdown-menu {
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-radius: 0.25rem;
+    padding: 0.5rem 0;
+    min-width: 10rem;
+  }
+
+  .dropdown-item {
+    color: #343a40;
+    padding: 0.5rem 1.5rem;
+    transition: background-color 0.15s, color 0.15s;
+    border-radius: 0.2rem;
+
+    &:hover,
+    &:focus {
+      background-color: #e9ecef;
+      color: #212529;
+      text-decoration: none;
+    }
+  }
+}

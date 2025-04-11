@@ -21,8 +21,10 @@
             [class.selected]="isSelected(user)"
           >
             <span
-              class="fa fa-lg"
-              [ngClass]="isSelected(user) ? 'fa-minus' : 'fa-plus'"
+              class="fas fa-lg"
+              [ngClass]="
+                isSelected(user) ? 'fa-minus-circle' : 'fa-plus-circle'
+              "
             ></span>
             {{ user.firstName }}
             {{ user.lastName }}

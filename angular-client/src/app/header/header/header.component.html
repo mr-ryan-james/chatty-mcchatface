@@ -1,60 +1,60 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <div class="container-fluid">
-    <a
-      class="navbar-brand logo-font"
-      routerLink="/"
-      style="
-        color: #333333;
-        font-weight: bold;
-        min-width: 250px;
-        white-space: nowrap;
-      "
-      >{{ displayedTitle }}</a
-    >
-    <ul class="navbar-nav ms-auto" style="margin-right: 10px">
-      <!-- Logged In View -->
-      <li *ngIf="currentUser" class="nav-item dropdown" dropdown>
-        <a
-          dropdownToggle
-          class="nav-link dropdown-toggle"
-          style="cursor: pointer"
-          aria-haspopup="true"
-          aria-expanded="false"
-          id="userDropdown"
-          role="button"
-        >
-          <span class="header-btn-text">
-            Hello, {{ currentUser.firstName }} {{ currentUser.lastName }}
-          </span>
+<nav
+  class="navbar navbar-expand-lg navbar-light bg-light d-flex justify-content-between align-items-center px-3 py-2"
+>
+  <a
+    class="navbar-brand logo-font"
+    routerLink="/"
+    style="
+      color: #333333;
+      font-weight: bold;
+      min-width: 250px;
+      white-space: nowrap;
+    "
+    >{{ displayedTitle }}</a
+  >
+  <ul class="navbar-nav ms-3" style="margin-right: 10px">
+    <!-- Logged In View -->
+    <li *ngIf="currentUser" class="nav-item dropdown" dropdown>
+      <a
+        dropdownToggle
+        class="nav-link dropdown-toggle"
+        style="cursor: pointer"
+        aria-haspopup="true"
+        aria-expanded="false"
+        id="userDropdown"
+        role="button"
+      >
+        <span class="header-btn-text">
+          Hello, {{ currentUser.firstName }} {{ currentUser.lastName }}
+        </span>
+      </a>
+      <ul
+        *dropdownMenu
+        class="dropdown-menu dropdown-menu-end"
+        aria-labelledby="userDropdown"
+      >
+        <li>
+          <a class="dropdown-item" (click)="logout()" style="cursor: pointer">
+            <i class="fa fa-sign-out header-icon"></i>
+            Logout
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- Logged Out View -->
+    <ng-container *ngIf="!currentUser">
+      <li class="nav-item">
+        <a class="nav-link" (click)="login()" style="cursor: pointer">
+          <i class="fa fa-sign-in header-icon"></i>
+          Login
         </a>
-        <ul
-          *dropdownMenu
-          class="dropdown-menu dropdown-menu-end"
-          aria-labelledby="userDropdown"
-        >
-          <li>
-            <a class="dropdown-item" (click)="logout()" style="cursor: pointer">
-              <i class="fa fa-sign-out header-icon"></i>
-              Logout
-            </a>
-          </li>
-        </ul>
       </li>
-      <!-- Logged Out View -->
-      <ng-container *ngIf="!currentUser">
-        <li class="nav-item">
-          <a class="nav-link" (click)="login()" style="cursor: pointer">
-            <i class="fa fa-sign-in header-icon"></i>
-            Login
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" (click)="signUp()" style="cursor: pointer">
-            <i class="fa fa-pencil header-icon"></i>
-            Sign Up
-          </a>
-        </li>
-      </ng-container>
-    </ul>
-  </div>
+      <li class="nav-item">
+        <a class="nav-link" (click)="signUp()" style="cursor: pointer">
+          <i class="fa fa-pencil header-icon"></i>
+          Sign Up
+        </a>
+      </li>
+    </ng-container>
+  </ul>
 </nav>

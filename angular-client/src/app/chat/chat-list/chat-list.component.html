@@ -2,18 +2,40 @@
   class="col-sm-8 col-md-9 col-sm-push-4 col-md-push-3 primary-column"
   role="main"
 >
-  <div class="form-group">
-    <label for="personaSelect">Select Persona (Optional):</label>
-    <select
-      id="personaSelect"
-      class="form-control"
-      [(ngModel)]="selectedPersona"
-    >
-      <option [ngValue]="null">-- Select Persona --</option>
-      <option *ngFor="let persona of personas" [value]="persona.personaUserId">
-        {{ persona.displayName }}
-      </option>
-    </select>
+  <div class="new-chatroom-section mb-4">
+    <h4>Create New Chat</h4>
+    <div class="input-group">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Enter chatroom title"
+        [(ngModel)]="newChatroomTitle"
+        (keyup.enter)="createChatroom()"
+      />
+      <button
+        class="btn btn-primary"
+        (click)="createChatroom()"
+        [disabled]="!newChatroomTitle || newChatroomTitle.trim() === ''"
+      >
+        Create Chat
+      </button>
+    </div>
+    <div class="form-group mt-2">
+      <label for="personaSelect">Select Persona (Optional):</label>
+      <select
+        id="personaSelect"
+        class="form-control"
+        [(ngModel)]="selectedPersona"
+      >
+        <option [ngValue]="null">-- Select Persona --</option>
+        <option
+          *ngFor="let persona of personas"
+          [value]="persona.personaUserId"
+        >
+          {{ persona.displayName }}
+        </option>
+      </select>
+    </div>
   </div>
   <article class="entry-summary" *ngFor="let chatroom of chatrooms">
     <header class="entry-header">
