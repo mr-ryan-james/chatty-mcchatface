@@ -184,14 +184,49 @@ communication.
 
 ## Configuration
 
-### AI Provider API Keys
+### Configuration Management
 
-Sensitive API keys for external AI services (OpenAI, Azure, etc.) are managed using the **.NET
-Secret Manager** during local development. See the "Configure Backend Secrets" step in the Getting
-Started section.
+This application requires sensitive configuration, such as API keys and connection strings, which
+should not be committed directly to the repository. We use the .NET Secret Manager tool for managing
+these secrets during development.
 
-For production deployments, these keys should be configured using environment variables or Azure App
-Configuration / Key Vault.
+The `generate-docker-secrets.js` script is provided to facilitate integrating these secrets into the
+application's configuration for Docker builds. It performs the following steps:
+
+1.  **Reads Secrets:** It uses the command `dotnet user-secrets list --json` to retrieve the secrets
+    stored for the `ChattyMcChatface.Api` project. Make sure you have configured the necessary
+    secrets using `dotnet user-secrets set <key> <value>` in the
+    `dotnet_server/ChattyMcChatface.Api` directory.
+2.  **Merges Configuration:** It merges these secrets with the existing configuration settings found
+    in `dotnet_server/ChattyMcChatface.Api/appsettings.json`.
+3.  **Outputs Combined Configuration:** The combined configuration, including secrets, is written
+    back to the `dotnet_server/ChattyMcChatface.Api/appsettings.json` file. This file is included in
+    the Docker build context but should **not** be committed to version control (it's listed in
+    `.gitignore`).
+
+**Important Note on `VertexAI:KeyJsonContent`:** The secret key `VertexAI:KeyJsonContent` requires
+special handling. Its value should be the _entire content_ of your Google Cloud service account JSON
+key file, typically stored as a single-line string with escaped quotes. The
+`generate-docker-secrets.js` script is designed to correctly handle this key as a string literal
+within the final `appsettings.json` file.
+
+To prepare the configuration before building the Docker image:
+
+1.  Ensure you have [.NET SDK](https://dotnet.microsoft.com/download) installed.
+2.  Navigate to the `dotnet_server/ChattyMcChatface.Api` directory.
+3.  Set the required secrets using the `dotnet user-secrets set` command. For example:
+    ```bash
+    dotnet user-secrets set "OpenAI:ApiKey" "YOUR_OPENAI_API_KEY"
+    dotnet user-secrets set "ConnectionStrings:DefaultConnection" "YOUR_DB_CONNECTION_STRING"
+    dotnet user-secrets set "VertexAI:KeyJsonContent" "YOUR_VERTEX_AI_KEY_JSON_CONTENT"
+    # (Make sure to paste the entire JSON content as a single string for VertexAI:KeyJsonContent)
+    ```
+    Refer to the `appsettings.example.json` file for a template of required keys.
+4.  Navigate back to the project root directory.
+5.  Run the script: `node generate-docker-secrets.js`
+
+This will update the `dotnet_server/ChattyMcChatface.Api/appsettings.json` file with your secrets
+merged into the configuration. Configuration / Key Vault.
 
 ### AI Personas (`personas.json`)
 
@@ -276,3 +311,160 @@ sequenceDiagram
     NotificationService->>Frontend: Push Message via SignalR
     Frontend->>User: Display AI Message
 ```
+
+## Docker Build and Configuration
+
+This project uses Docker for containerization. The following steps outline the process for building
+and running the application using Docker.
+
+### Configuration Management
+
+The application requires sensitive configuration, such as API keys and connection strings, which
+should not be committed directly to the repository. A `.secrets.json` file (which should be added to
+`.gitignore`) is used to store these secrets locally.
+
+The `generate-docker-secrets.js` script is provided to merge the configuration from `.secrets.json`
+into the `dotnet_server/ChattyMcChatface.Api/appsettings.json` file before building the Docker
+image. This ensures that the necessary configuration is available to the application running inside
+the container without exposing secrets in the main codebase.
+
+**Important:** The script handles the correct formatting for different configuration values.
+Notably, the `VertexAI:KeyJsonContent` value, which contains the JSON key for Google Cloud services,
+is expected to be a string containing escaped JSON in `.secrets.json`. The script ensures this is
+correctly passed as a string literal within the final `appsettings.json`.
+
+To prepare the configuration before building:
+
+1. Ensure you have Node.js installed.
+2. Create a `.secrets.json` file in the project root if it doesn't exist. Add your secrets here,
+   mirroring the structure of `dotnet_server/ChattyMcChatface.Api/appsettings.json` where necessary
+   (e.g., for `OpenAI:ApiKey`, `ConnectionStrings:DefaultConnection`, `VertexAI:KeyJsonContent`).
+3. Run the script from the project root: `node generate-docker-secrets.js`
+
+This will update `dotnet_server/ChattyMcChatface.Api/appsettings.json` with the merged
+configuration.
+
+### Building the Docker Image
+
+After ensuring your configuration is correctly set up in `.secrets.json` and merged using
+`node generate-docker-secrets.js`, build the Docker image using the following command from the
+project root directory:
+
+```bash
+docker build -t chatty-mcchatface-app:latest .
+```
+
+### Running Locally for Testing
+
+To run the application in a Docker container, use the following command:
+
+```bash
+docker run -d -p 8080:8080 --name chatty-test chatty-mcchatface-app:latest
+```
+
+This will start the container in detached mode and map port 8080 on your host to port 8080 inside
+the container. You can access the application at `http://localhost:8080`.
+
+### Deploying the Container
+
+The command used for running the container locally can be adapted for deployment. Ensure the
+required configuration (merged into `appsettings.json` via the script or provided via environment
+variables) is available to the container in your deployment environment.
+
+A typical command to run the container in a deployment scenario might look like:
+
+```bash
+# Ensure any previous container is stopped/removed if necessary
+docker stop chatty-app || true && docker rm chatty-app || true
+
+# Run the new container, potentially with a restart policy
+docker run -d \
+  -p 80:8080 \ # Map host port 80 to container port 8080 (adjust host port as needed)
+  --name chatty-app \
+  --restart unless-stopped \
+  chatty-mcchatface-app:latest
+```
+
+_Note: Adjust port mappings, container name (`--name`), and restart policies (`--restart`) according
+to your deployment needs._
+
+### Troubleshooting
+
+-   **Port Conflict:** If port 8080 is already in use on your host machine, you can map to a
+    different host port. For example, to use host port 8081:
+    ```bash
+    docker run -d -p 8081:8080 --name chatty-test chatty-mcchatface-app:latest
+    ```
+    Access the application at `http://localhost:8081`.
+-   **Container Errors:** If the container fails to start or the application is not responding,
+    check the container logs for errors:
+    ```bash
+    docker logs chatty-test
+    ```
+-   **Configuration Issues:** Ensure your `.secrets.json` file is correctly formatted and contains
+    all necessary keys (like `OpenAI:ApiKey`, `ConnectionStrings:DefaultConnection`,
+    `VertexAI:KeyJsonContent`). Remember to re-run `node generate-docker-secrets.js` and rebuild the
+    Docker image after making changes to `.secrets.json`.
+-   **JSON Parsing:** The `generate-docker-secrets.js` script attempts to parse values that look
+    like JSON. If you encounter issues with specific configuration values being incorrectly parsed,
+    you might need to adjust the script's parsing logic (as was done for `VertexAI:KeyJsonContent`).
+
+## Sanity Check / Basic E2E Test
+
+After making changes, especially to configuration or core services, perform the following steps to
+ensure the application builds, runs, and responds correctly:
+
+1.  **Confirm .NET Server Build:** Ensure the backend compiles without errors.
+    ```bash
+    (cd dotnet_server && dotnet build ChattyMcChatface.sln)
+    ```
+2.  **Confirm Angular App Build:** Ensure the frontend compiles without errors.
+    ```bash
+    (cd angular-client && ng build)
+    ```
+3.  **Confirm .NET Tests Pass:** Ensure all unit and integration tests pass.
+    ```bash
+    (cd dotnet_server && dotnet test)
+    ```
+4.  **Prepare Docker Configuration:** Merge secrets into `appsettings.json`.
+    ```bash
+    node generate-docker-secrets.js
+    ```
+5.  **Confirm Docker Build:** Build the Docker image.
+    ```bash
+    docker build -t chatty-mcchatface-app:latest .
+    ```
+6.  **Run Docker Container:**
+    -   Stop/Remove any existing test container:
+        ```bash
+        docker stop chatty-test || true && docker rm chatty-test || true
+        ```
+    -   Run the new image (ensure port 8080 is free or use a different host port like 8081):
+        ```bash
+        docker run -d -p 8080:8080 --name chatty-test chatty-mcchatface-app:latest
+        ```
+7.  **Confirm Container Responds:**
+    -   Check root path (expect HTTP 200 OK):
+        ```bash
+        curl -I http://localhost:8080/
+        # (Use correct port if you changed it in the previous step)
+        ```
+    -   Check registration endpoint (expect JSON with token):
+        ```bash
+        curl 'http://localhost:8080/api/auth/register' \
+          -H 'Accept: application/json, text/plain, */*' \
+          -H 'Content-Type: application/json' \
+          --data-raw '{"email":"test@example.com","password":"password123","firstName":"Test","lastName":"User","username":"testuser"}'
+        # (Use correct port if needed)
+        ```
+    -   Check chatroom list endpoint (expect HTTP 200 OK and JSON array `[]`):
+        ```bash
+        # Use a valid Bearer token obtained from login or registration
+        TOKEN="YOUR_VALID_JWT_TOKEN_HERE"
+        curl -i 'http://localhost:8080/api/chatrooms' \
+          -H "Authorization: Bearer $TOKEN"
+        # (Use correct port if needed)
+        ```
+
+If any step fails, investigate the errors (build output, test failures, Docker logs) before
+proceeding.

@@ -41,3 +41,4 @@ angular-client/node_modules/
 *.zip
 appsettings.json
 appsettings.Docker.json
+dotnet_server/ChattyMcChatface.Api/appsettings.json
