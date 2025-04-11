@@ -80,7 +80,10 @@ graph TD
         Hub).
     -   `ChattyMcChatface.Core/`: Business logic, services (including `PersonaService` and AI
         providers), DTOs.
-    -   `ChattyMcChatface.Data/`: Entity Framework Core context, entities, and migrations.
+    -   `ChattyMcChatface.Data/`: Contains Entity Framework Core context, entity definitions, and
+        migration code files.
+    -   **Note:** The active SQLite database file (`chatty.db`) used during development runtime and
+        migrations resides in the `ChattyMcChatface.Api/` directory.
     -   `ChattyMcChatface.Tests.Unit/`: Unit tests.
     -   `ChattyMcChatface.Tests.Integration/`: Integration tests.
 
@@ -140,11 +143,12 @@ graph TD
     _Refer to `dotnet_server/ChattyMcChatface.Api/secrets.example.json` for the full structure._
 
 4.  **Apply Database Migrations (Optional - Seeded DB included):** The repository includes a
-    pre-populated SQLite database (`chatty.db`). If you need to re-apply migrations:
+    pre-populated SQLite database (`dotnet_server/ChattyMcChatface.Api/chatty.db`). This file is
+    updated when migrations are applied. If you need to ensure the latest migrations are applied:
 
     ```bash
     cd dotnet_server/ChattyMcChatface.Api
-    dotnet ef database update
+    dotnet ef database update # This updates dotnet_server/ChattyMcChatface.Api/chatty.db
     cd ../..
     ```
 
@@ -186,7 +190,8 @@ communication.
 
 ### Integration Tests Database
 
-The integration tests (`dotnet_server/ChattyMcChatface.Tests.Integration/`) use a different database
+The integration tests (`dotnet_server/ChattyMcChatface.Tests.Integration/`, including
+`AuthServiceIntegrationTests.cs` and `PersonaServiceIntegrationTests.cs`) use a different database
 setup than the main application runtime:
 
 -   **In-Memory Database:** Tests utilize an in-memory SQLite database, configured in
@@ -268,7 +273,7 @@ graph TD
 
     subgraph Runtime Flow (Docker)
         RT_Start --> RT_Build[Docker Build];
-        RT_Build -- Copies --> RT_DB_File(chatty.db file);
+        RT_Build -- Copies --> RT_DB_File(Api/chatty.db file);
         RT_Build --> RT_Image[Docker Image];
         RT_Image --> RT_Container[Docker Container Starts];
         RT_Container -- Uses --> RT_DB_File;
@@ -454,90 +459,6 @@ To prepare the configuration before building the Docker image:
 This will update the `dotnet_server/ChattyMcChatface.Api/appsettings.json` file with your secrets
 merged into the configuration. Configuration / Key Vault.
 
-### AI Personas (`personas.json`)
-
-AI personas are defined in `dotnet_server/ChattyMcChatface.Api/personas.json`. Each persona object
-includes:
-
--   `personaUserId`: The ID of the corresponding `User` in the database (must have
-    `IsPersona=true`).
--   `displayName`: The name shown in the UI.
--   `systemPrompt`: Instructions defining the AI's personality and behavior.
--   `preferredModelId`: The identifier (from `AiModels.cs`) for the primary AI model this persona
-    should use.
-
-**Note:** The current frontend UI (`chat-create.component`) does not yet allow selecting a specific
-persona when creating a chatroom. This feature requires further development. Chatrooms must
-currently be associated with personas directly via the database or potentially through future API
-extensions.
-
-## AI Persona System Flow
-
-When a user sends a message in a chatroom associated with an AI persona:
-
-1.  The message is saved, and the `PersonaService` is triggered.
-2.  The service retrieves the persona's configuration (`systemPrompt`, `preferredModelId`) from
-    `personas.json` via `IPersonaConfigService`.
-3.  Recent chat history is fetched to provide context.
-4.  The `AiFallbackUtil` attempts to generate a response using the `preferredModelId`.
-5.  A handler function within `PersonaService` maps the `modelId` to the correct AI provider
-    delegate (e.g., `_openAiModels.Gpt4oLatest(...)`).
-6.  The delegate calls the specific AI provider's implementation (e.g.,
-    `OpenAiProvider.GenerateResponseAsync`).
-7.  If the preferred model fails, `AiFallbackUtil` tries models from a global priority list
-    (`AiFallbackUtil.GlobalModelPriority`).
-8.  The successful AI response is saved as a new `ChatMessage` linked to the persona's user ID.
-9.  The response is broadcast to all clients in the chatroom via SignalR (`INotificationService`).
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant ChatController
-    participant PersonaService
-    participant AiFallbackUtil
-    participant AiModelDelegate
-    participant AiProvider
-    participant External AI API
-    participant NotificationService
-
-    User->>Frontend: Send Message
-    Frontend->>ChatController: POST /chats (messageDto)
-    ChatController->>ChatController: Save User Message
-    ChatController->>PersonaService: GenerateResponseAsync(roomId, message)
-    PersonaService->>PersonaService: Get Persona Config (from personas.json)
-    PersonaService->>PersonaService: Get Chat History
-    PersonaService->>AiFallbackUtil: GetWithFallbackAsync(priority, preferredModelId, handler)
-    AiFallbackUtil->>PersonaService: Invoke handler(preferredModelId)
-    PersonaService->>AiModelDelegate: Call specific delegate (e.g., _openAiModels.Gpt4oLatest)
-    AiModelDelegate->>AiProvider: GenerateResponseAsync(prompt, history)
-    AiProvider->>External AI API: Request Completion
-    External AI API-->>AiProvider: AI Response
-    alt Preferred Model Fails
-        AiProvider-->>AiModelDelegate: Throw Exception
-        AiModelDelegate-->>PersonaService: Throw Exception
-        PersonaService-->>AiFallbackUtil: Catch Exception
-        AiFallbackUtil->>AiFallbackUtil: Loop through GlobalModelPriority
-        AiFallbackUtil->>PersonaService: Invoke handler(fallbackModelId)
-        PersonaService->>AiModelDelegate: Call fallback delegate
-        AiModelDelegate->>AiProvider: GenerateResponseAsync(...)
-        AiProvider->>External AI API: Request Completion
-        External AI API-->>AiProvider: AI Response
-        AiProvider-->>AiModelDelegate: Return Response Text
-        AiModelDelegate-->>PersonaService: Return Response Text
-        PersonaService-->>AiFallbackUtil: Return Response Text
-    else Preferred Model Succeeds
-        AiProvider-->>AiModelDelegate: Return Response Text
-        AiModelDelegate-->>PersonaService: Return Response Text
-        PersonaService-->>AiFallbackUtil: Return Response Text
-    end
-    AiFallbackUtil-->>PersonaService: Return Final Response Text
-    PersonaService->>PersonaService: Save AI Response Message
-    PersonaService->>NotificationService: SendMessageToGroupAsync(roomId, aiMessageDto)
-    NotificationService->>Frontend: Push Message via SignalR
-    Frontend->>User: Display AI Message
-```
-
 ## Docker Build and Configuration
 
 This project uses Docker for containerization. The following steps outline the process for building
@@ -545,26 +466,19 @@ and running the application using Docker.
 
 ### Configuration Management
 
-The application requires sensitive configuration, such as API keys and connection strings, which
-should not be committed directly to the repository. A `.secrets.json` file (which should be added to
-`.gitignore`) is used to store these secrets locally.
+As described in the "Getting Started" section, sensitive configuration (API keys, connection
+strings) should be managed using the .NET Secret Manager tool within the
+`dotnet_server/ChattyMcChatface.Api` project directory.
 
-The `generate-docker-secrets.js` script is provided to merge the configuration from `.secrets.json`
-into the `dotnet_server/ChattyMcChatface.Api/appsettings.json` file before building the Docker
-image. This ensures that the necessary configuration is available to the application running inside
-the container without exposing secrets in the main codebase.
-
-**Important:** The script handles the correct formatting for different configuration values.
-Notably, the `VertexAI:KeyJsonContent` value, which contains the JSON key for Google Cloud services,
-is expected to be a string containing escaped JSON in `.secrets.json`. The script ensures this is
-correctly passed as a string literal within the final `appsettings.json`.
+The `generate-docker-secrets.js` script reads these user secrets and merges them into the
+`dotnet_server/ChattyMcChatface.Api/appsettings.json` file before the Docker image is built. This
+ensures the configuration is available inside the container.
 
 To prepare the configuration before building:
 
 1. Ensure you have Node.js installed.
-2. Create a `.secrets.json` file in the project root if it doesn't exist. Add your secrets here,
-   mirroring the structure of `dotnet_server/ChattyMcChatface.Api/appsettings.json` where necessary
-   (e.g., for `OpenAI:ApiKey`, `ConnectionStrings:DefaultConnection`, `VertexAI:KeyJsonContent`).
+2. Ensure you have set the required secrets using `dotnet user-secrets set ...` in the
+   `dotnet_server/ChattyMcChatface.Api` directory (see "Getting Started" section).
 3. Run the script from the project root: `node generate-docker-secrets.js`
 
 This will update `dotnet_server/ChattyMcChatface.Api/appsettings.json` with the merged
@@ -572,7 +486,7 @@ configuration.
 
 ### Building the Docker Image
 
-After ensuring your configuration is correctly set up in `.secrets.json` and merged using
+After ensuring your configuration is correctly set up using .NET Secret Manager and merged using
 `node generate-docker-secrets.js`, build the Docker image using the following command from the
 project root directory:
 
@@ -626,14 +540,15 @@ to your deployment needs._
     check the container logs for errors:
     ```bash
     docker logs chatty-test
+    # (Use the correct container name if you changed it)
     ```
--   **Configuration Issues:** Ensure your `.secrets.json` file is correctly formatted and contains
-    all necessary keys (like `OpenAI:ApiKey`, `ConnectionStrings:DefaultConnection`,
-    `VertexAI:KeyJsonContent`). Remember to re-run `node generate-docker-secrets.js` and rebuild the
-    Docker image after making changes to `.secrets.json`.
--   **JSON Parsing:** The `generate-docker-secrets.js` script attempts to parse values that look
-    like JSON. If you encounter issues with specific configuration values being incorrectly parsed,
-    you might need to adjust the script's parsing logic (as was done for `VertexAI:KeyJsonContent`).
+    **Configuration Issues:** Ensure you have correctly set all required secrets using
+    `dotnet user-secrets set ...` in the `dotnet_server/ChattyMcChatface.Api` directory. Remember to
+    re-run `node generate-docker-secrets.js` and rebuild the Docker image after making changes to
+    secrets. **Database Schema Errors in Docker:** If you encounter database errors (like missing
+    columns) inside the container after applying migrations locally, double-check that the
+    `Dockerfile` copies the `chatty.db` file from the correct location
+    (`dotnet_server/ChattyMcChatface.Api/chatty.db`).
 
 ## Sanity Check / Basic E2E Test
 

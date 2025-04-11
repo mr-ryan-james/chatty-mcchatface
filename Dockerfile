@@ -43,7 +43,7 @@ COPY --from=dotnet_build /app/publish .
 
 # Copy built Angular frontend from build stage into wwwroot
 COPY --from=angular_build /app/angular-client/dist/angular-client/browser ./wwwroot
-COPY dotnet_server/ChattyMcChatface.Data/chatty.db ./chatty.db
+COPY dotnet_server/ChattyMcChatface.Api/chatty.db ./chatty.db
 # Set environment variable for ASP.NET Core port
 ENV ASPNETCORE_URLS=http://+:8080
 
