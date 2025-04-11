@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChattyMcChatface.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250411103349_AddPersonaFieldsToUser")]
-    partial class AddPersonaFieldsToUser
+    [Migration("20250411183004_InitialCreateAndSeed")]
+    partial class InitialCreateAndSeed
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

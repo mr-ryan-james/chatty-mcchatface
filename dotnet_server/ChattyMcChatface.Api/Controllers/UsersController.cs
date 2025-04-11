@@ -25,9 +25,10 @@ public class UsersController : BaseApiController
     public async Task<ActionResult<List<UserDto>>> GetUsers()
     {
         int currentUserId = GetCurrentUserId();
-        
+
         var users = await _context.Users
-            .Where(u => u.Id != currentUserId)
+            .Where(u => u.Id != currentUserId) // Exclude self
+            .Where(u => !u.IsPersona) // Exclude personas
             .Select(u => new UserDto
             {
                 Id = u.Id,

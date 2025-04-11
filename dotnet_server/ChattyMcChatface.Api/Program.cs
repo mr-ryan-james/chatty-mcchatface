@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions; // Add for CreateScope
 using Microsoft.Extensions.Hosting;
 using ChattyMcChatface.Data; // Assuming this is where AppDbContext is
 using Microsoft.EntityFrameworkCore; // For UseSqlite, UseNpgsql etc.
@@ -17,7 +18,7 @@ namespace ChattyMcChatface.Api
 {
     public partial class Program
     {
-        public static void Main(string[] args)
+        public static void Main(string[] args) // Correct signature
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -99,6 +100,7 @@ namespace ChattyMcChatface.Api
             // builder.Services.AddScoped<IAiProvider, OpenAiProvider>(); // Example if using a common interface
 
             var app = builder.Build();
+
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

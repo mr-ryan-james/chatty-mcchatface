@@ -68,6 +68,72 @@ namespace ChattyMcChatface.Tests.Integration
             // await dbContext.SaveChangesAsync();
         }
 
-        // Add more tests for login, edge cases, etc. later
-    }
+                // Add more tests for login, edge cases, etc. later
+        
+                [Fact]
+                public async Task LoginAsync_WithValidCredentials_ReturnsToken()
+                {
+                    // Arrange - Register user first to ensure correct password hash
+                    var uniqueEmail = $"login_success_{System.Guid.NewGuid()}@example.com";
+                    var password = "password123";
+                    var registerDto = new UserRegisterDto
+                    {
+                        Email = uniqueEmail, Password = password, FirstName = "Login", LastName = "Test"
+                    };
+                    var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerDto);
+                    registerResponse.EnsureSuccessStatusCode(); // Ensure registration succeeded
+                    var registeredUser = await registerResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
+                    Assert.NotNull(registeredUser);
+
+                    // Prepare login DTO
+                    var loginDto = new UserLoginDto { Email = uniqueEmail, Password = password };
+
+                    // Act
+                    var response = await _client.PostAsJsonAsync("/api/auth/login", loginDto);
+
+                    // Assert
+                    response.EnsureSuccessStatusCode();
+                    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                    var authResponse = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+                    Assert.NotNull(authResponse);
+                    Assert.NotEmpty(authResponse.Token);
+                    Assert.Equal(registeredUser.Email, authResponse.Email);
+                    Assert.Equal(registeredUser.UserId, authResponse.UserId);
+                }
+        
+                [Fact]
+                public async Task LoginAsync_WithInvalidCredentials_ReturnsBadRequest()
+                {
+                    // Arrange
+                    var uniqueEmail = $"login_fail_{System.Guid.NewGuid()}@example.com";
+                    var registerDto = new UserRegisterDto
+                    {
+                        Email = uniqueEmail, Password = "correctpassword", FirstName = "LoginFail", LastName = "Test"
+                    };
+                    var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerDto);
+                    registerResponse.EnsureSuccessStatusCode(); // Ensure registration succeeded
+
+                    // Prepare login DTO with wrong password
+                    var loginDto = new UserLoginDto { Email = uniqueEmail, Password = "wrongpassword" };
+
+                    // Act
+                    var response = await _client.PostAsJsonAsync("/api/auth/login", loginDto);
+
+                    // Assert
+                    Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode); // API returns 401 for invalid credentials
+                }
+        
+                [Fact]
+                public async Task LoginAsync_WithNonExistentUser_ReturnsBadRequest()
+                {
+                    // Arrange
+                    var loginDto = new UserLoginDto { Email = "nosuchuser@example.com", Password = "password" };
+        
+                    // Act
+                    var response = await _client.PostAsJsonAsync("/api/auth/login", loginDto);
+        
+                    // Assert
+                    Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode); // API returns 401 for non-existent user
+                }
+            }
 }

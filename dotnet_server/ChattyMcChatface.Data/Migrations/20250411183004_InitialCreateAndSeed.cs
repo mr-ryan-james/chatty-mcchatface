@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ChattyMcChatface.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AddPersonaSupport : Migration
+    public partial class InitialCreateAndSeed : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,7 +22,9 @@ namespace ChattyMcChatface.Data.Migrations
                     Email = table.Column<string>(type: "TEXT", nullable: false),
                     PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsPersona = table.Column<bool>(type: "INTEGER", nullable: false)
+                    IsPersona = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SystemPrompt = table.Column<string>(type: "TEXT", nullable: true),
+                    PreferredModelId = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -151,11 +153,57 @@ namespace ChattyMcChatface.Data.Migrations
                 name: "IX_LastReads_ChatroomId",
                 table: "LastReads",
                 column: "ChatroomId");
+            // Persona seeding
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "Id", "FirstName", "LastName", "Email", "PasswordHash", "IsPersona", "SystemPrompt", "PreferredModelId", "CreatedAt" },
+                values: new object[,]
+                {
+                    {
+                        1001, // Id
+                        "Persona 1001", // FirstName
+                        "System", // LastName
+                        "persona1001@system.local", // Email
+                        "SYSTEM_GENERATED_NO_LOGIN", // PasswordHash
+                        true, // IsPersona
+                        "You are a helpful, friendly AI assistant. Always respond in a supportive and informative manner. Provide accurate information and assistance to the user while maintaining a positive and professional tone.", // SystemPrompt for 1001
+                        "gemini-2.5-pro-preview-03-25", // PreferredModelId for 1001
+                        DateTime.UtcNow // CreatedAt
+                    },
+                    {
+                        1002, // Id
+                        "Persona 1002", // FirstName
+                        "System", // LastName
+                        "persona1002@system.local", // Email
+                        "SYSTEM_GENERATED_NO_LOGIN", // PasswordHash
+                        true, // IsPersona
+                        "You are a sarcastic, witty AI bot. Respond with humor, sarcasm, and a touch of playful mockery while still being helpful. Avoid being mean-spirited but don't be afraid to use irony and clever comebacks.", // SystemPrompt for 1002
+                        "gemini-2.5-pro-preview-03-25", // PreferredModelId for 1002
+                        DateTime.UtcNow // CreatedAt
+                    },
+                    {
+                        1003, // Id
+                        "Persona 1003", // FirstName
+                        "System", // LastName
+                        "persona1003@system.local", // Email
+                        "SYSTEM_GENERATED_NO_LOGIN", // PasswordHash
+                        true, // IsPersona
+                        "You are a thoughtful AI that ponders the deeper meanings of user messages. Respond with insightful questions, philosophical musings, and encourage reflection. Avoid simple answers; instead, explore the nuances and complexities of the topic.", // SystemPrompt for 1003
+                        "gemini-2.5-pro-preview-03-25", // PreferredModelId for 1003
+                        DateTime.UtcNow // CreatedAt
+                    }
+                });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // Remove persona seed data
+            migrationBuilder.DeleteData(
+                table: "Users",
+                keyColumn: "Id",
+                keyValues: new object[] { 1001, 1002, 1003 });
+
             migrationBuilder.DropTable(
                 name: "ChatMessages");
 
