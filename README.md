@@ -538,10 +538,12 @@ to your deployment needs._
     Access the application at `http://localhost:8081`.
 -   **Container Errors:** If the container fails to start or the application is not responding,
     check the container logs for errors:
+
     ```bash
     docker logs chatty-test
     # (Use the correct container name if you changed it)
     ```
+
     **Configuration Issues:** Ensure you have correctly set all required secrets using
     `dotnet user-secrets set ...` in the `dotnet_server/ChattyMcChatface.Api` directory. Remember to
     re-run `node generate-docker-secrets.js` and rebuild the Docker image after making changes to
@@ -549,6 +551,13 @@ to your deployment needs._
     columns) inside the container after applying migrations locally, double-check that the
     `Dockerfile` copies the `chatty.db` file from the correct location
     (`dotnet_server/ChattyMcChatface.Api/chatty.db`).
+
+-   **SignalR Invocation Errors ("Failed to invoke..."):** If the client fails to invoke a SignalR
+    hub method, check for type mismatches between the arguments sent by the client (e.g., in
+    `SignalrService.ts`) and the parameters expected by the backend hub method (e.g., in
+    `ChatHub.cs`). For example, the client might send a string ID (`roomId`) while the hub expects
+    an integer (`int chatroomId`). Ensure types match or perform necessary conversions (e.g.,
+    `+roomId` in TypeScript) before invoking.
 
 ## Sanity Check / Basic E2E Test
 

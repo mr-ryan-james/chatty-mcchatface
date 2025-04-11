@@ -6,17 +6,20 @@ using ChattyMcChatface.Data;
 using ChattyMcChatface.Data.Entities;
 using System.Security.Claims;
 using ChattyMcChatface.Core.Services;
+using Microsoft.Extensions.Logging;
 
 namespace ChattyMcChatface.Api.Hubs
 {
     [Authorize]
     public class ChatHub : Hub
     {
+        private readonly ILogger<ChatHub> _logger;
         private readonly AppDbContext _context;
         private readonly IPersonaService _personaService;
 
-        public ChatHub(AppDbContext context, IPersonaService personaService)
+        public ChatHub(ILogger<ChatHub> logger, AppDbContext context, IPersonaService personaService)
         {
+            _logger = logger;
             _context = context;
             _personaService = personaService;
         }
@@ -80,16 +83,33 @@ namespace ChattyMcChatface.Api.Hubs
 
         public async Task JoinRoom(int chatroomId)
         {
-            // Add the current connection to the SignalR group for the chatroom
-            await Groups.AddToGroupAsync(Context.ConnectionId, chatroomId.ToString());
-            
-            // Optional: Notify others in the group that a user joined
-            var userId = int.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var user = await _context.Users.FindAsync(userId);
-            
-            if (user != null)
+            _logger.LogInformation($"Attempting to join room {chatroomId} for connection {Context.ConnectionId}");
+            try
             {
-                await Clients.OthersInGroup(chatroomId.ToString()).SendAsync("UserJoined", chatroomId, $"{user.FirstName} {user.LastName}");
+                // Add the current connection to the SignalR group for the chatroom
+                await Groups.AddToGroupAsync(Context.ConnectionId, chatroomId.ToString());
+                _logger.LogInformation($"Connection {Context.ConnectionId} added to group {chatroomId}");
+
+                // Optional: Notify others in the group that a user joined
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                _logger.LogInformation($"Attempting to find user with ID {userId} for notification");
+                var user = await _context.Users.FindAsync(int.Parse(userId ?? "0"));
+
+                if (user != null)
+                {
+                    _logger.LogInformation($"User {user.FirstName} {user.LastName} found, sending join notification to group {chatroomId}");
+                    await Clients.OthersInGroup(chatroomId.ToString()).SendAsync("UserJoined", chatroomId, $"{user.FirstName} {user.LastName}");
+                }
+                else
+                {
+                    _logger.LogWarning($"User with ID {userId} not found, cannot send join notification.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error joining room {chatroomId} for connection {Context.ConnectionId}");
+                // Re-throw the exception so SignalR can handle it and notify the client
+                throw;
             }
         }
 
@@ -106,6 +126,24 @@ namespace ChattyMcChatface.Api.Hubs
             {
                 await Clients.OthersInGroup(chatroomId.ToString()).SendAsync("UserLeft", chatroomId, $"{user.FirstName} {user.LastName}");
             }
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            var connectionId = Context.ConnectionId;
+            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var isAuthenticated = Context.User?.Identity?.IsAuthenticated ?? false;
+
+            _logger.LogInformation($"Client connected: ConnectionId={connectionId}, UserId={userId ?? "N/A"}, IsAuthenticated={isAuthenticated}");
+
+            if (!isAuthenticated || string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning($"Client {connectionId} connected but is not properly authenticated or UserId is missing.");
+                // Depending on requirements, you might want to terminate the connection here
+                // Context.Abort();
+            }
+
+            await base.OnConnectedAsync();
         }
     }
 }

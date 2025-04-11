@@ -96,7 +96,7 @@ export class SignalrService {
 
     console.log(`Joining room: ${roomId}`);
     return this.hubConnection
-      .invoke('JoinRoom', roomId)
+      .invoke('JoinRoom', +roomId) // Convert string to number
       .then(() => {
         this.activeRoomId = roomId;
         console.log(`Joined room ${roomId}`);

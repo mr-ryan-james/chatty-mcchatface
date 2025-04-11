@@ -128,6 +128,14 @@ namespace ChattyMcChatface.Api
 
             app.MapControllers();
 
+            // Add logging before mapping the hub
+            app.Use((context, next) => {
+                if (context.Request.Path.StartsWithSegments("/chathub")) {
+                    app.Logger.LogInformation($"Request received for /chathub path: {context.Request.Path}");
+                }
+                return next();
+            });
+
             app.MapHub<ChatHub>("/chathub"); // Map the ChatHub
             app.MapFallbackToFile("index.html"); // Add this line for SPA routing
             app.Run();
