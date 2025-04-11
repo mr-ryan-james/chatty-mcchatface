@@ -468,3 +468,45 @@ ensure the application builds, runs, and responds correctly:
 
 If any step fails, investigate the errors (build output, test failures, Docker logs) before
 proceeding.
+
+## UI Testing and Iteration with Playwright MCP
+
+If the Playwright MCP server is available and connected, you can use it to interactively test and
+iterate on UI changes directly within the chat interface. This is particularly useful for debugging
+visual issues or verifying component behavior.
+
+**Prerequisites:**
+
+1.  Ensure the Playwright MCP server is running
+2.  Ensure the ChattyMcChatface application is running, preferably using the Docker container method
+    described above (accessible at `http://localhost:8080` or your mapped port).
+
+**Workflow:**
+
+1.  **Start Testing:** Ask the assistant (Roo) to begin UI testing.
+2.  **Navigate:** Use requests like "Navigate to the login page" or "Go to
+    http://localhost:8080/chat/create". The assistant will use the `playwright_navigate` tool.
+3.  **Interact:** Request actions like:
+    -   "Take a screenshot of the current page" (`playwright_screenshot`)
+    -   "Fill the email field with 'test@example.com'" (`playwright_fill`)
+    -   "Click the login button" (`playwright_click`)
+    -   "Get the visible text" (`playwright_get_visible_text`)
+    -   "Get the HTML" (`playwright_get_visible_html`)
+4.  **Identify Issues:** Analyze screenshots or retrieved text/HTML to pinpoint UI problems
+    (styling, layout, missing elements, etc.).
+5.  **Request Fixes:** Describe the issue and ask the assistant to generate the necessary code
+    changes for the relevant Angular component (`.html` or `.scss` files).
+6.  **Apply Fixes:** The assistant will create subtasks to apply the code changes.
+7.  **Rebuild & Restart:** After fixes are applied, rebuild the Docker image and restart the
+    container:
+    ```bash
+    # Stop the old container
+    docker stop chatty-test || true && docker rm chatty-test || true
+    # Rebuild the image
+    docker build -t chatty-mcchatface-app:latest .
+    # Run the new container
+    docker run -d -p 8080:8080 --name chatty-test chatty-mcchatface-app:latest
+    ```
+8.  **Verify Fix:** Repeat steps 2-4 to navigate back to the relevant page and use Playwright tools
+    (especially `playwright_screenshot`) to confirm the issue is resolved.
+9.  **Iterate:** Continue this cycle until all identified UI issues are addressed.
