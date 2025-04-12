@@ -1,5 +1,5 @@
 # Stage 1: Build Angular Frontend
-FROM node:20-alpine as angular_build
+FROM node:20-alpine AS angular_build
 WORKDIR /app/angular-client
 COPY angular-client/package.json angular-client/package-lock.json ./
 RUN npm cache clean --force
@@ -9,7 +9,7 @@ COPY angular-client/. ./
 RUN npm run build -- --configuration production
 
 # Stage 2: Build .NET Backend
-FROM mcr.microsoft.com/dotnet/sdk:9.0 as dotnet_build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS dotnet_build
 WORKDIR /app
 
 # Copy solution and project files first for layer caching
@@ -19,6 +19,7 @@ COPY dotnet_server/ChattyMcChatface.Core/ChattyMcChatface.Core.csproj ./dotnet_s
 COPY dotnet_server/ChattyMcChatface.Data/ChattyMcChatface.Data.csproj ./dotnet_server/ChattyMcChatface.Data/
 COPY dotnet_server/ChattyMcChatface.Tests.Unit/ChattyMcChatface.Tests.Unit.csproj ./dotnet_server/ChattyMcChatface.Tests.Unit/
 COPY dotnet_server/ChattyMcChatface.Tests.Integration/ChattyMcChatface.Tests.Integration.csproj ./dotnet_server/ChattyMcChatface.Tests.Integration/
+COPY dotnet_server/ChattyMcChatface.Tests.ServiceIntegration/ChattyMcChatface.Tests.ServiceIntegration.csproj ./dotnet_server/ChattyMcChatface.Tests.ServiceIntegration/
 
 # Restore dependencies
 RUN dotnet restore ./dotnet_server/ChattyMcChatface.sln
