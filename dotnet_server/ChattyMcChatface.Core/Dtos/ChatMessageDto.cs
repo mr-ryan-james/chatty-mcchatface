@@ -1,13 +1,8 @@
 using System;
+using ChattyMcChatface.Data.Entities;
 
 namespace ChattyMcChatface.Core.Dtos;
 
-public enum MessageRole
-{
-    System,
-    User,
-    Assistant
-}
 
 public class ChatMessageDto
 {

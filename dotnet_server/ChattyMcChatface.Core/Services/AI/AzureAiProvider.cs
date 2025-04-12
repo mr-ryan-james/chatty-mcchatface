@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
+using ChattyMcChatface.Data.Entities;
 
 namespace ChattyMcChatface.Core.Services.AI;
 

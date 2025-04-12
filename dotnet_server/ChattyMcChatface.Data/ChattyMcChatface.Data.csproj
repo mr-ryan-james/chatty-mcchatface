@@ -14,7 +14,9 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+  </ItemGroup>
   
-  <!-- Removed reference to Core project to avoid circular dependency -->
 
 </Project>

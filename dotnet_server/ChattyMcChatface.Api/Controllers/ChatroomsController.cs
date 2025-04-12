@@ -173,7 +173,8 @@ public class ChatroomsController : BaseApiController
                     UserId = m.UserId,
                     UserFirstName = m.User.FirstName,
                     UserLastName = m.User.LastName,
-                    ChatroomId = m.ChatroomId
+                    ChatroomId = m.ChatroomId,
+                    Role = m.Role
                 }).ToList()
         };
 

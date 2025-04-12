@@ -7,6 +7,7 @@ namespace ChattyMcChatface.Data.Entities
         public int Id { get; set; }
         public required string Text { get; set; }
         public DateTime Date { get; set; } = DateTime.UtcNow;
+        public MessageRole Role { get; set; } = MessageRole.User; // Default to User
         
         // Foreign keys
         public int UserId { get; set; }

@@ -214,6 +214,7 @@ namespace ChattyMcChatface.Core.Services
                     Date = DateTime.UtcNow,
                     UserId = personaUser.Id,
                     ChatroomId = chatroomId,
+                    Role = MessageRole.Assistant, // Add this line
                     User = null!, // Will be populated by EF Core
                     Chatroom = null! // Will be populated by EF Core
                 };
