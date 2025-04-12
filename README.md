@@ -188,6 +188,65 @@ for avoiding runtime errors. Pay close attention to data types, especially when 
 DTOs). This project uses `number` for user and chatroom IDs in the backend and frontend
 communication.
 
+---
+
+### AI Message Parsing (Initial Load Fix)
+
+Previously, AI messages loaded initially (e.g., on page refresh) were not parsed correctly and
+displayed as raw JSON. This was because the backend wasn't storing or retrieving the `Role` for
+messages, and the frontend pipe relied on the correct role (`Assistant`) to trigger parsing.
+
+**Fixes Implemented:**
+
+-   **Backend:**
+    -   Added a `Role` property (type `MessageRole`) to the `ChatMessage` entity
+        (`ChattyMcChatface.Data`).
+    -   Applied an EF Core migration (`AddRoleToChatMessage`) to update the database schema.
+    -   Updated `PersonaService` to save `MessageRole.Assistant` when storing AI responses.
+    -   Updated `ChatroomsController` to include the `Role` when fetching chat history.
+    -   Resolved a circular dependency between `Core` and `Data` projects by moving the
+        `MessageRole` enum to the `Data` project.
+-   **Frontend:**
+    -   Created `ParseAiMessagePipe` (`angular-client/src/app/shared/pipes/`) to handle parsing
+        logic based on `ChatMessageDto.Role`.
+    -   Removed old parsing logic from `ChatRoomComponent`.
+    -   Applied the `ParseAiMessagePipe` in the `ChatRoomComponent` template.
+
+This ensures the `Role` is consistently stored and retrieved, allowing the frontend pipe to
+correctly parse and display AI messages regardless of whether they are loaded initially or received
+via SignalR.
+
+---
+
+### Header User Loading on Refresh (APP_INITIALIZER)
+
+Previously, upon page refresh, the header would briefly show the default "John Doe" user even if a
+valid session token existed in `localStorage`. This was because the `AuthService` constructor loaded
+mock data instead of validating the token and fetching the real user details.
+
+**Fixes Implemented:**
+
+-   **Backend:** Added a `GET /api/auth/me` endpoint to `AuthController` that validates the JWT and
+    returns the current user's details (`UserDto`).
+-   **Frontend:**
+    -   Implemented the `APP_INITIALIZER` pattern.
+    -   Created an `initializeAppFactory` function (`app-initializer.ts`) that calls a new method in
+        `AuthService`.
+    -   Added `AuthService.validateAndLoadUser()` method:
+        -   Checks for a token in `localStorage`.
+        -   If found, calls `/api/auth/me`.
+        -   On success, updates `currentUserSubject` and `isAuthenticatedSubject` with real user
+            data.
+        -   On failure (no token, invalid token, API error), calls `logout()` to reset state.
+        -   Ensures the initializer observable always completes (using `catchError` + `of(true)`).
+    -   Removed the faulty token check logic from the `AuthService` constructor.
+    -   Configured the `APP_INITIALIZER` provider in `AppModule`.
+
+This ensures the user's session is validated and their data is loaded _before_ the application fully
+initializes, preventing the display of incorrect user information in the header on refresh.
+
+---
+
 ## Testing
 
 ### Integration Tests Database
