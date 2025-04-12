@@ -174,6 +174,31 @@ When adding a new AI provider or modifying an existing one, ensure the following
         `ChattyMcChatface.Tests.Integration` if applicable.
     -   Ensure User Secrets are configured locally for any tests requiring live API calls.
 
+## Identifying AI Messages in Frontend
+
+Regardless of which AI provider (OpenAI, Gemini, Azure, Claude, etc.) generates a response, the
+backend `PersonaService` ensures consistency before sending the message to the frontend via SignalR.
+
+Specifically, when constructing the `ChatMessageDto` for an AI's response, the `PersonaService.cs`
+explicitly sets the `Role` property to `MessageRole.Assistant`.
+
+**File:** `dotnet_server/ChattyMcChatface.Core/Services/PersonaService.cs` (around line 266)
+
+```csharp
+                    // Create message DTO with persona user details
+                    var personaMessageDto = new ChatMessageDto
+                    {
+                        // ... other properties
+                        // This is a message from the AI assistant
+                        Role = MessageRole.Assistant // Explicitly set for all AI responses
+                    };
+                    // ... send notification
+```
+
+This provides a reliable way for the frontend (e.g., `ChatRoomComponent`) to identify messages
+originating from any AI persona by simply checking if `message.role === MessageRole.Assistant` (or
+the equivalent enum value/string).
+
 ## 6. Quick Reference: Build and Test Commands
 
 _(Located in `dotnet_server` directory)_

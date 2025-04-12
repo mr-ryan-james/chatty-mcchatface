@@ -67,8 +67,9 @@ export interface UserDto {
 }
 
 export enum MessageRole {
-  User = 'user',
-  Assistant = 'assistant',
+  System = 0,
+  User = 1,
+  Assistant = 2,
 }
 
 @Injectable({
@@ -304,41 +305,6 @@ export class ChatService {
         this.messagesByRoom[chatroomId].next(room.messages);
       }
     });
-  }
-
-  // Connect to SignalR hub and set up message handling
-  connect(signalrService: any): void {
-    // Subscribe to the newMessage$ observable from the SignalR service
-    signalrService.newMessage$.subscribe((message: ChatMessageDto) => {
-      this.handleNewMessage(message);
-    });
-  }
-
-  // Handle new incoming messages (both user and persona messages)
-  private handleNewMessage(message: ChatMessageDto): void {
-    console.log('Handling new message:', message);
-
-    if (
-      !message ||
-      message.chatroomId === undefined ||
-      message.chatroomId === null
-    ) {
-      console.error('Received invalid message:', message);
-      return;
-    }
-
-    const chatroomId = message.chatroomId;
-
-    if (!this.messagesByRoom[chatroomId]) {
-      this.messagesByRoom[chatroomId] = new BehaviorSubject<ChatMessageDto[]>(
-        []
-      );
-    }
-
-    const currentMessages = this.messagesByRoom[chatroomId].getValue();
-    const updatedMessages = [...currentMessages, message];
-
-    this.messagesByRoom[chatroomId].next(updatedMessages);
   }
 
   // Helper method for auth headers

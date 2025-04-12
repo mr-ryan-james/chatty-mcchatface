@@ -15,6 +15,7 @@ import {
   ChatroomDetailDto,
   ChatMessageDto,
   CreateMessageDto,
+  MessageRole, // Import MessageRole enum
 } from '../../shared/services/chat.service';
 import { PersonaInfo } from '../../shared/services/chat.service';
 import { UserDto } from '../../shared/services/chat.service';
@@ -58,9 +59,12 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   ngOnInit(): void {
     // Get room ID from route params
+    console.log('ChatRoomComponent ngOnInit - Version 3 (In-place parsing)'); // Version Log
     const paramSub = this.route.paramMap.subscribe((params) => {
+      console.log('Inside ngOnInit - Route params:', params);
       const id = params.get('id');
       if (id) {
+        console.log('Room ID from route:', id);
         this.roomId = id;
 
         this.setupSignalRConnection();
@@ -69,7 +73,51 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
         const messagesSub = this.chatService
           .getChatroomMessages$(+this.roomId, true)
           .subscribe((messages: ChatMessageDto[]) => {
+            console.log(
+              'Initial messages loaded (raw):',
+              JSON.stringify(messages)
+            ); // Log raw messages
+            // Assign the raw messages first
             this.chats = messages;
+            console.log(
+              'Assigned this.chats (before parsing):',
+              JSON.stringify(this.chats)
+            ); // Log state before parsing
+            // Now, iterate and parse IN PLACE to help change detection
+            for (const chat of this.chats) {
+              if (chat.role === MessageRole.Assistant) {
+                console.log(
+                  'Attempting to parse initial AI message. Original AI JSON:',
+                  chat.text
+                );
+                try {
+                  const parsedResponse = JSON.parse(chat.text);
+                  if (
+                    parsedResponse &&
+                    typeof parsedResponse.message === 'string' &&
+                    parsedResponse.message.trim() !== ''
+                  ) {
+                    chat.text = parsedResponse.message; // Modify the 'text' property directly
+                  } else {
+                    console.error(
+                      'Parsed initial AI response is missing or has empty "message" property:',
+                      parsedResponse
+                    );
+                  }
+                } catch (error) {
+                  console.error(
+                    'Failed to parse initial AI response JSON:',
+                    error,
+                    'Raw response:',
+                    chat.text
+                  );
+                }
+              }
+            }
+            console.log(
+              'Finished parsing this.chats (after parsing):',
+              JSON.stringify(this.chats)
+            ); // Log state after parsing
             this.shouldScrollToBottom = true;
           });
 
@@ -155,7 +203,9 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
         message.chatroomId === +this.roomId &&
         !this.chats.some((m) => m.id === message.id)
       ) {
-        this.chats.push(message);
+        // Apply parsing to the incoming SignalR message
+        const processedMessage = this.parseAssistantMessage(message);
+        this.chats.push(processedMessage);
         this.shouldScrollToBottom = true;
       }
     });
@@ -258,5 +308,40 @@ export class ChatRoomComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   get personaConfig(): PersonaInfo | null {
     return this.chatroom?.personaConfig ?? null;
+  }
+
+  // Helper method to parse JSON from assistant messages
+  private parseAssistantMessage(message: ChatMessageDto): ChatMessageDto {
+    if (message.role === MessageRole.Assistant) {
+      console.log(
+        'Attempting to parse AI message. Original AI JSON:',
+        message.text
+      );
+      try {
+        const parsedResponse = JSON.parse(message.text);
+        if (
+          parsedResponse &&
+          typeof parsedResponse.message === 'string' &&
+          parsedResponse.message.trim() !== ''
+        ) {
+          // Return a new object with the updated text
+          return { ...message, text: parsedResponse.message };
+        } else {
+          console.error(
+            'Parsed AI response is missing or has empty "message" property:',
+            parsedResponse
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Failed to parse AI response JSON:',
+          error,
+          'Raw response:',
+          message.text
+        );
+      }
+    }
+    // Return the original message if not an assistant or if parsing failed/invalid
+    return message;
   }
 }

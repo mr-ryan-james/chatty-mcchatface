@@ -132,8 +132,8 @@ public class GeminiProvider : IAiProvider
                 Contents = contents,
                 GenerationConfig = new GenerationConfig
                 {
-                    Temperature = 0.7,
-                    MaxOutputTokens = 1024,
+                    Temperature = 1,
+                    MaxOutputTokens = 6048, 
                     TopP = 0.95,
                     TopK = 40,
                     ResponseMimeType = "application/json",
