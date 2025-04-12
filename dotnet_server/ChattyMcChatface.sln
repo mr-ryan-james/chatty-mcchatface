@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Tests.Unit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Tests.Integration", "ChattyMcChatface.Tests.Integration\ChattyMcChatface.Tests.Integration.csproj", "{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattyMcChatface.Tests.ServiceIntegration", "ChattyMcChatface.Tests.ServiceIntegration\ChattyMcChatface.Tests.ServiceIntegration.csproj", "{CB2E5DE4-939B-47EA-BA80-A88BA8320940}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1747C4CE-C039-44DC-AF5A-FEE0415FCE4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB2E5DE4-939B-47EA-BA80-A88BA8320940}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB2E5DE4-939B-47EA-BA80-A88BA8320940}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB2E5DE4-939B-47EA-BA80-A88BA8320940}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CB2E5DE4-939B-47EA-BA80-A88BA8320940}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

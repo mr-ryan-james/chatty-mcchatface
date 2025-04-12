@@ -12,6 +12,7 @@ using Polly.Retry;
 
 namespace ChattyMcChatface.Core.Services.AI;
 
+
 /// <summary>
 /// OpenAI API provider implementation for AI completions
 /// </summary>
@@ -20,6 +21,7 @@ public class OpenAiProvider : IAiProvider
     private readonly ILogger<OpenAiProvider> _logger;
     private readonly OpenAIClient _client;
     private readonly AsyncRetryPolicy<string?> _retryPolicy;
+
 
     /// <summary>
     /// Initializes a new instance of the OpenAiProvider
@@ -72,7 +74,8 @@ public class OpenAiProvider : IAiProvider
             var messages = new List<ChatRequestMessage>
             {
                 // Add system message first
-                new ChatRequestSystemMessage(systemPrompt)
+                // Append instruction for JSON mode if necessary (API requires "json" in context)
+                new ChatRequestSystemMessage(systemPrompt + "\nEnsure your response is a valid JSON object.")
             };
             
             // Add conversation history based on the message role
@@ -108,7 +111,11 @@ public class OpenAiProvider : IAiProvider
             {
                 options.Messages.Add(message);
             }
-            
+
+            // Set response format to JSON mode
+            options.ResponseFormat = ChatCompletionsResponseFormat.JsonObject;
+            _logger.LogInformation("Requesting JSON object output for model {ModelId}", modelId);
+
             // Make API call
             Response<ChatCompletions> response = await _client.GetChatCompletionsAsync(options);
             ChatCompletions completions = response.Value;

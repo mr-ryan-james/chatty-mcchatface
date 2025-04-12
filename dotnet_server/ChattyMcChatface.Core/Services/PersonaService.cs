@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Linq;
@@ -181,9 +182,35 @@ namespace ChattyMcChatface.Core.Services
                 }
 
                 // Create a new chat message for the persona's response
+                string finalResponseText = responseText ?? string.Empty; // Store original or empty
+                try
+                {
+                    // Attempt to deserialize to validate JSON structure
+                    var structuredResponse = JsonSerializer.Deserialize<AiStructuredResponseDto>(finalResponseText);
+                    if (structuredResponse == null || string.IsNullOrEmpty(structuredResponse.Message))
+                    {
+                        // Even if valid JSON, treat empty/null message as an issue
+                        throw new JsonException("Deserialized response is null or message property is empty.");
+                    }
+                    _logger.LogInformation("Successfully validated AI response JSON structure for chatroom {ChatroomId}", chatroomId);
+                    // Keep finalResponseText as the original valid JSON string
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, "Failed to parse AI response as valid JSON for chatroom {ChatroomId}. Response received: {ResponseText}", chatroomId, responseText);
+                    // Create a fallback JSON error message
+                    var fallbackDto = new AiStructuredResponseDto
+                    {
+                        AiPersona = personaUser.FirstName, // Use persona name if available
+                        ResponseType = "Error",
+                        Message = "[AI response could not be parsed or was empty]"
+                    };
+                    finalResponseText = JsonSerializer.Serialize(fallbackDto);
+                }
+
                 var responseMessage = new ChatMessage
                 {
-                    Text = responseText ?? string.Empty, // Ensure non-null assignment
+                    Text = finalResponseText, // Use the validated or fallback JSON string
                     Date = DateTime.UtcNow,
                     UserId = personaUser.Id,
                     ChatroomId = chatroomId,

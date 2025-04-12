@@ -86,6 +86,8 @@ graph TD
         migrations resides in the `ChattyMcChatface.Api/` directory.
     -   `ChattyMcChatface.Tests.Unit/`: Unit tests.
     -   `ChattyMcChatface.Tests.Integration/`: Integration tests.
+    -   `ChattyMcChatface.Tests.ServiceIntegration/`: Service-level integration tests, including
+        live AI provider validation.
 
 ## Getting Started
 
@@ -190,7 +192,7 @@ communication.
 
 ### Integration Tests Database
 
-The integration tests (`dotnet_server/ChattyMcChatface.Tests.Integration/`, including
+The API integration tests (`dotnet_server/ChattyMcChatface.Tests.Integration/`, including
 `AuthServiceIntegrationTests.cs` and `PersonaServiceIntegrationTests.cs`) use a different database
 setup than the main application runtime:
 
@@ -205,6 +207,17 @@ setup than the main application runtime:
 This is why tests involving personas might pass even if the main `chatty.db` file lacks the
 corresponding persona user records. The main application relies on the `chatty.db` file copied
 during the Docker build or potentially database seeding logic run at startup (if implemented).
+
+### Service Integration Tests (Live API Validation)
+
+The service integration tests (`dotnet_server/ChattyMcChatface.Tests.ServiceIntegration/`) focus on
+testing core services like `PersonaService` and interactions between components.
+
+Notably, `AiProviderLiveTests.cs` contains tests that make **live calls** to external AI provider
+APIs (OpenAI, Azure, Gemini, Claude, Vertex) to validate their ability to return structured JSON
+output. These tests are marked with `[Trait("Category", "LiveApi")]` and **require user secrets** to
+be configured for the respective AI providers (using the same secrets ID as the
+`ChattyMcChatface.Api` project: `chatty-mcchatface-api-secrets`).
 
 ### AI Personas (Database)
 
@@ -573,9 +586,17 @@ ensure the application builds, runs, and responds correctly:
     (cd angular-client && ng build)
     ```
 3.  **Confirm .NET Tests Pass:** Ensure all unit and integration tests pass.
+    -   **Quick Check (Excluding Live API Tests):**
+        ```bash
+        (cd dotnet_server && dotnet test --filter Category!=LiveApi)
+        ```
     ```bash
     (cd dotnet_server && dotnet test)
     ```
+    -   **Run Live API Tests (Requires Secrets):**
+        ```bash
+        (cd dotnet_server/ChattyMcChatface.Tests.ServiceIntegration && dotnet test --filter Category=LiveApi)
+        ```
 4.  **Prepare Docker Configuration:** Merge secrets into `appsettings.json`.
     ```bash
     node generate-docker-secrets.js

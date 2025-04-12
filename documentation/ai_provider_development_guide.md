@@ -46,26 +46,35 @@ A combination of unit and integration tests ensures the reliability of the AI pr
 ### 3.1. Approach
 
 -   **Unit Testing (`ChattyMcChatface.Tests.Unit`):**
-    -   Focuses on isolating and testing individual components: Provider Factories, Model Classes,
-        `AiFallbackUtil`, and the handler logic within `PersonaService`.
+    -   Focuses on isolating and testing individual components like Provider Factories, Model
+        Classes, `AiFallbackUtil`, and specific logic within services (`PersonaService`).
     -   Utilizes mocking frameworks (Moq) to simulate dependencies like `IConfiguration`, `ILogger`,
         `IHttpClientFactory`, and the base providers themselves.
     -   Ensures that components function correctly in isolation (e.g., factories create delegates
         that call the correct provider method, fallback logic handles different scenarios,
         `PersonaService` handler switches correctly).
--   **Integration Testing (`ChattyMcChatface.Tests.Integration`):**
-    -   Verifies end-to-end functionality and direct API connectivity.
-    -   Uses **real API calls** with actual credentials managed via .NET User Secrets.
-    -   Includes tests for `PersonaService` (end-to-end flow) and individual providers (API
-        connectivity).
-    -   These tests are typically marked to be skipped in CI environments due to their reliance on
-        external services and secrets.
+-   **API Integration Testing (`ChattyMcChatface.Tests.Integration`):**
+    -   Focuses on testing the ASP.NET Core API endpoints and their interaction with underlying
+        services and data layers.
+    -   Uses `WebApplicationFactory` and an in-memory database (`IntegrationTestFixture.cs`) to test
+        controller actions and request/response flows without external dependencies (like live AI
+        calls).
+-   **Service Integration Testing (`ChattyMcChatface.Tests.ServiceIntegration`):**
+    -   Focuses on testing core services (`PersonaService`) and their interactions, potentially
+        involving external dependencies.
+    -   Includes **live AI provider validation tests** (`AiProviderLiveTests.cs`) that make **real
+        API calls** using credentials from user secrets.
+    -   These live tests verify that configured AI providers can correctly return structured JSON
+        output when prompted.
+    -   Live tests are marked with `[Trait("Category", "LiveApi")]` and should typically be excluded
+        from automated CI builds due to their reliance on external services and secrets.
 -   **Frameworks:** xUnit, FluentAssertions, Moq.
 
 ### 3.2. Test Project Structure
 
 -   Unit Tests: `dotnet_server/ChattyMcChatface.Tests.Unit`
--   Integration Tests: `dotnet_server/ChattyMcChatface.Tests.Integration`
+-   API Integration Tests: `dotnet_server/ChattyMcChatface.Tests.Integration`
+-   Service Integration Tests: `dotnet_server/ChattyMcChatface.Tests.ServiceIntegration`
 -   Tests are organized by component type within these projects (e.g., `AI/Factories`,
     `AI/ModelClasses`, `Services`).
 
@@ -74,10 +83,11 @@ A combination of unit and integration tests ensures the reliability of the AI pr
 API keys and other sensitive configuration required for AI providers are managed differently for
 local development/testing and deployment.
 
-### 4.1. Local Integration Testing
+### 4.1. Local Integration & Service Testing (Live API)
 
 -   **.NET User Secrets:** This is the recommended approach for managing API keys locally for the
-    `ChattyMcChatface.Tests.Integration` project.
+    `ChattyMcChatface.Tests.Integration` and `ChattyMcChatface.Tests.ServiceIntegration` projects
+    (specifically for the live API tests).
 -   **Initialization:** Use `dotnet user-secrets init` in the integration test project directory.
 -   **Setting Secrets:** Use `dotnet user-secrets set "Provider:KeyName" "KeyValue"` (e.g.,
     `dotnet user-secrets set "Anthropic:ApiKey" "your-api-key"`).
@@ -94,6 +104,9 @@ local development/testing and deployment.
         -   Requires the Google Cloud region set via
             `dotnet user-secrets set "VertexAI:Location" "your-region"`.
 -   **Reference:** See `secrets.example.json` in the `ChattyMcChatface.Api` project for key names.
+-   **Note:** The `ChattyMcChatface.Tests.ServiceIntegration` project uses the same `UserSecretsId`
+    (`chatty-mcchatface-api-secrets`) as the `ChattyMcChatface.Api` project, allowing it to access
+    the same set of secrets configured for the main API.
 
 ### 4.2. Unit Testing
 
@@ -154,9 +167,12 @@ When adding a new AI provider or modifying an existing one, ensure the following
         keys) and that the mock `IServiceProvider` (if used by the Model class) is properly
         configured via `.Setup()` to provide required loggers and other dependencies.
 8.  **Implement Integration Tests:**
-    -   Add `NewAiProviderIntegrationTests.cs` to verify direct API connectivity.
-    -   Update `PersonaServiceIntegrationTests.cs` with test cases using the new provider's models.
-    -   Ensure User Secrets are configured locally for these tests.
+    -   Add **live API validation tests** for the new provider/models to
+        `ChattyMcChatface.Tests.ServiceIntegration/AiProviderLiveTests.cs`, marking them with
+        `[Trait("Category", "LiveApi")]`.
+    -   Add API endpoint/controller integration tests (using `WebApplicationFactory`) to
+        `ChattyMcChatface.Tests.Integration` if applicable.
+    -   Ensure User Secrets are configured locally for any tests requiring live API calls.
 
 ## 6. Quick Reference: Build and Test Commands
 
@@ -168,7 +184,11 @@ _(Located in `dotnet_server` directory)_
     `dotnet test ChattyMcChatface.Tests.Unit/ChattyMcChatface.Tests.Unit.csproj`
 -   **Run Integration Tests Only:**
     `dotnet test ChattyMcChatface.Tests.Integration/ChattyMcChatface.Tests.Integration.csproj`
--   **Manage User Secrets (in `ChattyMcChatface.Tests.Integration` dir):**
+-   **Run Service Integration Tests Only (Excluding Live API):**
+    `dotnet test ChattyMcChatface.Tests.ServiceIntegration/ChattyMcChatface.Tests.ServiceIntegration.csproj --filter Category!=LiveApi`
+-   **Run Live API Service Integration Tests Only (Requires Secrets):**
+    `dotnet test ChattyMcChatface.Tests.ServiceIntegration/ChattyMcChatface.Tests.ServiceIntegration.csproj --filter Category=LiveApi`
+-   **Manage User Secrets (e.g., in `ChattyMcChatface.Api` dir - shared by Service tests):**
     -   `dotnet user-secrets init`
     -   `dotnet user-secrets set "Key" "Value"`
     -   `dotnet user-secrets list`

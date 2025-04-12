@@ -10,16 +10,14 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration; // Added for IConfiguration
 using Moq;
 using ChattyMcChatface.Core.Services;
 using ChattyMcChatface.Data;
 using ChattyMcChatface.Data.Entities;
 using System.Threading;
 using ChattyMcChatface.Core.Services.AI.OpenAI;
-using ChattyMcChatface.Core.Services.AI.Azure;
-using ChattyMcChatface.Core.Services.AI.Claude;
-using ChattyMcChatface.Core.Services.AI.Gemini;
-using ChattyMcChatface.Core.Services.AI.Vertex;
+using ChattyMcChatface.Core.Services.AI; // Correct namespace for all AI providers
 
 namespace ChattyMcChatface.Tests.Integration
 {
@@ -62,11 +60,7 @@ namespace ChattyMcChatface.Tests.Integration
                 // IPersonaConfigService is removed, no longer needed here.
                 services.AddScoped<IPersonaService, PersonaService>();
 
-                services.AddSingleton<OpenAiModels>();
-                services.AddSingleton<AzureAiModels>();
-                services.AddSingleton<ClaudeModels>();
-                services.AddSingleton<GeminiModels>();
-                services.AddSingleton<VertexAiModels>();
+                // Removed incorrect AddSingleton calls for static AiModels class
 
                 // Replace INotificationService with mock
                 var notifDescriptor = services.SingleOrDefault(
@@ -78,6 +72,8 @@ namespace ChattyMcChatface.Tests.Integration
 
                 services.AddSingleton(MockNotificationService);
                 services.AddSingleton(sp => sp.GetRequiredService<Mock<INotificationService>>().Object);
+
+                // Register Mocks for AI Providers
 
                 // Add test authentication
                 services.AddAuthentication("Test")

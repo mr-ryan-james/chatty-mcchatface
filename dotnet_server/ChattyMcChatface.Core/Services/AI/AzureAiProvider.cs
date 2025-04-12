@@ -21,6 +21,7 @@ public class AzureAiProvider : IAiProvider
     private readonly OpenAIClient _client;
     private readonly AsyncRetryPolicy<string?> _retryPolicy;
 
+
     /// <summary>
     /// Initializes a new instance of the AzureAiProvider
     /// </summary>
@@ -77,8 +78,8 @@ public class AzureAiProvider : IAiProvider
             // Convert chat history to OpenAI message format
             var messages = new List<ChatRequestMessage>
             {
-                // Add system message first
-                new ChatRequestSystemMessage(systemPrompt)
+                // Append instruction for JSON mode if necessary (API requires "json" in context)
+                new ChatRequestSystemMessage(systemPrompt + "\nEnsure your response is a valid JSON object.")
             };
             
             // Add conversation history based on the message role
@@ -114,6 +115,10 @@ public class AzureAiProvider : IAiProvider
             {
                 options.Messages.Add(message);
             }
+
+            // Set response format to JSON mode
+            options.ResponseFormat = ChatCompletionsResponseFormat.JsonObject;
+            _logger.LogInformation("Requesting JSON object output for Azure deployment {ModelId}", modelId);
             
             // Make API call
             Response<ChatCompletions> response = await _client.GetChatCompletionsAsync(options);

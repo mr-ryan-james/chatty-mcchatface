@@ -23,9 +23,8 @@ namespace ChattyMcChatface.Tests.Integration
         [Fact]
         public async Task GetPersonas_ReturnsSeededPersonas()
         {
-            // Arrange
-            // The fixture applies migrations, which now includes seeding personas 1001, 1002, 1003
-            var client = _fixture.CreateClientWithAuth(); // Use authenticated client
+                        // The fixture applies migrations, which now includes seeding personas 1001, 1002, 1003
+                        var client = _fixture.CreateClientWithAuth(); // Use authenticated client
 
             // Act
             var response = await client.GetAsync("/api/personas");
