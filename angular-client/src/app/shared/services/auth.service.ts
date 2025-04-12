@@ -51,14 +51,7 @@ export class AuthService {
     username: 'johndoe',
   };
 
-  constructor(private http: HttpClient, private router: Router) {
-    // Check if we have token in localStorage (for persisting login state)
-    const token = localStorage.getItem('token');
-    if (token) {
-      this.isAuthenticatedSubject.next(true);
-      this.currentUserSubject.next(this.mockUser);
-    }
-  }
+  constructor(private http: HttpClient, private router: Router) {}
 
   login(loginDto: UserLoginDto): Observable<AuthResponseDto> {
     console.log(`Attempting login with email: ${loginDto.email}`);
@@ -103,6 +96,52 @@ export class AuthService {
 
   getUserInfo(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  /**
+   * Validate token (if present) and load user from /auth/me endpoint.
+   * Used for app initialization to restore user state from token.
+   */
+  validateAndLoadUser(): Observable<boolean> {
+    const token = this.getToken();
+    if (!token) {
+      // No token, ensure logged out state and complete initialization
+      this.logout(); // Call logout to ensure state is reset
+      return of(true);
+    }
+
+    // Token exists, call the /api/auth/me endpoint
+    // Use getHttpOptions() to include the Authorization header
+    return this.http
+      .get<User>(`${environment.apiUrl}/auth/me`, this.getHttpOptions())
+      .pipe(
+        tap((user: User) => {
+          // Success: Update subjects with real user data
+          if (user) {
+            // Convert ID to string if necessary (assuming backend returns number)
+            const frontendUser: User = { ...user, id: user.id.toString() };
+            this.currentUserSubject.next(frontendUser);
+            this.isAuthenticatedSubject.next(true);
+            console.log(
+              '[AuthService] User loaded via token validation:',
+              frontendUser
+            );
+          } else {
+            // Should not happen if API returns valid user on success, but handle defensively
+            console.error(
+              '[AuthService] /auth/me returned success but no user data.'
+            );
+            this.logout(); // Treat as failure
+          }
+        }),
+        map(() => true), // Map successful response to true for APP_INITIALIZER
+        catchError((error) => {
+          // Failure (e.g., 401 Unauthorized, network error)
+          console.error('[AuthService] Token validation failed:', error);
+          this.logout(); // Clear invalid token and reset state
+          return of(true); // IMPORTANT: Return true even on error so app initialization completes
+        })
+      );
   }
 
   private handleAuthentication(response: AuthResponseDto): void {

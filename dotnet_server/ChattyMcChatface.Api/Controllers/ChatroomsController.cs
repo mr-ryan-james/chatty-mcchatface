@@ -187,8 +187,10 @@ public class ChatroomsController : BaseApiController
                 {
                     PersonaUserId = personaUser.Id,
                     DisplayName = personaUser.FirstName ?? "",
+#pragma warning disable CS8601 // Source and destination are both nullable strings
                     SystemPrompt = personaUser.SystemPrompt,
                     PreferredModelId = personaUser.PreferredModelId
+#pragma warning restore CS8601
                 };
             }
         }

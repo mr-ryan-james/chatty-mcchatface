@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions; // Use NullLogger
 using ChattyMcChatface.Core.Services.AI;
 using ChattyMcChatface.Core.Dtos;
+using ChattyMcChatface.Data.Entities;
+
 
 namespace ChattyMcChatface.Tests.ServiceIntegration
 {
@@ -137,8 +139,8 @@ public async Task Provider_ReturnsValidStructuredJson_WhenPrompted(IAiProvider p
             };
 
             // Act
-            string responseString = string.Empty;
-            Func<Task> act = async () => responseString = await provider.GetCompletionAsync(systemPrompt, chatHistory, modelId);
+            string? responseString = string.Empty; // Make nullable
+            Func<Task> act = async () => responseString = await provider.GetCompletionAsync(systemPrompt, chatHistory, modelId) ?? string.Empty;
 
             // Assert - Check if the API call itself throws (e.g., auth error)
             await act.Should().NotThrowAsync($"because the API call to {providerDescription} ({modelId}) should succeed");

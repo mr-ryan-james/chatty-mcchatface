@@ -155,7 +155,7 @@ namespace ChattyMcChatface.Tests.ServiceIntegration
                 .FirstOrDefault();
 
             personaMessage.Should().NotBeNull();
-            personaMessage.Text.Should().Be(validJson);
+            personaMessage!.Text.Should().Be(validJson);
         }
 
         // --- JSON Validation Helper and Tests ---
@@ -201,7 +201,8 @@ namespace ChattyMcChatface.Tests.ServiceIntegration
             savedMessages.Should().HaveCount(1); // Expecting only the persona's response
             var personaMessage = savedMessages.First();
             personaMessage.UserId.Should().Be(personaUserId);
-            personaMessage.Text.Should().Be(expectedJson); // Check Text property
+            personaMessage.Should().NotBeNull(); // Add this assertion
+            personaMessage!.Text.Should().Be(expectedJson); // Use null-forgiving operator (!)
 
             // Verify notification was sent (assuming _mockNotificationService is set up)
             _mockNotificationService.Verify(n => n.SendMessageToGroupAsync(

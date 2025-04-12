@@ -2,6 +2,9 @@ using System.Threading.Tasks;
 using ChattyMcChatface.Core.Dtos;
 using ChattyMcChatface.Core.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ChattyMcChatface.Data; // For AppDbContext
+using Microsoft.AspNetCore.Authorization; // For [Authorize]
 
 namespace ChattyMcChatface.Api.Controllers;
 
@@ -10,10 +13,12 @@ namespace ChattyMcChatface.Api.Controllers;
 public class AuthController : BaseApiController
 {
     private readonly IAuthService _authService;
+    private readonly AppDbContext _context;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, AppDbContext context)
     {
         _authService = authService;
+        _context = context;
     }
 
     [HttpPost("register")]
@@ -47,5 +52,32 @@ public class AuthController : BaseApiController
         }
         
         return Ok(response);
+    }
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> GetCurrentUser()
+    {
+        int currentUserId = GetCurrentUserId(); // From BaseApiController
+
+        var user = await _context.Users.FindAsync(currentUserId);
+
+        if (user == null)
+        {
+            // This shouldn't happen if the user is authorized, but handle defensively
+            return NotFound("User not found.");
+        }
+
+        // Map to UserDto (ensure UserDto includes necessary fields like id, firstName, lastName, email)
+        var userDto = new UserDto
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            CreatedAt = user.CreatedAt // Include if needed by frontend User model
+            // Add other fields if your UserDto and frontend User model require them
+        };
+
+        return Ok(userDto);
     }
 }

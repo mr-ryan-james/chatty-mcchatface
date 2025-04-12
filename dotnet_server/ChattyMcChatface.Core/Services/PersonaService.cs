@@ -95,7 +95,7 @@ namespace ChattyMcChatface.Core.Services
 
                 if (string.IsNullOrEmpty(personaUser.PreferredModelId))
                 {
-                    _logger.LogWarning("Persona user ID {PersonaUserId} has no PreferredModelId configured. Fallback will be used.");
+                    _logger.LogWarning("Persona user ID {PersonaUserId} has no PreferredModelId configured; fallback model selection will be used.", personaUser.Id);
                 }
 
                 // Fetch recent chat history
@@ -132,7 +132,7 @@ namespace ChattyMcChatface.Core.Services
                     // Explicitly specify <string> to satisfy constraints and resolve nullability warnings
                     responseText = await AiFallbackUtil.GetWithFallbackAsync<string>(
                         AiFallbackUtil.GlobalModelPriority, // Use the global priority list
-                        personaUser.PreferredModelId,
+                        personaUser.PreferredModelId ?? string.Empty, // Provide default if null
                         async (modelId) =>
                         {
                             switch (modelId)
